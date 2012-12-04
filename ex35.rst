@@ -1,0 +1,48 @@
+Exercise 35: Branches and Functions
+===================================
+
+You have learned to do ``if-statements``, functions, and arrays. Now
+it's time to bend your mind. Type this in, and see if you can figure out
+what it's doing.
+
+.. literalinclude:: ex/ex35.rb
+    :language: ruby
+    :linenos:
+
+What You Should See
+-------------------
+
+Here's me playing the game:
+
+.. code-block:: console
+
+    $ ruby ex35.rb
+    You are in a dark room.
+    There is a door to your right and left.
+    Which one do you take?
+    > left
+    There is a bear here.
+    The bear has a bunch of honey.
+    The fat bear is in front of another door.
+    How are you going to move the bear?
+    > taunt bear
+    The bear has moved from the door. You can go through it now.
+    > open door
+    This room is full of gold.  How much do you take?
+    > asf
+    Man, learn to type a number. Good job!
+    $
+
+Extra Credit
+------------
+
+1. Draw a map of the game and how you flow through it.
+2. Fix all of your mistakes, including spelling mistakes.
+3. Write comments for the functions you do not understand. Remember
+   **RDoc** comments?
+4. Add more to the game. What can you do to both simplify and expand it.
+5. The ``gold_room`` has a weird way of getting you to type a number.
+   What are all the bugs in this way of doing it? Can you make it better
+   than just checking if "1" or "0" are in the number? Look at how
+   ``to_i()`` works for clues.
+

@@ -1,0 +1,51 @@
+Exercise 14: Prompting And Passing
+==================================
+
+Let's do one exercise that uses ``ARGV`` and ``gets.chomp()`` together
+to ask the user something specific. You will need this for the next
+exercise where we learn to read and write files. In this exercise we'll
+print a simple ``>`` prompt. This is similar to a game like Zork or
+Adventure.
+
+.. literalinclude:: ex/ex14.rb
+    :language: ruby
+    :linenos:
+
+**Important:** Also notice that we're using ``STDIN.gets``
+instead of plain 'ol ``gets``. That is because if there is stuff in
+``ARGV``, the default ``gets`` method tries to treat the first one as a
+file and read from that. To read from the user's input (i.e., ``stdin``)
+in such a situation, you have to use it ``STDIN.gets`` explicitly.
+
+What You Should See
+-------------------
+
+When you run this, remember that you have to give the script your name
+for the ``ARGV`` arguments.
+
+.. code-block:: console
+
+    $ ruby ex14.rb Zed
+    Hi Zed, I'm the ex/ex14.rb script.
+    I'd like to ask you a few questions.
+    Do you like me Zed?
+    > Yes
+    Where do you live Zed?
+    > America
+    What kind of computer do you have?
+    > Tandy
+    Alright, so you said Yes about liking me.
+    You live in America.  Not sure where that is.
+    And you have a Tandy computer.  Nice.
+
+Extra Credit
+------------
+
+1. Find out what Zork and Adventure were. Try to find a copy and play
+   it.
+2. Change the ``prompt`` variable to something else entirely.
+3. Add another argument and use it in your script.
+4. Make sure you understand how I combined a ``<<SOMETHING`` style
+   multi-line string with ``#{ }`` string interpolation as the last
+   print.
+

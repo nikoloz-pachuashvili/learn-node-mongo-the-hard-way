@@ -1,0 +1,18 @@
+ ruby ex41.rb english
+Make a class named Brother that is-a Cracker.
+
+> class Brother < Cracker    
+
+ANSWER:  class Brother < Cracker
+end
+
+From behavior get the cent function, and call it with parameters dress, board.
+
+> behavior.cent(derss, board)
+
+ANSWER:  behavior.cent(dress, board)
+
+Set basket to an instance of class Cough.
+
+> ^D
+$

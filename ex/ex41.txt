@@ -1,0 +1,33 @@
+$ ruby ex41.rb
+class Branch
+	def initialize(bell, degree, arm)
+	end
+end
+
+> class Branch has-a initialize that takes bell, degree, and arm parameters.
+
+ANSWER:  class Branch has-a initialize that takes bell, degree, arm parameters.
+
+bat.collar(death, arithmetic)
+
+> From bat get the collar function can call it with death, arithmetic parameters.
+
+ANSWER:  From bat get the collar function, and call it with parameters death, arithmetic.
+
+cannon.carpenter = 'corn'
+
+> From cannon get the carpenter attribute and set it to 'corn'.
+
+ANSWER:  From cannon get the carpenter attribute and set it to 'corn'.
+
+animal = Border.new()
+
+> Set animal equal to an instance of class Border.
+
+ANSWER:  Set animal to an instance of class Border.
+
+class Bat < Breakfast
+end
+
+> ^D
+$
