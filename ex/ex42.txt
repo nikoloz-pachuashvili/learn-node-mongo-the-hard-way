@@ -1,5 +1,0 @@
-$ python ex.py
-
-$
-I got called.
-I got called.

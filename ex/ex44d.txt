@@ -1,8 +1,0 @@
-PARENT implicit()
-PARENT implicit()
-PARENT override()
-CHILD override()
-PARENT altered()
-CHILD, BEFORE PARENT altered()
-PARENT altered()
-CHILD, AFTER PARENT altered()
