@@ -1,4 +1,4 @@
-Exercise 2: Async programming introduction
+Exercise 3: Async programming introduction
 ==========================================
 
 There are several pitfals that are worth understanding before we get started
