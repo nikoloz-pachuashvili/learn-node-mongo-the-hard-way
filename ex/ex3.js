@@ -23,7 +23,9 @@ var loadBatches = function(numberOfBatches, callback) {
     numberOfBatches = numberOfBatches - 1;
     
     if(numberOfBatches == 0) return callback();
-    loadBatches(numberOfBatches, callback);
+    process.nextTick(function() {
+      loadBatches(numberOfBatches, callback);      
+    })
   })
 }
 
