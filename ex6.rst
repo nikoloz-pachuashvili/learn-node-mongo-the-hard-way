@@ -39,7 +39,7 @@ Time to live collections (TTL)
 
 From MongoDB 2.2 onwards there is a new type of collection called a ``TTL`` collection. It's a bit of a misdemeaner to call it a type of collections as it's actually a ``standard`` collection with a special type to live ``index`` on a date fields that automatically removes documents that are older than the time specified for the ``TTL index``. It's a very useful when want only to store data for a specified time period. Say we only want to keep 48 hours of log data in a collection. With ``TTL`` you can set the time of expiry to be 48 hours and documents will be removed when they are older than 48 hours. Code is a thousand words so fire up your editor and enter the code below.
 
-.. literalinclude:: ex/ex10.js
+.. literalinclude:: ex/ex11.js
     :language: javascript
     :linenos:
 
