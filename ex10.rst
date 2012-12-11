@@ -1,0 +1,4 @@
+Exercise 10: Update Basics
+==========================
+
+In the previous exercises we learned how to insert document into MongoDB and what a write concern is. We also learned why ``.save()`` is not a good way of saving your documents and how bulk inserts work. We've got those
