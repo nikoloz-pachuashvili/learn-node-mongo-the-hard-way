@@ -1,7 +1,7 @@
 Exercise 7: Inserting documents
 ===============================
 
-The first and most important feature of a database is to be able to store data in it. Let's get cracking on inserting documents into MongoDB. There are 3 main things you need to know about inserting documents in MongoDB using the Node.js driver. These are write concerns, single inserts and bulk inserts. Before hitting the details let's do a single document insert to get us moving and explain the basic concept. Fire up your text editor and enter the following code.
+The first and most important feature of a database is to be able to store data in it. Let's get cracking on inserting documents into MongoDB. There are 3 main things you need to know about inserting documents in MongoDB using the Node.js driver. These are single inserts, bulk inserts and write concerns. Before hitting the details let's do a single document insert to get us moving and explain the basic concept. Fire up your text editor and enter the following code.
 
 .. literalinclude:: ex/ex12.js
     :language: javascript
@@ -58,6 +58,9 @@ Let's check what's in the database after we ran our script.
 So what happened here. The first insert command worked as expected and our document was saved in the database with the ``_id`` set to ``1`` as we expected. When the second insert was tried however it failed and we got the message that the document with that ``_id`` already exists. Since ``_id`` needs to be unique that is as expected.
 
 One thing to remember is that the ``_id`` can be any ``BSON`` type including a binary which is used to for example use global unique identifiers called ``UUID's`` (read more at http://en.wikipedia.org/wiki/Universally_unique_identifier about UUID). This can be quite useful as we mentioned above for some specific scenarios. But for this book we will stick to the plain vanilla ``ObjectId`` or ``ObjectID`` as its nown in the Node.js driver.
+
+Bulk Inserts
+------------
 
 So this is quite good, we can easily insert a document. So what if we want to insert 100 documents. The first thought might be something like the code below. Enter it an run it.
 
@@ -223,6 +226,15 @@ This code is a bit complicated but the basic explanation is that after we try to
 You might wonder what the ``$in`` means and we will get into that in a later exercise. Sufficient to say for now that it's a asking MongoDB to return all documents where ``_id`` is in the list of ``_id's`` in the ``ids`` array.
 
 One thing to note is that you might get a duplicate key error on another field in your document, how to resolve this issue I leave as an exercise for you to figure out.
+
+Save
+----
+
+If you've looked at the documentation for the driver you might have noticed there is a ``save`` function on the ``collection`` object. From the beginning this might look like a resonable method to use to save your document. If this document already exists (it matches it by the ``_id``) it will replace the entire document. We will go through why this is non optimial later when we talk about updates but I'll give you a hint. Why replace the whole document if you only want to change a single field ? There are some other side effects of full document replacement that we will highlight later.
+
+But for now let's move on to the next exercise which is about one of the most interesting features of MongoDB the ability to specify the durability concern for your application.
+
+
 
 
 
