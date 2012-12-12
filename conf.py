@@ -37,8 +37,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Learn Ruby The Hard Way'
-copyright = u'2010, Zed A. Shaw and Rob Sobers'
+project = u'Learn MongoDB And Node.js The Hard Way'
+copyright = u'2012, Christian Amor Kvalheim'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -105,10 +105,10 @@ html_theme_path = ['./theme']
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-html_title = "Learn Ruby The Hard Way"
+html_title = "Learn MongoDB And Node.js The Hard Way"
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
-html_short_title = "Learn Ruby The Hard Way"
+html_short_title = "Learn MongoDB And Node.js The Hard Way"
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
@@ -160,7 +160,7 @@ html_use_index = False
 #html_file_suffix = ''
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'LearnRubyTheHardWaydoc'
+htmlhelp_basename = 'LearnMongoDBAndNodeJSTheHardWaydoc'
 
 
 # -- Options for LaTeX output --------------------------------------------------
@@ -174,8 +174,8 @@ latex_font_size = '10pt'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'LearnRubyTheHardWay.tex', u'Learn Ruby The Hard Way',
-   u'Zed A. Shaw and Rob Sobers', 'manual'),
+  ('index', 'LearnMongoDBAndNodeJSTheHardWaydoc.tex', u'Learn MongoDB And Node.js The Hard Way',
+   u'Christian Amor Kvalheim', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

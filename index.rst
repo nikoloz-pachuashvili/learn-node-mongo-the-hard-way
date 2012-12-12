@@ -1,10 +1,10 @@
-Learn Ruby The Hard Way
-=======================
+Learn MongoDB And Node.js The Hard Way
+======================================
 
-Welcome to Learn Ruby the hard way. This is a translation of "Learn Python The
-Hard Way" to teach total beginners Ruby.   It's in the same style, and the
-content is nearly the same, but it will teach you Ruby.  If you have problems
-email help@learncodethehardway.org.
+Welcome to Node.js and MongoDB the hard way. This is a new book that aims to teach
+you everything you need to get the most out of MongoDB and Node.js. It takes a lot
+of inspiration from "Learn Python The Hard Way by Zed Shaw" and aspires to be as
+helpful to you as the awesome "The Hard Way books" available.
 
 .. toctree::
    :maxdepth: 1
