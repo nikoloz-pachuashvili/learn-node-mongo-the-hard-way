@@ -1,5 +1,5 @@
-Tic-Tac-Toe
-===========
+Tic-Tac-Toe: Exercise 1
+=======================
 
 We are going to build ourselves a brand new super hi technology multiplayer Tic-Tac-Toe game (and the crowd goes wild). During these exercises we will learn about exiting technologies such as ``SocketIO`` and ``Express JS` two of the most popular ``NPM`` modules currently available for Node.JS in 2013 as well as ``MongoDB`` of course. The application is also build slightly differently than what you might be used to if you've written more classic web applications. It's 100% client driven and dynamic. Yes you read right it's Javascript the whole way down in this app. Only a single controller renders HTML once the rest is all rendered in the client using ``Mustache`` to create an awesome next generation Tic-Tac-Toe worthy of the title the best multiplayer Tic-Tac-Toe game ever.
 
@@ -50,6 +50,7 @@ Mac OSX and Linux
 Go to the directory where you want to put the game and let's set up the basics.
 
 .. code-block:: console
+    :linenos:
 
     mkdir tic-tac-toe
     cd tic-tac-toe
@@ -98,6 +99,7 @@ Notice the part called ``dependencies``. This tells NPM that our application nee
 ``NPM`` will not go ahead and download our dependencies. Once it is finished we need to ``bootstrap`` our application or in other words set up the initial structure. Lets boot up the console and create our directory structure as well as grab the libraries like ``bootstrap``, ``jquery``, ``mustache`` and the images we need for the board.
 
 .. code-block:: console
+    :linenos:
 
     mkdir public
     mkdir public/javascripts
