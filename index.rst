@@ -64,6 +64,7 @@ helpful to you as the awesome "The Hard Way books" available.
    ex51
    ex52
    tic1
+   tic2
    next
    advice
 
