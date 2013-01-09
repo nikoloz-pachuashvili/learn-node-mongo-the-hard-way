@@ -217,7 +217,7 @@ There are two types of handlers we can set up.
 
 A ``on`` and ``once`` handler (blatant ripoff from Node.js EventEmitter). The ``on`` registers a function to an ``event`` that gets called each time that event is detected in a ``SocketIO`` message. The ``once`` registers a function that will only fire once when a message of the event type is detected in a ``SocketIO`` message.
 
-Why do we do this. Well simply put. When we do a single call to the backend we don't want the callback to be executed more than once and since all messaging is driven by events we register a callback for only a single ``execution``. But for some other things like when a new player joins the game we might want to get messaged each time it happens using the same function. That's when ``on`` comes into force. It will make more sense when we show you the next code.
+Why do we do this. Well simply put. When we do a single call to the backend we don't want the callback to be executed more than once and since all messaging is driven by events we register a callback for only a single ``execution``. But for some other things like when a new player joins the game we might want to get messaged each time it happens using the same function. That's when ``on`` comes into force. Don't worry it will make more sense when we show you the next pice of code.
 
 .. code-block:: javascript
     :linenos:
@@ -277,7 +277,181 @@ Why do we do this. Well simply put. When we do a single call to the backend we d
       }
     }
 
+Let's have a look at the ``API.prototype.register`` function in the ``API``. It first does a couple of validations checking that ``full_name``, ``user_name`` and ``password`` are not empty strings and if anyone of them are it calls the calling function with a ``standardized`` error message (same format as we send from the server) using the ``create_error`` function. If all the validations pass we use the ``once`` method mentioned above to register the calling functions ``callback`` function to the event ``register``. This means that when the frontend receives an event of type ``register`` it will locate that callback and execute it returning the results to the code originally calling the ``register`` ``API`` method. After registering the ``callback`` the method sends a message down to the backend with the event ``register`` that gets processed by our backend handler in ``lib/handlers/login_handler.js`` file called ``register_handler``. 
 
+The same applies for the ``API.prototype.login`` method the difference being that the message sent is handled by the ``login_handler`` function in the ``lib/handlers/login_handler.js`` file.
+
+Wiring up the code
+------------------
+
+Right we've defined the ``API`` for the game, let's wire it all up so we can actually perform a registration or login. Open the file ``public/javascript/app.js`` in your editor.
+
+.. literalinclude:: ex/tic12.js
+    :language: javascript
+    :linenos:
+
+The first part of the file is the ``application_state``. This object keeps track of all application specific information needed across the lifetime of the application such as the current session id associated with the current user. The ``var api = new API()`` statement keeps an instance of the api around for the application to use and initiates contact with the server over websockets.
+
+Let's have a look at a special class we use to handle the rendering of our templates. Open the ``public/javascripts/template_handler.js`` and add the following code.
+
+.. literalinclude:: ex/tic13.js
+    :language: javascript
+    :linenos:
+
+This class takes care of loading, caching and rendering our templates used in the application.
+
+=====================   ================================
+Function                Description
+=====================   ================================
+start                   Loads all the templates provided in the constructor
+setTemplate             Renders a template and sets a div
+isTemplate              Checks if a named template exists
+render                  Render a named template and return the rendered result
+=====================   ================================
+
+All templates passed into the ``TemplateHandler`` constructor are passed as an object like this. Each template has a unique name and a url location for the template itself. All the templates are written in a template language called ``mustache`` http://mustache.github.com/.
+
+.. code-block:: json
+    :linenos:
+
+    {
+        "main": "/templates/main.ms"
+      , "dashboard": "/templates/dashboard.ms"
+    }
+
+Open up your editor and enter the two templates. The first one is at ``public/templates/main.ms``
+
+.. literalinclude:: ex/tic14.ms
+    :language: mustache
+    :linenos:
+
+The second one is at ``public/templates/dashboard.ms``
+
+.. literalinclude:: ex/tic15.ms
+    :language: mustache
+    :linenos:
+
+The benefit of ``Mustache`` is that it keeps a very sharp divider between your code and the rendering avoiding silly string concatenations to generate HTML for your application. You can read more up on ``Mustache`` on the link above but safe to say it's a very very simple and limited little template language.
+
+Alright after that digression let's return to the ``TemplateHandler`` class. The ``TemplateHandler.prototype.start`` method will use ``JQuery`` to load the templates specified and store them in an internal hash. The application uses the method ``TemplateHandler.prototype.setTemplate`` to set a overwrite an HTML elements content identified by ``id`` using ``JQuery`` with the content of the rendered template identified by ``template_name`` and the passed in values in the ``context`` object.
+
+The other method ``TemplateHandler.prototype.render`` is similar to the ``TemplateHandler.prototype.setTemplate`` method but returns the rendered template result instead of overwriting the content of an existing HTML element.
+
+Ok that explains the ``TemplateHandler`` class it's time to get back to the ``public/javascript/app.js`` file and write some of the code for the application (I consider ``TemplateHandler`` a plumbing class).
+
+.. code-block:: javascript
+    :linenos:
+
+    // Load all the templates and once it's done
+    // register up all the initial button handlers
+    template_handler.start(function(err) {
+
+      // Render the main view in the #view div
+      template_handler.setTemplate("#view", "main", {});
+
+      // Wire up the buttons for the main view
+      $('#register_button').click(register_button_handler(application_state, api, template_handler));
+      $('#login_button').click(login_button_handler(application_state, api, template_handler));
+    })
+
+When the user loads the webpage a ``TemplateHandler`` instance gets created and the method ``start`` is called that loads all the templates and then sets the initial template view overwriting the HTML element identified by the id ``view``. After rendering and replacing the HTML the method wires up the ``register_button`` and the ``login_button`` to listen for a user clicking the button. If a user clicks the ``register_button`` the ``register_button_handler`` function is called and if the user clicks the ``login_button`` the ``login_button_handler`` function is called.
+
+Lets look at the next part of the file ``public/javascript/app.js``.
+
+.. code-block:: javascript
+    :linenos:
+
+    /**
+     * The init event, the server has set up everything an assigned us
+     * a session id that we can use in the application
+     */
+    api.on("init", function(err, data) {
+      application_state.session_id = data;
+    });
+
+    /**
+     * A new gamer logged on, display the new user in the list of available gamers
+     * to play
+     */
+    api.on('gamer_joined', function(err, data) {
+      if(err) return;
+    });
+
+Here are using the ``on`` method from the ``API`` class to listen to the events ``init`` and ``gamer_joined``. As you can see at this point we are only storing the result returned in the ``init`` event handler. This happens to be the current session id returned from the server. The other event handler will be fleshed out in later tutorial exercises.
+
+Time to look at our two actual button handlers.
+
+.. code-block:: javascript
+    :linenos:
+
+    /**
+     * Handles the attempt to register a new user
+     */
+    var register_button_handler = function(application_state, api, template_handler) {
+      return function() {    
+        // Lets get the values for the registration
+        var full_name = $('#inputFullNameRegister').val();
+        var user_name = $('#inputUserNameRegister').val();
+        var password = $('#inputPasswordRegister').val();
+
+        // Attempt to register a new user
+        api.register(full_name, user_name, password, function(err, data) {
+          // If we have an error show the error message to the user
+          if(err) return error_box_show(err.error);
+
+          // Show the main dashboard view and render with all the available players
+          template_handler.setTemplate("#view", "dashboard", {gamers: []});
+        });
+      }
+    }
+
+The first part of the method grabs the content of the three fields ``inputFullNameRegister``, ``inputUserNameRegister`` and ``inputPasswordRegister`` then attempts to register the user calling the ``api.register`` method. When the method returns the callback gets called with two parameters ``err`` and ``data`` (Standard Node.js callback). If the ``err`` parameter is not equal to ``null`` the ``register`` function failed and we use the method ``error_box_show`` to present the user with an error message dialog. Since all our error messages follow the same standard this makes it easy to create a more generalized error message box. If not error happened the user was successfully created and logged in and we then set the HTML element to the ``dashboard.ms`` template and render it. Registration complete. 
+
+.. code-block:: javascript
+    :linenos:
+
+    /**
+     * Handles the attempt to login
+     */
+    var login_button_handler = function(application_state, api, template_handler) {
+      return function() {
+        // Lets get the values for the login
+        var user_name = $('#inputUserNameLogin').val();
+        var password = $('#inputPasswordLogin').val();
+
+        // Attempt to login the user
+        api.login(user_name, password, function(err, data) {
+          // If we have an error show the error message to the user
+          if(err) return error_box_show(err.error);
+
+          // Show the main dashboard view and render with all the available players
+          template_handler.setTemplate("#view", "dashboard", {gamers:[]});
+        });
+      }
+    }
+
+The login code is very similar as you can see with the difference just being that we are calling the ``api.login`` function. Pretty self explanatory.
+
+We've finally finished up the ``register`` and ``login`` parts of the tic-tac-toe game. Let's fire up the server an play around with our result.
+
+.. code-block:: console
+    :linenos:
+
+    node app
+
+Some scenarios to try out.
+
+1. Attempt a login with non existing user.
+2. Attempt to register a new user with the full name field empty.
+3. Fill in all the fields correctly for a registered user.
+4. Login in using a registered user.
+
+That finished step two in the tutorial. Join us for the next tutorial step where we implement the game play.
+
+Notes
+-----
+
+This is a very simplified registration and login process. You might want to do things like extend the validations on the client and server side for password strength and maybe add an email verification process to make sure the new player enters a valid email but this is left as an exercise for you to do.
 
 
 

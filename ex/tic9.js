@@ -1,6 +1,6 @@
-var emit_message = require("./shared").emit_message
-  , emit_message_all = require("./shared").emit_message_all
-  , emit_error = require("./shared").emit_error;
+var emit_message = require("../models/shared").emit_message
+  , emit_message_all = require("../models/shared").emit_message_all
+  , emit_error = require("../models/shared").emit_error;
 
 var user = require('../models/user')
   , gamer = require('../models/gamer');
