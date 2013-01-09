@@ -5,8 +5,8 @@ Welcome back it's time to start filling in our empty frame of a game with all ou
 
 As we mentioned in the last tutorial exercise we've decided to go with a API over websocket as it's all the rage (as in 2013 at least when this was written) and we've forgone any fancy frameworks like ``meteor``, ``socketstream`` etc to make it very clear what's going on (I hope).
 
-The glue to hold i together
----------------------------
+The Glue Of It All
+------------------
 
 Let's create the pieces we need.
 
@@ -42,7 +42,7 @@ We are defining both of these ``handler`` functions in the ``lib/handlers/login_
     var register_handler                  = require('./lib/handlers/login_handler').register_handler
       , login_handler                     = require('./lib/handlers/login_handler').login_handler
 
-Modeling that data
+Modeling That Data
 ------------------
 
 So it's quite obvious that we need some sort of entities in our game for the user. In this game we've decided to use the two terms ``user`` and ``gamer`` where ``user`` is the login and user information for a particular mark(user) and where gamer is the current ``session`` relationship between a ``user`` in ``MongoDB`` and the browser the user is playing on.
@@ -93,7 +93,7 @@ Two things to notice the ``Gamer.init`` and the ``Gamer.updateGamer`` methods. T
 
 Notice that added the line ``gamer(db).init(function(err, result) {`` to the ``env.js`` file. This means the initialization of the ``TTL`` index on the ``gamers`` collection will only happen at startup. Alright we got our models up and running let's get cracking on the backend API's for our game.
 
-Handler time
+Handler Time
 ------------
 
 As we see we have two handlers we need to define on the server side to allow for a new user to ``register`` and ``login`` namely ``register_handler`` and ``login_handler``.
@@ -104,7 +104,7 @@ Fire up the text editor, open ``lib/handlers/login_handler.js`` and get cracking
     :language: javascript
     :linenos:
 
-The register_handler function
+The register_handler Function
 -----------------------------
 
 Let's have a look at the ``register_handler`` method that handle the registration of a new user to the game. The first thing you notice is that we return a ``function``. This is used to create a unique function tied to the specific connection's socket. The returned function actually responds to any messages sent via ``SocketIO`` with the event ``register``. ``SocketIO`` will return a ``data`` object that contains ``full_name``, ``user_name`` and ``password``. The first step is to check if the user already exists by calling the ``findByUser`` method on the ``User`` model we have. If there is one we call a method called ``emit_error`` that is defined in ``shared.js`` that ensures all error messages sent back to the browser share the same formating.
@@ -135,7 +135,7 @@ At the end we look up our ``gamer`` document by our ``session`` id and send a me
 
 That closes up the backend part of the registration/login process. Let's move onto the frontend part of the application and implement the other side of our game.
 
-Fronting it
+Fronting It
 -----------
 
 One of the things we touched upon earlier was a common error message. We want to have a common error box for all errors on the frontend and we are going to add it as a ``modal`` dialog using ``bootstrap``. Let's bring up the editor and add it to our ``index.html`` file.
@@ -281,7 +281,7 @@ Let's have a look at the ``API.prototype.register`` function in the ``API``. It 
 
 The same applies for the ``API.prototype.login`` method the difference being that the message sent is handled by the ``login_handler`` function in the ``lib/handlers/login_handler.js`` file.
 
-Wiring up the code
+Wiring Up The Code
 ------------------
 
 Right we've defined the ``API`` for the game, let's wire it all up so we can actually perform a registration or login. Open the file ``public/javascript/app.js`` in your editor.
