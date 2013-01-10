@@ -436,65 +436,65 @@ to both the calling player and the other participating player. After we have emi
 .. code-block:: javascript
     :linenos:
 
-  /**
-   * Checks from a given marker position if it's a winner
-   * on the horizontal, vertical or diagonal
-   *
-   * [0, 0, 0] [0, 1, 0] [1, 0, 0] [0, 0, 1]
-   * [1, 1, 1] [0, 1, 0] [0, 1, 0] [0, 1, 0]
-   * [0, 0, 0] [0, 1, 0] [0, 0, 1] [1, 0, 0]
-   */
-  var is_game_over = function(board, y, x, marker) {
-    // Check the x and y for the following ranges
-    var found_vertical = true;
-    var found_horizontal = true;
-    var found_diagonal = true;
+    /**
+     * Checks from a given marker position if it's a winner
+     * on the horizontal, vertical or diagonal
+     *
+     * [0, 0, 0] [0, 1, 0] [1, 0, 0] [0, 0, 1]
+     * [1, 1, 1] [0, 1, 0] [0, 1, 0] [0, 1, 0]
+     * [0, 0, 0] [0, 1, 0] [0, 0, 1] [1, 0, 0]
+     */
+    var is_game_over = function(board, y, x, marker) {
+      // Check the x and y for the following ranges
+      var found_vertical = true;
+      var found_horizontal = true;
+      var found_diagonal = true;
 
-    // y and x = 0 to x = n
-    for(var i = 0; i < board[0].length; i++) {
-      if(board[y][i] != marker) {
-        found_horizontal = false;
-        break;
+      // y and x = 0 to x = n
+      for(var i = 0; i < board[0].length; i++) {
+        if(board[y][i] != marker) {
+          found_horizontal = false;
+          break;
+        }
       }
-    }
-    // Found a winning position
-    if(found_horizontal) return true;
+      // Found a winning position
+      if(found_horizontal) return true;
 
-    // x and y = 0 to y = n
-    for(var i = 0; i < board.length; i++) {
-      if(board[i][x] != marker) {
-        found_vertical = false;
-        break;
+      // x and y = 0 to y = n
+      for(var i = 0; i < board.length; i++) {
+        if(board[i][x] != marker) {
+          found_vertical = false;
+          break;
+        }
       }
-    }
 
-    // Found a winning position
-    if(found_vertical) return true;
+      // Found a winning position
+      if(found_vertical) return true;
 
-    // 0, 0 to n, n along the diagonal
-    for(var i = 0, j = 0; i < board[0].length; i++) {
-      if(board[j++][i] != marker) {
-        found_diagonal = false;
-        break;
+      // 0, 0 to n, n along the diagonal
+      for(var i = 0, j = 0; i < board[0].length; i++) {
+        if(board[j++][i] != marker) {
+          found_diagonal = false;
+          break;
+        }
       }
-    }
 
-    // Found a winning position
-    if(found_diagonal) return true;
-    // Reset found diagonal
-    found_diagonal = true;
+      // Found a winning position
+      if(found_diagonal) return true;
+      // Reset found diagonal
+      found_diagonal = true;
 
-    // n, 0 to 0, n along the diagonal
-    for(var i = board[0].length - 1, j = 0; i > 0 ; i--) {
-      if(board[j++][i] != marker) {
-        found_diagonal = false;
-        break;
+      // n, 0 to 0, n along the diagonal
+      for(var i = board[0].length - 1, j = 0; i > 0 ; i--) {
+        if(board[j++][i] != marker) {
+          found_diagonal = false;
+          break;
+        }
       }
-    }
 
-    // Return result of looking in the diagonal
-    return found_diagonal;
-  }
+      // Return result of looking in the diagonal
+      return found_diagonal;
+    }
 
 This method checks for the four possible conditions of winning, a ``diagonal``, ``horizontal`` or ``vertical`` win. There are probably some shorter versions of the code but this is left as an exercise to you the reader if you think it's important. If you expect your Tic-Tac-Toe game boards to be very big it's suboptimal.
 
@@ -557,6 +557,14 @@ Let's get cracking on integrating our awesome backend apis into our playable gam
     :language: javascript
     :linenos:
 
+You might see that we are using two new templates one ``board.ms`` and the other ``decline_game.ms``. Let's create the two files.
+
+.. code-block:: console
+    :linenos:
+
+    touch public/templates/board.ms
+    touch public/templates/decline_game.ms
+
 Let's have a look at the five methods we are adding to the ``API``.
 
 ==========================   ================================
@@ -585,7 +593,7 @@ The first thing we need to do after adding the new dialog is to finish writing t
 
 The main thing to notice here is the ``{{#gamers}}`` tag that iterates through the ``gamers`` array in the ``context`` parameter we pass in when using the ``TemplateHandler.prototype.setTemplate`` or ``TemplateHandler.prototype.render`` method. For each gamer we add a new row in a table with a link that has the ``gamer_ + session id`` as an identifier. Later we will see how we wire up this link to be able to invite the player identified by it.
 
-Awesome that's the dasboard taken care off, let's wire it up so that when you log on you can see the list of available players. Let's open up ``public/javascripts/app.js`` in the editor and let's get cracking.
+Awesome that's the dashboard taken care off, let's wire it up so that when you log on you can see the list of available players. Let's open up ``public/javascripts/app.js`` in the editor and let's get cracking.
 
 .. literalinclude:: ex/tic24.js
     :language: javascript
@@ -602,11 +610,13 @@ game_over                    A move lead to the game finishing, determine what t
 game_invite                  Another player invited you to join them in a game in Tic-Tac-Toe. Display the dialog to the player to allow them to accept/decline the invitation
 ==========================   ================================
 
-The other methods we need to add to the file are.
+The other methods we need to add or change are.
 
 =============================   ================================
 Parameter                       Description
 =============================   ================================
+register_button_handler         When the player registers we now need to render the initial list of available players as well as the dashboard
+login_button_handler            When the player logs in we now need to render the initial list of available players as well as the dashboard
 invite_gamer_button_handler     When the player clicks on another player to invite them to a game
 invite_accept_button_handler    Handle the user clicking to accept a game invitation
 invite_decline_button_handler   Handle the user clicking on decline a game invitation
@@ -634,7 +644,7 @@ The gamer_joined Event Handler
       // Get the gamer
       var gamer = data;
       // Check if we have the gamer already
-      if(application_state.gamers == null) return;
+      if(application_state.gamers == null) application_state.gamers = [];
       // Check if the gamer already exists and if it does 
       var found = false;
 
@@ -654,7 +664,7 @@ The gamer_joined Event Handler
       // If not found let's add it to the list
       if(!found) application_state.gamers.push(gamer);
       // If we currently have the dashboard
-      if(template_handler.isTemplate("dashboard")) {
+      if(template_handler.isTemplate("dashboard") && !application_state.modal) {
         var gamers = application_state.gamers;
         // Let's go to the dashboard of the game
         template_handler.setTemplate("#view", "dashboard", {gamers:gamers});    
@@ -665,7 +675,7 @@ The gamer_joined Event Handler
       }
     });
 
-The ``gamer_joined`` event handler gets called every time a new player logs into the game. If the player already exists in our list we update the players session id and last active time to make sure we can talk to the correct player. If it does not exist we push it to the list of our users. If we are showing the ``dashboard`` view we re-render the list so we can show the newly added player.
+The ``gamer_joined`` event handler gets called every time a new player logs into the game. If the player already exists in our list we update the players session id and last active time to make sure we can talk to the correct player. If it does not exist we push it to the list of our users. If we are showing the ``dashboard`` view we re-render the list so we can show the newly added player but ignore the rendering if a modal dialog is present. It's left as an exercise to the user on how to handle the rendering if the modal dialog is showing. One possibility is to defer the rendering until the modal dialog is closed.
 
 The game_move Event Handler
 ---------------------------
@@ -712,6 +722,91 @@ The game_invite Event Handler
     });
 
 The ``game_invite`` event handler will save the current invite in progress and display the invite accept/decline dialog box.
+
+The register_button_handler Handler
+-----------------------------------
+
+.. code-block:: javascript
+    :linenos:
+
+    /**
+     * Handles the attempt to register a new user
+     */
+    var register_button_handler = function(application_state, api, template_handler) {
+      return function() {    
+        // Lets get the values for the registration
+        var full_name = $('#inputFullNameRegister').val();
+        var user_name = $('#inputUserNameRegister').val();
+        var password = $('#inputPasswordRegister').val();
+
+        // Attempt to register a new user
+        api.register(full_name, user_name, password, function(err, data) {
+          // If we have an error show the error message to the user
+          if(err) return error_box_show(err.error);
+
+          // Load all the available gamers
+          api.find_all_available_gamers(function(err, gamers) {
+            // If we have an error show the error message to the user        
+            if(err) return error_box_show(err.error);
+
+            // Save the list of games in our game state
+            application_state.gamers = gamers;
+     
+            // Show the main dashboard view and render with all the available players
+            template_handler.setTemplate("#view", "dashboard", {gamers:gamers});
+            
+            // Add handlers for each new player so we can play them
+            for(var i = 0; i < gamers.length; i++) {
+              $("#gamer_" + gamers[i]._id).click(invite_gamer_button_handler(application_state, api, template_handler));
+            }
+          });
+        });
+      }
+    }
+
+We've modified the ``register_button_handler`` handler to fetch the available players and render the ``dashboard`` view showing all of them. After finishing rendering the ``dashboard`` we wire up all the players so we can click on them to invite them to a game.
+
+The login_button_handler Handler
+--------------------------------
+
+.. code-block:: javascript
+    :linenos:
+
+    /**
+     * Handles the attempt to login
+     */
+    var login_button_handler = function(application_state, api, template_handler) {
+      return function() {
+        // Lets get the values for the login
+        var user_name = $('#inputUserNameLogin').val();
+        var password = $('#inputPasswordLogin').val();
+
+        // Attempt to login the user
+        api.login(user_name, password, function(err, data) {
+          // If we have an error show the error message to the user
+          if(err) return error_box_show(err.error);
+
+          // Load all the available gamers
+          api.find_all_available_gamers(function(err, gamers) {
+            // If we have an error show the error message to the user        
+            if(err) return error_box_show(err.error);
+
+            // Save the list of games in our game state
+            application_state.gamers = gamers;
+
+            // Show the main dashboard view and render with all the available players
+            template_handler.setTemplate("#view", "dashboard", {gamers:gamers});
+
+            // Add handlers for each new player so we can play them
+            for(var i = 0; i < gamers.length; i++) {
+              $("#gamer_" + gamers[i]._id).click(invite_gamer_button_handler(application_state, api, template_handler));
+            }
+          });
+        })
+      }
+    }
+
+We've modified the ``login_button_handler`` handler to fetch the available players and render the ``dashboard`` view showing all of them. After finishing rendering the ``dashboard`` we wire up all the players so we can click on them to invite them to a game.
 
 The invite_gamer_button_handler Handler
 ---------------------------------------
@@ -772,6 +867,33 @@ The invite_accept_button_handler Handler
 
 The ``invite_accept_button_handler`` handles the user clicking the accept button on the player was invited dialog. It calls the ``api.accept_game`` with the existing invite and if the successful it will set up the board using the ``setupBoardGame`` function.
 
+Notice how we wire it up in the ``template_handler.start`` callback. This goes for both the ``invite_accept_button_handler`` and ``invite_decline_button_handler`` as this dialog is permanent and is not recreated anytime so the ``click`` event handlers can live for as long as the web page does.
+
+.. code-block:: javascript
+    :linenos:
+
+    // Load all the templates and once it's done
+    // register up all the initial button handlers
+    template_handler.start(function(err) {
+
+      // Render the main view in the #view div
+      template_handler.setTemplate("#view", "main", {});
+
+      // Wire up the buttons for the main view
+      $('#register_button').click(register_button_handler(application_state, api, template_handler));
+      $('#login_button').click(login_button_handler(application_state, api, template_handler));
+
+      // Wire up invite box buttons (this is in the main view)
+      $('#invite_box_accept').click(invite_accept_button_handler(application_state, api, template_handler));
+      $('#invite_box_decline').click(invite_decline_button_handler(application_state, api, template_handler));
+
+      // Ensure we have the right state for the modal dialog
+      $('#status_box').on("show", function() { application_state.modal = true; });  
+      $('#status_box').on("hide", function() { application_state.modal = false; });
+      $('#invite_box').on("show", function() { application_state.modal = true; });
+      $('#invite_box').on("hide", function() { application_state.modal = false; });      
+    })
+
 The invite_decline_button_handler Handler
 -----------------------------------------
 
@@ -825,6 +947,14 @@ The setupBoardGame Function
     }
 
 The ``setupBoardGame`` function generates a new Tic-Tac-Toe game and renders the board in the browser and then attaches a handler ``game_board_cell_handler`` for each cell in the board that will handle the click of the user on that cell.
+
+We created the ``public/templates/board.ms`` earlier and it's time to fill in the template with the layout of the board game.
+
+.. literalinclude:: ex/tic25.ms
+    :language: javascript
+    :linenos:
+
+Nothing special here just a table with 4 rows and 4 columns containing a default background image as a placeholder.
 
 The game_board_cell_handler Function
 ------------------------------------
@@ -904,6 +1034,14 @@ The decline_box_show Function
 
 Generates a decline box dialog with the information about the gamer who declined the invite.
 
+We use a ``decline_game`` template here that we created earlier. Time to fill it in.
+
+.. literalinclude:: ex/tic26.ms
+    :language: javascript
+    :linenos:
+
+It just renders the decline message using the passed in player information.
+
 The game_invite_box_show Function
 ---------------------------------
 
@@ -922,6 +1060,25 @@ The game_invite_box_show Function
     }
 
 Generates a accept/decline dialog box populated with the information of the inviting player.
+
+Some CSS
+--------
+
+Alright we are all wired up just one more thing to fix. Let's pretty up the board a little by adjust the css for the board. Open the file ``public/css/app.css`` and enter the css.
+
+.. literalinclude:: ex/tic27.css
+    :language: css
+    :linenos:
+
+Wrapping Up
+-----------
+
+Awesome we just finished ``Exercise 3`` and we have a fully working Tic-Tac-Toe game. In ``Exercise 4`` we will add in game chat and also handling one of the users leaving the game.
+
+Notes
+-----
+
+There are lots of room for improvement here that you can do. Rendering the gamers list correctly when a ``gamer_joined`` event is received while a modal dialog is up is one for example. Feel free to modify the code.
 
 
 

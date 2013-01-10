@@ -1,6 +1,7 @@
 // Contains the application state
 var application_state = {
-  session_id: null
+    session_id: null
+  , modal: false
 }
 
 // Create an instance of the API class
@@ -11,6 +12,8 @@ var api = new API();
 var template_handler = new TemplateHandler({
     "main": "/templates/main.ms"
   , "dashboard": "/templates/dashboard.ms"
+  , "board": "/templates/board.ms"
+  , "decline_game": "/templates/decline_game.ms"
 });
 
 // Load all the templates and once it's done
@@ -27,6 +30,12 @@ template_handler.start(function(err) {
   // Wire up invite box buttons (this is in the main view)
   $('#invite_box_accept').click(invite_accept_button_handler(application_state, api, template_handler));
   $('#invite_box_decline').click(invite_decline_button_handler(application_state, api, template_handler));
+
+  // Ensure we have the right state for the modal dialog
+  $('#status_box').on("show", function() { application_state.modal = true; });  
+  $('#status_box').on("hide", function() { application_state.modal = false; });
+  $('#invite_box').on("show", function() { application_state.modal = true; });
+  $('#invite_box').on("hide", function() { application_state.modal = false; });
 })
 
 /*********************************************************************************************
@@ -50,7 +59,7 @@ api.on('gamer_joined', function(err, data) {
   // Get the gamer
   var gamer = data;
   // Check if we have the gamer already
-  if(application_state.gamers == null) return;
+  if(application_state.gamers == null) application_state.gamers = [];
   // Check if the gamer already exists and if it does 
   var found = false;
 
@@ -70,7 +79,7 @@ api.on('gamer_joined', function(err, data) {
   // If not found let's add it to the list
   if(!found) application_state.gamers.push(gamer);
   // If we currently have the dashboard
-  if(template_handler.isTemplate("dashboard")) {
+  if(template_handler.isTemplate("dashboard") && !application_state.modal) {
     var gamers = application_state.gamers;
     // Let's go to the dashboard of the game
     template_handler.setTemplate("#view", "dashboard", {gamers:gamers});    
@@ -156,8 +165,22 @@ var register_button_handler = function(application_state, api, template_handler)
       // If we have an error show the error message to the user
       if(err) return error_box_show(err.error);
 
-      // Show the main dashboard view and render with all the available players
-      template_handler.setTemplate("#view", "dashboard", {gamers: []});
+      // Load all the available gamers
+      api.find_all_available_gamers(function(err, gamers) {
+        // If we have an error show the error message to the user        
+        if(err) return error_box_show(err.error);
+
+        // Save the list of games in our game state
+        application_state.gamers = gamers;
+ 
+        // Show the main dashboard view and render with all the available players
+        template_handler.setTemplate("#view", "dashboard", {gamers:gamers});
+        
+        // Add handlers for each new player so we can play them
+        for(var i = 0; i < gamers.length; i++) {
+          $("#gamer_" + gamers[i]._id).click(invite_gamer_button_handler(application_state, api, template_handler));
+        }
+      });
     });
   }
 }
@@ -176,9 +199,23 @@ var login_button_handler = function(application_state, api, template_handler) {
       // If we have an error show the error message to the user
       if(err) return error_box_show(err.error);
 
-      // Show the main dashboard view and render with all the available players
-      template_handler.setTemplate("#view", "dashboard", {gamers: []});
-    });
+      // Load all the available gamers
+      api.find_all_available_gamers(function(err, gamers) {
+        // If we have an error show the error message to the user        
+        if(err) return error_box_show(err.error);
+
+        // Save the list of games in our game state
+        application_state.gamers = gamers;
+
+        // Show the main dashboard view and render with all the available players
+        template_handler.setTemplate("#view", "dashboard", {gamers:gamers});
+
+        // Add handlers for each new player so we can play them
+        for(var i = 0; i < gamers.length; i++) {
+          $("#gamer_" + gamers[i]._id).click(invite_gamer_button_handler(application_state, api, template_handler));
+        }
+      });
+    })
   }
 }
 
@@ -310,7 +347,7 @@ var error_box_show = function(error) {
   $('#status_box_header').html("Registration Error");
   $('#status_box_body').html(error);
   // Show the modal box
-  $('#status_box').modal({backdrop:true, show:true})    
+  $('#status_box').modal({backdrop:true, show:true});  
 }
 
 /**
