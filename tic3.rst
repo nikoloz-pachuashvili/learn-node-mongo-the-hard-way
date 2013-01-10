@@ -550,3 +550,378 @@ That's that the backend is all wired up and it's time to turn our attention to t
 
 The Front End
 -------------
+
+Let's get cracking on integrating our awesome backend apis into our playable game. Let's start by implementing the missing API calls on the client. Open up the ``public/javascripts/api.js`` file in your editor and get typing.
+
+.. literalinclude:: ex/tic21.js
+    :language: javascript
+    :linenos:
+
+Let's have a look at the five methods we are adding to the ``API``.
+
+==========================   ================================
+Function                     Description
+==========================   ================================
+find_all_available_gamers    Locate all currently active gamers in the system
+invite_gamer                 Invite a player to a game using their session id
+decline_game                 Decline an incoming invitation from another player
+accept_game                  Accept the invitation to a game from another player
+place_marker                 Attempt to place a marker on the Tic-Tac-Toe game
+==========================   ================================
+
+The methods all map to the backend ``API`` nice and cleanly. So let's start writing the frontend application code to wire it all in. The first thing we want to do is to add a new dialog for the game invitations to our ``lib/views/index.html`` file. Let's open up the file and add the ``invite_box`` div.
+
+.. literalinclude:: ex/tic22.html
+    :language: html
+    :linenos:
+
+This adds the dialog we will present to the user when they get invited to a new game allowing them to accept/decline the invitation.
+
+The first thing we need to do after adding the new dialog is to finish writing the template for our dashboard that we rendered in exercise 2 on successful login. The template is in the file ``public/templates/dashboard.ms``. Open it up and add the following code.
+
+.. literalinclude:: ex/tic23.ms
+    :language: mustache
+    :linenos:
+
+The main thing to notice here is the ``{{#gamers}}`` tag that iterates through the ``gamers`` array in the ``context`` parameter we pass in when using the ``TemplateHandler.prototype.setTemplate`` or ``TemplateHandler.prototype.render`` method. For each gamer we add a new row in a table with a link that has the ``gamer_ + session id`` as an identifier. Later we will see how we wire up this link to be able to invite the player identified by it.
+
+Awesome that's the dasboard taken care off, let's wire it up so that when you log on you can see the list of available players. Let's open up ``public/javascripts/app.js`` in the editor and let's get cracking.
+
+.. literalinclude:: ex/tic24.js
+    :language: javascript
+    :linenos:
+
+We need to add several event handlers as well as several ``API`` methods in ``public/javascript/app.js``. Let's look at what we are adding in terms of event handlers.
+
+==========================   ================================
+Event                        Description
+==========================   ================================
+gamer_joined                 When a new player logs in the list of available players should get updated.
+game_move                    When a valid move board move was performed update the board graphical display
+game_over                    A move lead to the game finishing, determine what the outcome was and display the appropriate message to the player then return to the dashboard to start again
+game_invite                  Another player invited you to join them in a game in Tic-Tac-Toe. Display the dialog to the player to allow them to accept/decline the invitation
+==========================   ================================
+
+The other methods we need to add to the file are.
+
+=============================   ================================
+Parameter                       Description
+=============================   ================================
+invite_gamer_button_handler     When the player clicks on another player to invite them to a game
+invite_accept_button_handler    Handle the user clicking to accept a game invitation
+invite_decline_button_handler   Handle the user clicking on decline a game invitation
+setupBoardGame                  Render a new clean Tic-Tac-Toe board and set up all the handlers for the placement of markers on it
+game_board_cell_handler         Handle the user clicking on a board cell to place a marker
+general_box_show                Show a general message box dialog
+decline_box_show                Show a dialog where the other player declined a game invitation
+game_invite_box_show            Show a dialog when the player gets invited to a new game by another player allowing them to accept/decline the invitation
+=============================   ================================
+
+Let's start picking apart the code we entered.
+
+The gamer_joined Event Handler
+------------------------------
+
+.. code-block:: javascript
+    :linenos:
+
+    /**
+     * A new gamer logged on, display the new user in the list of available gamers
+     * to play
+     */
+    api.on('gamer_joined', function(err, data) {
+      if(err) return;
+      // Get the gamer
+      var gamer = data;
+      // Check if we have the gamer already
+      if(application_state.gamers == null) return;
+      // Check if the gamer already exists and if it does 
+      var found = false;
+
+      // replace it with the new reference
+      for(var i = 0; i < application_state.gamers.length; i++) {
+        var _gamer = application_state.gamers[i];
+
+        if(_gamer.user_name == gamer.user_name) {
+          found = true;
+          // Update the sid and update on
+          _gamer.sid = gamer.sid;
+          _gamer.updated_on = gamer.updated_on;      
+          break;
+        }
+      }
+
+      // If not found let's add it to the list
+      if(!found) application_state.gamers.push(gamer);
+      // If we currently have the dashboard
+      if(template_handler.isTemplate("dashboard")) {
+        var gamers = application_state.gamers;
+        // Let's go to the dashboard of the game
+        template_handler.setTemplate("#view", "dashboard", {gamers:gamers});    
+        // Add handlers to the event
+        for(var i = 0; i < gamers.length; i++) {
+          $("#gamer_" + gamers[i]._id).click(invite_gamer_button_handler(application_state, api, template_handler));
+        }
+      }
+    });
+
+The ``gamer_joined`` event handler gets called every time a new player logs into the game. If the player already exists in our list we update the players session id and last active time to make sure we can talk to the correct player. If it does not exist we push it to the list of our users. If we are showing the ``dashboard`` view we re-render the list so we can show the newly added player.
+
+The game_move Event Handler
+---------------------------
+
+.. code-block:: javascript
+    :linenos:
+
+    /**
+     * The opponent made a valid move, render the move on the board
+     */
+    api.on('game_move', function(err, data) {
+      if(err) return;
+      // Get the move data
+      var marker = data.marker;
+      var y = data.y;
+      var x = data.x;
+      // Select the right box and mark it
+      var cell_id_image = "#row" + y + "cell" + x + " img";
+      // It was our turn, let's show the mark we set down
+      if(marker == 'x') {
+        $(cell_id_image).attr("src", "/img/cross.png");
+      } else {
+        $(cell_id_image).attr("src", "/img/circle.png");
+      }
+    });
+
+The ``game_move`` event handler gets called each time a valid marker placement was done on the board. We then figure out if the marker is a ``x`` or a ``o`` and update the correct board position with the correct image.
+
+The game_invite Event Handler
+-----------------------------
+
+.. code-block:: javascript
+    :linenos:
+
+    /**
+     * The user was invited to play a game, show the invitation acceptance / decline box
+     */
+    api.on('game_invite', function(err, data) {
+      if(data == null) return;  
+      // Save the invitation in our application state
+      application_state.invite = data;
+      // Open the invite box
+      game_invite_box_show(data.gamer);
+    });
+
+The ``game_invite`` event handler will save the current invite in progress and display the invite accept/decline dialog box.
+
+The invite_gamer_button_handler Handler
+---------------------------------------
+
+.. code-block:: javascript
+    :linenos:
+
+    /**
+     * Send an invitation to a player to pay a game
+     */
+    var invite_gamer_button_handler = function(application_state, api, template_handler) {
+      return function(element) {
+        var gamer_id = element.currentTarget.id;
+        // Get the id
+        var id = gamer_id.split(/\_/)[1];
+        
+        // Locate the gamer object
+        for(var i = 0; i < application_state.gamers.length; i++) {
+          if(application_state.gamers[i]._id == id) {
+            var gamer = application_state.gamers[i];
+        
+            // Attempt to invite the gamer to play
+            api.invite_gamer(gamer, function(err, game) {          
+              // If we have an error show the declined game to the user
+              if(err) return decline_box_show(template_handler, gamer);
+              
+              // Set up the board for a game
+              setupBoardGame(application_state, api, template_handler, game);
+            })        
+          }
+        }
+      }
+    }
+
+The ``invite_gamer_button_handler`` function triggers when you click on one of the users available to invite. It will first locate the ``Gamer`` object for the player and use the ``api.invite_gamer`` to attempt to invite the user to a new game. If the other user accepts we call the ``setupBoardGame`` function to show the new board and set up all the handlers.
+
+The invite_accept_button_handler Handler
+----------------------------------------
+
+.. code-block:: javascript
+    :linenos:
+
+    /**
+     * Accept an invitation to play a game
+     */
+    var invite_accept_button_handler = function(application_state, api, template_handler) {
+      return function() {
+        // Accept the game invite
+        api.accept_game(application_state.invite, function(err, game) {
+          // If we have an error show the error message to the user        
+          if(err) return error_box_show(err.error);
+
+          // Set up the board for a game
+          setupBoardGame(application_state, api, template_handler, game);
+        });
+      }
+    }
+
+The ``invite_accept_button_handler`` handles the user clicking the accept button on the player was invited dialog. It calls the ``api.accept_game`` with the existing invite and if the successful it will set up the board using the ``setupBoardGame`` function.
+
+The invite_decline_button_handler Handler
+-----------------------------------------
+
+.. code-block:: javascript
+    :linenos:
+
+    /**
+     * Accept an invitation to play a game
+     */
+    var invite_decline_button_handler = function(application_state, api, template_handler) {
+      return function() {
+        // Decline the game invite
+        api.decline_game(application_state.invite, function(err, result) {
+          // If we have an error show the error message to the user        
+          if(err) return error_box_show(err.error);
+          // No need to do anything as we declined the game and we are still showing the dashboard
+        });
+      }
+    }
+
+The ``invite_decline_button_handler`` handles the user clicking the decline button on the player was invited dialog. It calls the ``api.decline_game`` with the existing invite to cancel the invite.
+
+The setupBoardGame Function
+---------------------------
+
+.. code-block:: javascript
+    :linenos:
+
+    /**
+     * Set up a new game board and add handlers to all the cells of the board
+     */ 
+    var setupBoardGame = function(application_state, api, template_handler, game) {
+      // Save current game to state
+      application_state.game = game;
+      // Let's render the board game with the chat window
+      template_handler.setTemplate("#view", "board", {});
+      // Set the marker for our player (X if we are the starting player)
+      application_state.marker = application_state.session_id == game.current_player ? "x" : "o";
+      // Get all the rows
+      var rows = $('#board div');
+
+      // Add an event handler to each cell
+      for(var i = 0; i < rows.length; i++) {
+        var cells = $('#' + rows[i].id + " span");
+
+        // For each cell create and add the handler
+        for(var j = 0; j < cells.length; j++) {
+          $("#" + cells[j].id).click(game_board_cell_handler(application_state, api, template_handler, game));
+        }
+      }
+    }
+
+The ``setupBoardGame`` function generates a new Tic-Tac-Toe game and renders the board in the browser and then attaches a handler ``game_board_cell_handler`` for each cell in the board that will handle the click of the user on that cell.
+
+The game_board_cell_handler Function
+------------------------------------
+
+.. code-block:: javascript
+    :linenos:
+
+    /**
+     * Create a cell click handler that will send the events to the server when the user clicks
+     * on an event, and also show the result
+     */ 
+    var game_board_cell_handler = function(application_state, api, template_handler, game) {
+      return function() {
+        // Split up the id to get the cell position
+        var row_number = parseInt(this.id.split("cell")[0].split("row")[1], 10);
+        var cell_number = parseInt(this.id.split("cell")[1], 10);
+        var cell_id = this.id;
+        var cell_id_image = "#" + cell_id + " img";
+
+        // Let's attempt to do a move
+        api.place_marker(application_state.game._id, cell_number, row_number, function(err, data) {
+          if(err) return error_box_show(err.error);
+
+          // If we won
+          if(data.winner != null && data.winner == application_state.session_id) {
+            general_box_show("Congratulations", "<p>You won</p>");
+          } else if(data.winner != null) {
+            general_box_show("You lost", "<p>You got beaten buddy</p>");    
+          } 
+
+          if(data.marker == 'x') {
+            $(cell_id_image).attr("src", "/img/cross.png");
+          } else {
+            $(cell_id_image).attr("src", "/img/circle.png");
+          }
+        });
+      }
+    }
+
+The ``game_board_cell_handler`` is attached to each cell in the Tic-Tac-Toe board and detects the player clicking on it. When it fired it will attempt to place a marker on that spot. If we won we will get a message back containing the field ``winner`` that will contain the session id of the winning player. If that session is matches the calling player he won and we show the winner dialog or if it does not match we show the loser dialog. If we don't have a winner or loser we set the cell with the marker to show the move.
+
+The general_box_show Function
+-----------------------------
+
+.. code-block:: javascript
+    :linenos:
+
+    /**
+     * General message box with configurable title and body content
+     */ 
+    var general_box_show = function(title, body) {
+      // Set fields for the error
+      $('#status_box_header').html(title);
+      $('#status_box_body').html(body);
+      // Show the modal box
+      $('#status_box').modal({backdrop:true, show:true})    
+    }
+
+Generates a general box dialog with a provided title and body.
+
+The decline_box_show Function
+-----------------------------
+
+.. code-block:: javascript
+    :linenos:
+
+    /**
+     * Show a game decline message box
+     */ 
+    var decline_box_show = function(template_handler, gamer) {
+      // Set fields for the error
+      $('#status_box_header').html("Invitation to game was declined");
+      $('#status_box_body').html(template_handler.render("decline_game", gamer));
+      // Show the modal box
+      $('#status_box').modal({backdrop:true, show:true})    
+    }
+
+Generates a decline box dialog with the information about the gamer who declined the invite.
+
+The game_invite_box_show Function
+---------------------------------
+
+.. code-block:: javascript
+    :linenos:
+
+    /**
+     * Show a game invite message box
+     */ 
+    var game_invite_box_show = function(gamer) {
+      // Set fields for the error
+      $('#invite_box_header').html("You have been invited to a game");
+      $('#invite_box_body').html("The user <strong>" + gamer.user_name + "</strong> has challenged you to a game");
+      // Show the modal box
+      $('#invite_box').modal({backdrop:true, show:true})  
+    }
+
+Generates a accept/decline dialog box populated with the information of the inviting player.
+
+
+
