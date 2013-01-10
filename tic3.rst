@@ -29,6 +29,7 @@ Function                Description
 create_gamer            Create a brand new game for two players
 find_name               Locate an existing game by the game id
 update_board            Update an existing board with the board state
+finalize_board          Sets the final state of the board (won/draw)
 =====================   ================================
 
 Let's create the files we need.
@@ -85,7 +86,7 @@ Let's have a look at the fields in the document. Obviously the first 6 fields ar
 
 Let's checkout the ``Game.find_game`` method next. Not much to say here. Each ``Game`` document has a ``_id`` field assigned to it in the database and this method lets us locate a board using that ``ObjectID``.
 
-Finally lets look at the ``Game.update_board`` where we update a specific game's board.
+Next lets look at the ``Game.update_board`` where we update a specific game's board.
 
 .. code-block:: javascript
     :linenos:
@@ -102,7 +103,29 @@ Finally lets look at the ``Game.update_board`` where we update a specific game's
 
 The parameters passed in are used to locate a board where the ``game_id`` and ``current_player`` match which will only happen when the caller attempting to update the board is the current player allowed to make a move. If this is not a case the number of documents that are updated will be 0 and the method returns an error explaining that it's not that users current turn. If it is the callers turn it updates the ``board`` field of the document with the new document state and sets the ``current_player`` to the session id of the other player allowing the other player to perform his move.
 
-Sweet we can now create, locate and update a game correctly and also ensure that a board is never updated by a user who's not currently allowed to.
+Finally let's look at the ``Game.finalize_board`` where we set the final state of a game after it's over.
+
+.. code-block:: javascript
+    :linenos:
+
+    //
+    // Set the winner on the board if sid == null it's a draw
+    //
+    Game.finalize_board = function(sid, game_id, callback) {
+      var state = sid == null ? 'draw' : 'win';
+
+      db.collection('games').update(
+          {_id: new ObjectID(game_id)}
+        , {$set: {final_state: state, winner: sid}}, function(err, result) {
+          if(err) return callback(err);
+          if(result == 0) return callback(new Error("Failed to finalize the board with a winner or draw"));
+          callback(null, null);
+        });    
+    }
+
+If the session id passed in is a ``null`` value it's a draw and the ``final_state`` field is set to ``draw`` and the winner field to ``null``. Otherwise the ``final_state`` field is set to ``win`` and the ``winner field`` to the winners session id.
+
+Sweet we can now create, locate and update as well as finalize a game correctly and also ensure that a board is never updated by a user who's not currently allowed to.
 
 The Game Handler
 ----------------
@@ -399,17 +422,29 @@ The ``place_marker`` method handles the actual game play between two players. It
             if(is_game_over(board, data.y, data.x, marker) == false) {
               // If there are still fields left on the board, let's keep playing
               if(!is_game_draw(board)) return;
-              
-              // If there are no open spots left on the board the game
-              // is a draw
-              emit_message(event_name_game_over, { ok: true, result: {draw:true} }, socket);        
-              return emit_message(event_name_game_over, { ok: true, result: {draw:true} }, connection);          
+
+              // Set the winner
+              game(db).finalize_board(null, data.game_id, function(err, result) {
+                // If we have an error it was not our turn
+                if(err) return emit_error(calling_method_name, "Failed to set winner on table", socket);
+                
+                // If there are no open spots left on the board the game
+                // is a draw
+                emit_message(event_name_game_over, { ok: true, result: {draw:true} }, socket);        
+                return emit_message(event_name_game_over, { ok: true, result: {draw:true} }, connection);          
+              });
             }
 
-            // There was a winner and it was the last user to place a marker (the calling client)
-            // signal both players who won the game
-            emit_message(event_name_game_over, { ok: true, result: {winner: our_sid} }, socket);        
-            emit_message(event_name_game_over, { ok: true, result: {winner: our_sid} }, connection);
+            // Set the winner
+            game(db).finalize_board(our_sid, data.game_id, function(err, result) {
+              // If we have an error it was not our turn
+              if(err) return emit_error(calling_method_name, "Failed to set winner on table", socket);
+
+              // There was a winner and it was the last user to place a marker (the calling client)
+              // signal both players who won the game
+              emit_message(event_name_game_over, { ok: true, result: {winner: our_sid} }, socket);        
+              emit_message(event_name_game_over, { ok: true, result: {winner: our_sid} }, connection);
+            });
           })
         });
       }
@@ -518,7 +553,7 @@ If we determine that the board is not won by the placement of the marker we chec
       return true;
     }
 
-Simply we just check if all of the fields are marked. If they are it's a draw. A single empty field means we are not in a draw position yet and the game can continue. If we have a draw we signal the players that the game ended in a draw sending them the following message.
+Simply we just check if all of the fields are marked. If they are it's a draw. A single empty field means we are not in a draw position yet and the game can continue. If we have a draw we signal the players that the game ended in a draw sending them the following message below and use the ``Game.finalize_board`` method passing in a null for the session id signaling a ``draw``.
 
 .. code-block:: javascript
     :linenos:
@@ -528,7 +563,7 @@ Simply we just check if all of the fields are marked. If they are it's a draw. A
       , result: {draw:true} 
     }
 
-If the board was won be signal the players who won the game by sending them a message with the callers session id.
+If the board was won be signal the players who won the game by sending them a message with the callers session id and save the winner to the game using the ``Game.finalize_board`` method passing in the winning session id.
 
 .. code-block:: javascript
     :linenos:
@@ -599,7 +634,7 @@ Awesome that's the dashboard taken care off, let's wire it up so that when you l
     :language: javascript
     :linenos:
 
-We need to add several event handlers as well as several ``API`` methods in ``public/javascript/app.js``. Let's look at what we are adding in terms of event handlers.
+We need to add several event handlers as well as several ``API`` methods in ``public/javascripts/app.js``. Let's look at what we are adding in terms of event handlers.
 
 ==========================   ================================
 Event                        Description
@@ -928,7 +963,7 @@ The setupBoardGame Function
     var setupBoardGame = function(application_state, api, template_handler, game) {
       // Save current game to state
       application_state.game = game;
-      // Let's render the board game with the chat window
+      // Let's render the board game
       template_handler.setTemplate("#view", "board", {});
       // Set the marker for our player (X if we are the starting player)
       application_state.marker = application_state.session_id == game.current_player ? "x" : "o";

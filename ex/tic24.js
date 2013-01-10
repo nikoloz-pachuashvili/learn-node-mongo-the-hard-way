@@ -285,7 +285,7 @@ var invite_decline_button_handler = function(application_state, api, template_ha
 var setupBoardGame = function(application_state, api, template_handler, game) {
   // Save current game to state
   application_state.game = game;
-  // Let's render the board game with the chat window
+  // Let's render the board game
   template_handler.setTemplate("#view", "board", {});
   // Set the marker for our player (X if we are the starting player)
   application_state.marker = application_state.session_id == game.current_player ? "x" : "o";
