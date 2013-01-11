@@ -27,7 +27,7 @@ var disconnected = function(io, socket, session_store, db) {
       return emit_message_all(io, session_store, event_name, {
           ok: true
         , result: our_sid
-      }, socket.handshake.sessionID);
+      }, our_sid);
     });
   } 
 }

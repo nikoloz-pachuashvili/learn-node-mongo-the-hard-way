@@ -307,6 +307,107 @@ Let's open the ``public/javascripts/app.js`` file and add an event handler for t
 
 This handler will catch the ``disconnected`` event and if the game we are currently playing is with the disconnected player we render the dashboard and display an error.
 
+We are nearly there but we need to let the gamer have a way to leave a game in progress as well so we are going to add a button to allow a user to leave a game in progress. Let's modify the ``public/templates/board.ms`` file to add a leave the game button. Open it up and modify the ``<div class="span">``.
 
+.. code-block:: html
+    :linenos:
+
+    <div class="span4">
+      <div><button id="quit_game">Quit Game</button></div>
+      <div id="chat"></div>
+      <input class="input-block-level" type="text" placeholder="chat message" id="chat_message"/>
+    </div>
+
+Next we need to add a handler for the button. Let's open up the ``public/javascripts/app.js`` and modify the ``setupBoardGame`` adding a handler ``quit_game_handler`` below the ``$('#chat_message').keypress(chat_handler(application_state, api, template_handler, game));``
+
+.. code-block:: javascript
+    :linenos:
+
+    /**
+     * Set up a new game board and add handlers to all the cells of the board
+     */ 
+    var setupBoardGame = function(application_state, api, template_handler, game) {
+      // Save current game to state
+      application_state.game = game;
+      // Let's render the board game
+      template_handler.setTemplate("#view", "board", {});
+      // Set the marker for our player (X if we are the starting player)
+      application_state.marker = application_state.session_id == game.current_player ? "x" : "o";
+      // Get all the rows
+      var rows = $('#board div');
+
+      // Add an event handler to each cell
+      for(var i = 0; i < rows.length; i++) {
+        var cells = $('#' + rows[i].id + " span");
+
+        // For each cell create and add the handler
+        for(var j = 0; j < cells.length; j++) {
+          $("#" + cells[j].id).click(game_board_cell_handler(application_state, api, template_handler, game));
+        }
+      }
+
+      // Map up the chat handler
+      $('#chat_message').keypress(chat_handler(application_state, api, template_handler, game));  
+      $('#quit_game').click(quit_game_handler(application_state, api, template_handler, game));
+    }
+
+Now let's define the ``quit_game_handler`` function and add it to the ``public/javascripts/app.js`` file.
+
+.. code-block:: javascript
+    :linenos:
+
+    /**
+     * Create a handler for the quit game button on the board, sending a disconnect message
+     * to the server and bringing the player back to the dashboard
+     */ 
+    var quit_game_handler = function(application_state, api, template_handler, game) {
+      return function() {
+        // Execute a disconnect
+        api.leave_game(function(err, result) {
+          // Load all the available gamers
+          api.find_all_available_gamers(function(err, gamers) {
+
+            // If we have an error show the error message to the user        
+            if(err) return error_box_show(err.error);
+
+            // Save the list of games in our game state
+            application_state.gamers = gamers;
+     
+            // Show the main dashboard view and render with all the available players
+            template_handler.setTemplate("#view", "dashboard", {gamers:gamers});
+            
+            // Add handlers for each new player so we can play them
+            for(var i = 0; i < gamers.length; i++) {
+              $("#gamer_" + gamers[i]._id).click(invite_gamer_button_handler(application_state, api, template_handler));
+            }
+          });      
+        });
+      }
+    }
+
+We are defining a new ``API`` call called ``leave_game`` that will message the server that the player have left the game. It's a fairly simple ``API`` call. Open up ``public/javascripts/api.js`` and add the ``API`` call.
+
+.. code-block:: javascript
+    :linenos:
+
+    /**
+     * Send a disconnect message to the server
+     */
+    API.prototype.leave_game = function(callback) {
+      this.socket.emit("leave_game", {});  
+      callback(null, null);
+    }
+
+Notice that we not expecting a callback as we are in fact reusing the ``disconnected`` handler in the ``lib/handlers/user_handler.js``. But we are defining a new server ``API`` call named ``leave_game``. So let's wire up the ``disconnect`` handler in the ``app.js`` file.
+
+.. code-block:: javascript
+    :linenos:
+
+    socket.on('leave_game', disconnected(io, socket, session_store, db));
+
+We Did It
+---------
+
+That rounds up the tutorial. It's been a long winding road of code and editor usage but you now have your basic Tic-Tac-Toe multiplayer game. There are lots of possible improvements that be performed on the game of course. You could extend the game to be able to run multiple games at the same time against multiple player. If a player leaves or joins you might not want to render the whole dashboard but just update the list. Maybe introduce a friend relationship with players ?. Your imagination is the limit. Go forth and expand it as much as you want.
 
 
