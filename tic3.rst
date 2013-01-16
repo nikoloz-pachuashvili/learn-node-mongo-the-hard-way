@@ -1,27 +1,32 @@
 Tic-Tac-Toe: Exercise 3
 =======================
 
-We are getting down to the awesome part of the application as we are going to start implementing the process of selecting a player to play against and playing the game itself. This is where the code gets really interesting. 
+In this exercise we are going to start implementing the process of selecting a player to play against, and playing the game itself. This is where the code gets really interesting. The first step is to display a list of available gamers that we can invite to a game. Next for the invitation to a game we need to handle the invite and accept/reject game mechanics for the game.
 
-The first step is to display a list of available gamers that we can invite to play and we need to handle the invite and accept/reject game mechanics for the game. 
+The final functionality we are going to implement in this exercise is to actually create the game board and handle the playing of the game.
 
-In the final step of this exercise we are going to actually create the game board and handle the playing of the game.
+Where Is The Code
+-----------------
+
+The code for this exercise is located at
+
+https://github.com/christkv/tic-tac-toe-steps/tree/step2
 
 The Glue Of It All
 ------------------
 
-The first thing we need to do is to be able to retrieve a list of all the available gamers that we can play against. To do this we are going to create a new set of API calls for the gamer as well as extend our current ``Gamer`` model class. Let's bring up the file ``lib/models/gamer.js`` with an editor and let's add the missing ``API`` calls.
+The first thing we need to do is to be able to retrieve a list of all the available gamers. To do this we are going to create a new set of API calls for the gamer as well as extend our current ``Gamer`` model class with some more methods. Let's start with the ``Gamer`` model. Bring up the file ``lib/models/gamer.js`` with an editor and let's add the missing ``API`` calls.
 
 .. literalinclude:: ex/tic16.js
     :language: javascript
     :linenos:
 
-The first method ``Gamer.findAllGamersBySids`` let's us locate all the gamers associated with a list of ``SocketIO`` session ids. This is used to get the list of currently active users. The second method ``Gamer.updateGamersUpdatedDateBySids`` is used to update the last active time on a set of users identified by their session ids.
+The first method ``Gamer.findAllGamersBySids`` lets us locate all the gamers associated with a list of ``SocketIO`` session ids. This method is used to get the list of all currently active users. The second method ``Gamer.updateGamersUpdatedDateBySids`` is used to update the last active time on a set of users identified by their session ids (remember that the ``gamers`` collection is a ``TTL`` collection that times out active gamers after 1 hour).
 
 The Game Model
 --------------
 
-We are going to introduce a concept of a ``Game`` than needs to have a couple of different functionalities.
+We are going to introduce a concept of a ``Game``. A ``Game`` keeps track of a specific game between two players in the application. We need to implement a set of functions to handle the transitions of the game over time.
 
 =====================   ================================
 Function                Description
@@ -40,13 +45,13 @@ Let's create the files we need.
     touch lib/handlers/gamer_handler.js
     touch lib/models/game.js
 
-Open the ``lib/models/game.js`` file and lets enter the code for the tree methods we need for the game ``Game.create_gamer``, ``Game.find_name`` and ``Game.update_board``.
+Open the ``lib/models/game.js`` file and lets enter the code for the methods we need for the application ``Game.create_gamer``, ``Game.find_name``, ``Game.update_board`` and ``Game.finalize_board``.
 
 .. literalinclude:: ex/tic17.js
     :language: javascript
     :linenos:
 
-Let's have a look at the ``Game.create_game`` function it takes quite a bit of parameters. 
+Let's start off with the ``Game.create_game`` function. As we can see it takes quite a bit of parameters. 
 
 =====================   ================================
 Parameter               Description
@@ -59,7 +64,7 @@ p2_user_name            The user name of player 2
 p2_full_name            The full name of player 2
 =====================   ================================
 
-The method creates a new game document representing that stores the state of a game between two players.
+The ``Game.create_game`` method creates a new game document representing the starting state of a game between two players.
 
 .. code-block:: javascript
     :linenos:
@@ -82,11 +87,13 @@ The method creates a new game document representing that stores the state of a g
       , current_player: "some session id 1"
     }    
 
-Let's have a look at the fields in the document. Obviously the first 6 fields are just the passed in values for the method. The next field is the ``board`` field that contains A ``2D`` representation of the ``Tic-Tac-Toe`` where we will store the moves of the game. The ``created_on`` contains the date of when the game was created. The ``starting_player`` is the session id of the player that gets the first move and the ``current_player`` is the player who's turn it is and is used to make sure only the player who has the current turn can update the state of the board.
+The first six values in the document (``player1_sid``, ``player1_user_name``, ``player1_full_name``, ``player2_sid``, ``player2_user_name`` and ``player2_full_name``) are the ones passed to the function and define who the two players are. The next field down is the ``board`` field that contains A ``2D`` representation of the ``Tic-Tac-Toe`` board where we will store the state of the game. 
 
-Let's checkout the ``Game.find_game`` method next. Not much to say here. Each ``Game`` document has a ``_id`` field assigned to it in the database and this method lets us locate a board using that ``ObjectID``.
+The ``created_on`` field contains the date of when the game was created. The ``starting_player`` field is the session id of the player that gets the first move and the ``current_player`` field is the session id of player who has the next move. This field is used to make sure only the player who has the next move can update the state of the board.
 
-Next lets look at the ``Game.update_board`` where we update a specific game's board.
+Next, let's look at the ``Game.find_game`` method. Not much to say here. Each ``Game`` document has a ``_id`` field containing an ``ObjectID`` assigned to it by ``MongoDB`` and this method lets us locate a board using that ``ObjectID``.
+
+The ``Game.update_board`` method handles the updating of a game between two players.
 
 .. code-block:: javascript
     :linenos:
@@ -101,9 +108,11 @@ Next lets look at the ``Game.update_board`` where we update a specific game's bo
         });
     }
 
-The parameters passed in are used to locate a board where the ``game_id`` and ``current_player`` match which will only happen when the caller attempting to update the board is the current player allowed to make a move. If this is not a case the number of documents that are updated will be 0 and the method returns an error explaining that it's not that users current turn. If it is the callers turn it updates the ``board`` field of the document with the new document state and sets the ``current_player`` to the session id of the other player allowing the other player to perform his move.
+The parameters passed passed into ``Game.update_board`` are used to locate a board where the ``game_id`` and ``current_player`` match. This will only happen when the caller attempting to update the board is the current player allowed to make a move. If it's not the current player the number of documents that were updated will be 0 and the method returns an error explaining that it's not that users turn to place a marker on the board. 
 
-Finally let's look at the ``Game.finalize_board`` where we set the final state of a game after it's over.
+If it is the callers turn to place a marker the function updates the ``board`` field of the document with the new document state and sets the ``current_player`` to the session id of the other player allowing the other player to play his turn next.
+
+Finally let's look at the ``Game.finalize_board`` where we set the final state of a game after the game is done.
 
 .. code-block:: javascript
     :linenos:
@@ -125,12 +134,12 @@ Finally let's look at the ``Game.finalize_board`` where we set the final state o
 
 If the session id passed in is a ``null`` value it's a draw and the ``final_state`` field is set to ``draw`` and the winner field to ``null``. Otherwise the ``final_state`` field is set to ``win`` and the ``winner field`` to the winners session id.
 
-Sweet we can now create, locate and update as well as finalize a game correctly and also ensure that a board is never updated by a user who's not currently allowed to.
+We can now create, locate and update as well as finalize a game correctly and also ensure that a board is never updated by a user who's not currently allowed to.
 
 The Game Handler
 ----------------
 
-One of the things we need to ensure is that we can't call functions unless we are correctly logged in as a gamer. The other thing we need is to locate a given ``SocketIO`` socket by a given session id. 
+Some of the things we need to ensure is that we should not be able to call functions unless we are correctly logged in as a gamer. We also need to have a way to locate a given ``SocketIO`` socket given only another users session id.
 
 For the first part we will implement a method called ``is_authenticated`` and for the second part a method called ``locate_connection_with_session``. Bring up the file ``lib/models/shared.js`` and add the methods as shown below.
 
@@ -138,7 +147,7 @@ For the first part we will implement a method called ``is_authenticated`` and fo
     :language: javascript
     :linenos:
 
-Time to implement the logic we need for the game on the backend. Open up the ``lib/handlers/gamer_handler.js`` file and get typing.
+Alright we have the plumbing we need. It's time to implement the logic we need for the game on the backend. Let's open up the ``lib/handlers/gamer_handler.js`` file and get typing.
 
 .. literalinclude:: ex/tic19.js
     :language: javascript
@@ -147,7 +156,7 @@ Time to implement the logic we need for the game on the backend. Open up the ``l
 The find_all_available_gamers Handler
 -------------------------------------
 
-You'll notice the file is fairly big so we will go through each method in turn. Let's start with the ``find_all_available_gamers`` method.
+You might have noticed that the file is fairly big so we will go through each method in turn to make it more manageable. Let's start with the ``find_all_available_gamers`` method. This method retrieves a list of all ``Gamer`` documents for gamers who are currently active (as in connected to the server using ``SocketIO``)
 
 .. code-block:: javascript
     :linenos:
@@ -200,7 +209,7 @@ You'll notice the file is fairly big so we will go through each method in turn. 
       } 
     }
 
-The very start of the method performs an ``is_authenticated`` verifying that the socket passed in is an authenticated session. If it's not valid we return an error notifying the user that they are not authenticated to call this method. If the caller is authenticated we get all active ``SocketIO`` clients and get a list of all session ids for available players. Once we have that we retrieve all the ``Gamer`` documents based on the list of session ids, and finally update the last active time stamp for those players before returning the list of players to the caller. In short this method retrieves all the gamers that are currently active.
+The very start of the method performs an ``is_authenticated`` verifying that the socket passed in is an authenticated session. If it's not valid we return an error notifying the user that they are not authenticated and unable to call this method. If the caller is authenticated we get all active ``SocketIO`` clients and get a list of all session ids for active players. Once we have the list of active players we retrieve all the ``Gamer`` documents associated with those session ids, and finally update the last active time stamp for those players before returning the list to the caller.
 
 The invite_gamer Handler
 ------------------------
@@ -251,12 +260,14 @@ The next method concerns the act of inviting another player to play a game. Let'
       }
     }
 
-So just as ``find_all_available_gamers`` this method can only be called if the caller is authenticated correctly. Notice how are next use the ``locate_connection_with_session`` method. Since we are inviting another user we only have their session id so we use this function to locate their ``SocketIO`` socket so we can communicate with them. If no connection is found we notify the caller about missing player, otherwise locate the ``Gamer`` instance for the player we wish to invite to play a game and send them a ``game_invite`` so they get notified about the invitation. The ``game_invite`` message includes the session id of the gamer making the invitation and the ``Gamer`` document with their information.
+So just as in the ``find_all_available_gamers`` method this method can only be called if the caller is authenticated correctly. Notice how we are calling the ``locate_connection_with_session`` method. We only have the session id of the player we wish to invite to a game, so we use this function to locate their ``SocketIO`` socket allowing us to communicate with them. 
+
+If no connection is found we notify the caller about the missing player, otherwise we locate the ``Gamer`` instance for the player and send them a ``game_invite`` message so they get notified about the invitation. The ``game_invite`` message includes the session id of the gamer making the invitation and the ``Gamer`` document of the inviting player allowing the invited player to know who sent the invite.
 
 The decline_game Handler
 ------------------------
 
-The next method covers the case where the invited gamer decides to decline the invitation to play the game. Let's have a look at the code for ``decline_game`` method.
+The next method covers the case where the invited gamer decides to decline the invitation to play a game. Let's take a look at the code for the ``decline_game`` method.
 
 .. code-block:: javascript
     :linenos:
@@ -289,13 +300,14 @@ The next method covers the case where the invited gamer decides to decline the i
       }
     }
 
-The player that received the game invitation decides to decline a game invitation. Since the invitation contains the inviting users session id we can locate the connection associated with this session id and if it's present issue the decline as an error to that users ``SocketIO`` socket. The reason takes us back to the previous exercise. Remember how an ``API`` method in the frontend registers a callback with an event waiting for a return message from ``SocketIO`` with that particular event. In the ``invite_gamer`` handler we did not actually issue a message with the event ``invite_gamer``. This left the calling method on the frontend waiting for a message with the ``invite_gamer`` event. We now notify the original inviter that the game invitation was declined.
+The premise for this method is that the player that received the game invitation decides to decline the invitation. Since the invitation contains the inviting users session id we can locate the connection associated with this session id and if it's present, issue the decline as an error to that users ``SocketIO`` socket. 
+
+Remember how an ``API`` method in the frontend registers a callback with an event waiting for a return message from ``SocketIO`` containing that event. In the ``invite_gamer`` handler we did not actually issue a message with the event ``invite_gamer``. This left the calling method on the frontend waiting for a message with the ``invite_gamer`` event. We now notify the original inviter that the game invitation was declined. This usage of events lets us decouple the server processing from the frontend as we only need to notify the frontend by sending events when we are done. This let's us orchestrate interactions between multiple browsers.
 
 The accept_game Handler
 -----------------------
 
-The last method that is part of the invite game cycle is the ``accept_game`` method. Let's look at the code.
-
+The last method that is part of the invite game cycle is the ``accept_game`` method. This method lets a player accept an invitation to play a game. Let's take a look at the code.
 
 .. code-block:: javascript
     :linenos:
@@ -349,14 +361,18 @@ The last method that is part of the invite game cycle is the ``accept_game`` met
       }
     }
 
-Right the ``accept_game`` method is slightly more complicated than the previous ``reject_game`` method but take heart it's not as bad as it looks. Let's start. First we check if the other player is still available and if he is we locate both of the players ``Gamer`` information by using the ``Gamer.findAllGamersBySids`` method. If we don't get back two documents we return an error to both players telling them we could not find the two players (the emphasis is we notify both of the players at the same time emitting an error on each players socket). Given we get two ``Gamer`` object we create a new ``Game`` for the two players and if there is no error during the creation of the game we notify both players (the calling player and the other player that originally invited this player) about the successful acceptance of the game invitation.
+The ``accept_game`` method is slightly more complicated than the previous ``reject_game`` method but take heart it's not as bad as it looks. 
 
-That's the whole game loop, lets look at the method that handles the actual game logic.
+First we check if the other player is still available and if he is, we locate both of the player's ``Gamer`` information by using the ``Gamer.findAllGamersBySids`` method. If we don't get back two documents we return an error to both players telling them we could not find the two players (the emphasis is we notify both of the players at the same time emitting an error on each players socket). 
+
+If we do find two ``Gamer`` object we create a new ``Game`` for the two players. If there is no error during the creation of the game we notify both players (the calling player and the other player that originally sent the invitation) about the successful acceptance of the game invitation.
+
+That's the whole invite and accept/decline and invitation part of the application. Next up is the actual game play. This contains changes both for the backend and the frontend of our application.
 
 The place_marker Handler
 ------------------------
 
-The ``place_marker`` method handles the actual game play between two players. It checks if the game has been decided or been a draw and also updates the board with the players moves. Let's have a look at the code.
+The ``place_marker`` method handles the actual game play between two players. It checks if the game has been won by one of the players or if it ended in a draw. It also updates the board to reflect the last move. Let's have a look at the code.
 
 .. code-block:: javascript
     :linenos:
@@ -450,10 +466,13 @@ The ``place_marker`` method handles the actual game play between two players. It
       }
     }
 
-The first thing we attempt is to locate the game by the ``game_id`` passed in over the ``SocketIO`` connection. If we locate a game we grab the game board and assign the calling player a marker. If the calling player is the same as the ``starting_player`` off the game we get the marker ``x`` otherwise we get the marker ``o``. We then establish the other players session id which is session is that did not call the ``player_marker`` method.
+The first thing we attempt is to locate the game by the ``game_id`` passed in over the ``SocketIO`` connection. If we locate a game we grab the game board and assign the calling player a marker. 
 
-It's then time to verify that the co-ordinates passed to the ``player_marker`` function are two an empty board position. If it's not be return an error to the caller informing them that the cell is already selected. If we have no error we place the marker on the board and attempt to update the ``Game`` with the new ``board``. As we saw earlier this will only succeed if it's the calling players turn. Once we are finished it's time to inform both of the players about the new state of the board by emitting the object.
+If the calling player is the same as the ``starting_player`` off the game we get the marker ``x`` otherwise we get the marker ``o``. We then establish the other players session id by looking at the board (if the called is ``player_1`` then the other player is ``player_2``).
 
+It's then time to verify that the co-ordinates passed to the ``player_marker`` function point to an empty board position. If it's not empty we return an error to the caller informing them that the cell is already selected. If the board position is empty we place the marker on the board and attempt to update the ``Game`` with the new ``board``. 
+
+As we discussed earlier this will only succeed if it's the player that is calling this method's turn. Once the update is performed it's time to inform both of the players about the new state of the board by emitting a message with the board position that was changed and what kind of marker was put down.
 
 .. code-block:: javascript
     :linenos:
@@ -466,7 +485,7 @@ It's then time to verify that the co-ordinates passed to the ``player_marker`` f
         } 
     }
 
-to both the calling player and the other participating player. After we have emitted the new board state to the frontend so they can render the board we try to determine if the game was won by the calling player. This is done using the method ``is_game_over``. Let's have a look at the logic in this method.
+After we have emitted the new board state to the frontend, so they can render the board, we try to determine if the game was won by the method's calling player. This is done using the method ``is_game_over``. Let's have a look at the logic in this method.
 
 .. code-block:: javascript
     :linenos:
@@ -531,7 +550,7 @@ to both the calling player and the other participating player. After we have emi
       return found_diagonal;
     }
 
-This method checks for the four possible conditions of winning, a ``diagonal``, ``horizontal`` or ``vertical`` win. There are probably some shorter versions of the code but this is left as an exercise to you the reader if you think it's important. If you expect your Tic-Tac-Toe game boards to be very big it's suboptimal.
+This method checks for the four possible conditions of winning, a ``diagonal``, ``horizontal`` or ``vertical`` win. There are probably some shorter and smarter versions of this code, but this is left as an exercise to you the reader if you think it's important.
 
 If we determine that the board is not won by the placement of the marker we check if the board is a draw, meaning all positions in the board are marked. This code is very simple and is in the ``is_game_draw`` method.
 
@@ -553,7 +572,7 @@ If we determine that the board is not won by the placement of the marker we chec
       return true;
     }
 
-Simply we just check if all of the fields are marked. If they are it's a draw. A single empty field means we are not in a draw position yet and the game can continue. If we have a draw we signal the players that the game ended in a draw sending them the following message below and use the ``Game.finalize_board`` method passing in a null for the session id signaling a ``draw``.
+We just simply check if all of the fields are marked. If they are it's a draw. A single empty field means we are not in a draw position yet and the game can continue. If we have a draw we signal the players that the game ended in a draw, sending them the following message below. We then call the ``Game.finalize_board`` method passing in a null for the session id signaling a ``draw``. This updates the board to it's final state.
 
 .. code-block:: javascript
     :linenos:
@@ -563,7 +582,7 @@ Simply we just check if all of the fields are marked. If they are it's a draw. A
       , result: {draw:true} 
     }
 
-If the board was won be signal the players who won the game by sending them a message with the callers session id and save the winner to the game using the ``Game.finalize_board`` method passing in the winning session id.
+If the board was won by the calling player we send the players a message containing the winners session id and then call the ``Game.finalize_board`` method to finalize the board with the winning session id.
 
 .. code-block:: javascript
     :linenos:
@@ -575,24 +594,24 @@ If the board was won be signal the players who won the game by sending them a me
         } 
     }
 
-That covers the backend api's let's make sure we wire up the handlers correctly as the last thing before we move up to the frontend. Open the file ``app.js`` and add the missing handlers.
+That covers the backend API's. Before we move on to the frontend code let's wire up the handlers correctly. Open the file ``app.js`` and add the new handlers.
 
 .. literalinclude:: ex/tic20.js
     :language: javascript
     :linenos:
 
-That's that the backend is all wired up and it's time to turn our attention to the frontend of the game.
+That's the backend taken care off and all wired up. It's time to turn our attention to the frontend part of the game.
 
 The Front End
 -------------
 
-Let's get cracking on integrating our awesome backend apis into our playable game. Let's start by implementing the missing API calls on the client. Open up the ``public/javascripts/api.js`` file in your editor and get typing.
+Let's get cracking on integrating our awesome backend API's on the frontend so we can play a game of Tic-Tac-Toe. Let's start by implementing the missing API calls on the frontend. Open up the ``public/javascripts/api.js`` file in your editor and get typing.
 
 .. literalinclude:: ex/tic21.js
     :language: javascript
     :linenos:
 
-You might see that we are using two new templates one ``board.ms`` and the other ``decline_game.ms``. Let's create the two files.
+You might see that we are using two new templates one called ``board.ms`` and the other called ``decline_game.ms``. Let's create the two files for now and we will get back to the contents later in the exercise.
 
 .. code-block:: console
     :linenos:
@@ -600,7 +619,7 @@ You might see that we are using two new templates one ``board.ms`` and the other
     touch public/templates/board.ms
     touch public/templates/decline_game.ms
 
-Let's have a look at the five methods we are adding to the ``API``.
+So what kind of API calls are we missing on the frontend. Well basically we need to wire up the backend functions we created. Let's look at what those methods are.
 
 ==========================   ================================
 Function                     Description
@@ -612,29 +631,33 @@ accept_game                  Accept the invitation to a game from another player
 place_marker                 Attempt to place a marker on the Tic-Tac-Toe game
 ==========================   ================================
 
-The methods all map to the backend ``API`` nice and cleanly. So let's start writing the frontend application code to wire it all in. The first thing we want to do is to add a new dialog for the game invitations to our ``lib/views/index.html`` file. Let's open up the file and add the ``invite_box`` div.
+As we can see the methods all map to the backend ``API`` nice and cleanly. So let's start writing the frontend application code to make usage of them. 
+
+The first thing we want to do is to add a new dialog for the game invitations to our ``lib/views/index.html`` file. Let's open up the file and add the ``invite_box`` div.
 
 .. literalinclude:: ex/tic22.html
     :language: html
     :linenos:
 
-This adds the dialog we will present to the user when they get invited to a new game allowing them to accept/decline the invitation.
+The ``invite_box`` div adds the dialog we will present to the user when they get invited to a new game allowing them to accept/decline the invitation.
 
-The first thing we need to do after adding the new dialog is to finish writing the template for our dashboard that we rendered in exercise 2 on successful login. The template is in the file ``public/templates/dashboard.ms``. Open it up and add the following code.
+After adding the new dialog we need to finish writing the template for our dashboard to include the list of available players the user can play. The template is in the file ``public/templates/dashboard.ms``. Open it up and add the following code.
 
 .. literalinclude:: ex/tic23.ms
     :language: mustache
     :linenos:
 
-The main thing to notice here is the ``{{#gamers}}`` tag that iterates through the ``gamers`` array in the ``context`` parameter we pass in when using the ``TemplateHandler.prototype.setTemplate`` or ``TemplateHandler.prototype.render`` method. For each gamer we add a new row in a table with a link that has the ``gamer_ + session id`` as an identifier. Later we will see how we wire up this link to be able to invite the player identified by it.
+Notice the ``{{#gamers}}`` tag that iterates through the ``gamers`` array in the ``context`` parameter we pass in when using the ``TemplateHandler.prototype.setTemplate`` or ``TemplateHandler.prototype.render`` method. 
 
-Awesome that's the dashboard taken care off, let's wire it up so that when you log on you can see the list of available players. Let's open up ``public/javascripts/app.js`` in the editor and let's get cracking.
+For each gamer we add a new row in a table with a link that has the ``gamer_ + session id`` as an identifier. Later we will see how we wire up this link to be able to invite the player identified by it.
+
+That's the dashboard taken care off. Let's move on and wire it up so that when you log on you can see the list of available players. Let's open up ``public/javascripts/app.js`` in the editor.
 
 .. literalinclude:: ex/tic24.js
     :language: javascript
     :linenos:
 
-We need to add several event handlers as well as several ``API`` methods in ``public/javascripts/app.js``. Let's look at what we are adding in terms of event handlers.
+We need to add several event handlers as well as several utility methods in ``public/javascripts/app.js``. Let's first look at what we are adding in terms of event handlers.
 
 ==========================   ================================
 Event                        Description
@@ -645,7 +668,7 @@ game_over                    A move lead to the game finishing, determine what t
 game_invite                  Another player invited you to join them in a game in Tic-Tac-Toe. Display the dialog to the player to allow them to accept/decline the invitation
 ==========================   ================================
 
-The other methods we need to add or change are.
+Secondly lets look at what other handlers we are adding for user interactions with the application as well as methods to render a board, handle the invite process and the game itself.
 
 =============================   ================================
 Parameter                       Description
@@ -662,7 +685,7 @@ decline_box_show                Show a dialog where the other player declined a 
 game_invite_box_show            Show a dialog when the player gets invited to a new game by another player allowing them to accept/decline the invitation
 =============================   ================================
 
-Let's start picking apart the code we entered.
+Let's start with picking apart the code event handlers we listed above.
 
 The gamer_joined Event Handler
 ------------------------------
@@ -710,7 +733,11 @@ The gamer_joined Event Handler
       }
     });
 
-The ``gamer_joined`` event handler gets called every time a new player logs into the game. If the player already exists in our list we update the players session id and last active time to make sure we can talk to the correct player. If it does not exist we push it to the list of our users. If we are showing the ``dashboard`` view we re-render the list so we can show the newly added player but ignore the rendering if a modal dialog is present. It's left as an exercise to the user on how to handle the rendering if the modal dialog is showing. One possibility is to defer the rendering until the modal dialog is closed.
+The ``gamer_joined`` event handler gets called every time a new player logs in. If the player already exists in our list we update the players session id and last active time to make sure we can talk to the correct player. If it does not exist we push it to the list of our users. 
+
+In the case where are currently showing the ``dashboard`` view we re-render the list so we can show the newly added player. We don't re-render the dashboard if a modal dialog is currently being shown to the player. 
+
+It's left as an exercise to the user on how to handle the rendering if the modal dialog is showing. One possible solution is to defer the rendering until the modal dialog is closed.
 
 The game_move Event Handler
 ---------------------------
@@ -737,7 +764,7 @@ The game_move Event Handler
       }
     });
 
-The ``game_move`` event handler gets called each time a valid marker placement was done on the board. We then figure out if the marker is a ``x`` or a ``o`` and update the correct board position with the correct image.
+The ``game_move`` event handler gets called each time a valid marker placement was done on the board. We then figure out if the marker is a ``x`` or a ``o`` and update the board position to show the image representing the marker placed on the board.
 
 The game_invite Event Handler
 -----------------------------
@@ -756,7 +783,7 @@ The game_invite Event Handler
       game_invite_box_show(data.gamer);
     });
 
-The ``game_invite`` event handler will save the current invite in progress and display the invite accept/decline dialog box.
+The ``game_invite`` event handler will save the invite in progress in the ``application_state`` and then display the invite accept/decline dialog box so the player can accept/decline the invitation.
 
 The register_button_handler Handler
 -----------------------------------
@@ -799,7 +826,7 @@ The register_button_handler Handler
       }
     }
 
-We've modified the ``register_button_handler`` handler to fetch the available players and render the ``dashboard`` view showing all of them. After finishing rendering the ``dashboard`` we wire up all the players so we can click on them to invite them to a game.
+We've modified the ``register_button_handler`` method to fetch the available players and render the ``dashboard`` view showing all of them. After finishing rendering the ``dashboard``, we wire up all the links to the players so we can click on them and trigger an invite to be sent.
 
 The login_button_handler Handler
 --------------------------------
@@ -841,7 +868,7 @@ The login_button_handler Handler
       }
     }
 
-We've modified the ``login_button_handler`` handler to fetch the available players and render the ``dashboard`` view showing all of them. After finishing rendering the ``dashboard`` we wire up all the players so we can click on them to invite them to a game.
+We've modified the ``login_button_handler`` method to fetch the available players and render the ``dashboard`` view showing all of them. After finishing rendering the ``dashboard``, we wire up all the links to the players so we can click on them and trigger an invite to be sent.
 
 The invite_gamer_button_handler Handler
 ---------------------------------------
@@ -876,7 +903,7 @@ The invite_gamer_button_handler Handler
       }
     }
 
-The ``invite_gamer_button_handler`` function triggers when you click on one of the users available to invite. It will first locate the ``Gamer`` object for the player and use the ``api.invite_gamer`` to attempt to invite the user to a new game. If the other user accepts we call the ``setupBoardGame`` function to show the new board and set up all the handlers.
+The ``invite_gamer_button_handler`` method triggers when you click on one of the users available to invite. It will first locate the ``Gamer`` object for the player and use the ``api.invite_gamer`` to attempt to invite the user to a new game. If the other user accepts we call the ``setupBoardGame`` function to show the new board and set up all the handlers otherwise we shoe the decline dialog telling the player that the invite was declined.
 
 The invite_accept_button_handler Handler
 ----------------------------------------
@@ -900,9 +927,7 @@ The invite_accept_button_handler Handler
       }
     }
 
-The ``invite_accept_button_handler`` handles the user clicking the accept button on the player was invited dialog. It calls the ``api.accept_game`` with the existing invite and if the successful it will set up the board using the ``setupBoardGame`` function.
-
-Notice how we wire it up in the ``template_handler.start`` callback. This goes for both the ``invite_accept_button_handler`` and ``invite_decline_button_handler`` as this dialog is permanent and is not recreated anytime so the ``click`` event handlers can live for as long as the web page does.
+The ``invite_accept_button_handler`` method handles the user clicking the accept button on the invite dialog. It calls the ``api.accept_game`` with the existing invite and if the successful it will set up the board using the ``setupBoardGame`` function. If unsuccessful we show an error dialog with the relevant error message. Let's see how we wire up those handlers.
 
 .. code-block:: javascript
     :linenos:
@@ -929,6 +954,8 @@ Notice how we wire it up in the ``template_handler.start`` callback. This goes f
       $('#invite_box').on("hide", function() { application_state.modal = false; });      
     })
 
+Notice how we wire it up in the ``template_handler.start`` callback. This goes for both the ``invite_accept_button_handler`` and ``invite_decline_button_handler``. We only need to wire up these handlers once as the HTML elements they are wired up to will exist during the entire duration of the applications life. This is in contrast to the ``Gamer`` invite links that we need to rewire each time we show the list of ``Gamers`` available (Not optimal of course but this is left to you as an exercise to improve on).
+
 The invite_decline_button_handler Handler
 -----------------------------------------
 
@@ -949,7 +976,7 @@ The invite_decline_button_handler Handler
       }
     }
 
-The ``invite_decline_button_handler`` handles the user clicking the decline button on the player was invited dialog. It calls the ``api.decline_game`` with the existing invite to cancel the invite.
+The ``invite_decline_button_handler`` handles the user clicking the decline button on invitation dialog. It calls the ``api.decline_game`` with the existing invite to cancel the invite and notify the inviting player about the player declining the invitation.
 
 The setupBoardGame Function
 ---------------------------
@@ -1029,7 +1056,9 @@ The game_board_cell_handler Function
       }
     }
 
-The ``game_board_cell_handler`` is attached to each cell in the Tic-Tac-Toe board and detects the player clicking on it. When it fired it will attempt to place a marker on that spot. If we won we will get a message back containing the field ``winner`` that will contain the session id of the winning player. If that session is matches the calling player he won and we show the winner dialog or if it does not match we show the loser dialog. If we don't have a winner or loser we set the cell with the marker to show the move.
+The ``game_board_cell_handler`` is attached to each cell in the Tic-Tac-Toe board and detects the player clicking on it. When its fired, it will attempt to place a marker in that cell calling the ``api.place_marker`` method. 
+
+If the placement of the marker leads to victory the player will receive a message back with the field ``winner`` set to the session id of the winning player. If that session id matches the calling player he won and we show the winning dialog. If it does not match we show the loser dialog. If we don't have a winner or loser we set the cell with the marker to show the move.
 
 The general_box_show Function
 -----------------------------
@@ -1048,7 +1077,7 @@ The general_box_show Function
       $('#status_box').modal({backdrop:true, show:true})    
     }
 
-Generates a general box dialog with a provided title and body.
+Generates a general box dialog with a provided title and body. Used to allow us to show a dialog with a custom title and body.
 
 The decline_box_show Function
 -----------------------------
@@ -1069,13 +1098,13 @@ The decline_box_show Function
 
 Generates a decline box dialog with the information about the gamer who declined the invite.
 
-We use a ``decline_game`` template here that we created earlier. Time to fill it in.
+We use a ``decline_game`` template here that we created earlier. Let's fill in the template.
 
 .. literalinclude:: ex/tic26.ms
     :language: javascript
     :linenos:
 
-It just renders the decline message using the passed in player information.
+As we can see it just renders the decline message using the passed in player information.
 
 The game_invite_box_show Function
 ---------------------------------
@@ -1096,10 +1125,10 @@ The game_invite_box_show Function
 
 Generates a accept/decline dialog box populated with the information of the inviting player.
 
-Some CSS
---------
+Styling That Game
+-----------------
 
-Alright we are all wired up just one more thing to fix. Let's pretty up the board a little by adjust the css for the board. Open the file ``public/css/app.css`` and enter the css.
+Alright we are all wired up just one more thing to fix. Let's pretty up the board a little by adjusting the css for the board. Open the file ``public/css/app.css`` and enter the css.
 
 .. literalinclude:: ex/tic27.css
     :language: css
@@ -1108,12 +1137,12 @@ Alright we are all wired up just one more thing to fix. Let's pretty up the boar
 Wrapping Up
 -----------
 
-Awesome we just finished ``Exercise 3`` and we have a fully working Tic-Tac-Toe game. In ``Exercise 4`` we will add in game chat and also handling one of the users leaving the game.
+Awesome we just finished ``Exercise 3`` and we have a fully working Tic-Tac-Toe game. In ``Exercise 4`` we will add some bonus features to the game and also handle a user closing the browser window in the middle of a game or deciding to quit a game in progress.
 
 Notes
 -----
 
-There are lots of room for improvement here that you can do. Rendering the gamers list correctly when a ``gamer_joined`` event is received while a modal dialog is up is one for example. Feel free to modify the code.
+There is lots of room for improvement in the code that you can do. Deferring the rendering of available players when a dialog is showing is one such thing. Rendering the board once only and clearing it instead of re-rendering might be another possible avenue.
 
 
 
