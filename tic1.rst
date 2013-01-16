@@ -3,6 +3,13 @@ Tic-Tac-Toe: Exercise 1
 
 We are going to build ourselves a brand new super high tech multiplayer Tic-Tac-Toe game (and the crowd goes wild). During these exercises we will learn about exiting technologies such as ``SocketIO`` and ``Express JS` two of the most popular ``NPM`` modules as well as ``MongoDB`` of course. The application is built slightly differently than what you might be used to if you've written more classic web applications. It's 100% client driven and dynamic. Yes you read right it's Javascript powered all the way down. Only a single controller renders HTML and only a single template. The rest is all rendered in the client using ``Mustache`` to create an awesome next generation Tic-Tac-Toe worthy of the title the best multiplayer Tic-Tac-Toe game ever (irony noted).
 
+Where Is The Code
+-----------------
+
+The code for this exercise is located at
+
+https://github.com/christkv/tic-tac-toe-steps/tree/step0
+
 Architecture
 ------------
 
