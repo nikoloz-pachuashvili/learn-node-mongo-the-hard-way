@@ -10,7 +10,7 @@ Where Is The Code
 
 The code for this exercise is located at
 
-https://github.com/christkv/tic-tac-toe-steps/tree/step0
+https://github.com/christkv/tic-tac-toe-steps/tree/step1
 
 It's Like LEGO But With Code
 ----------------------------
