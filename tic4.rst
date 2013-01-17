@@ -1,9 +1,19 @@
 Tic-Tac-Toe: Exercise 4
 =======================
 
-In the last Exercise we will be adding chat functionality to the game and also a way for the players to detect if the other player left the game as well as a button that allows us to leave a game while it's in play.
+In the last Exercise we will be adding chat functionality to the game and a button to allow a player to quit a game in progress. As part of allowing a player to quit a game in progress we also are going to handle the situation where they close the browser in the middle of a game, thus disconnecting.
 
-Let's start with the chat functionality. Chat is defined as a text instant message conversation between two players over a game to be used four taunting and distracting you opponent so you can clinch victory. Since we are doing this we have decided to add the chat itself as an array on the board in play. Let's open the ``lib/models/game.js`` file and modify the ``Game.create_game`` function to add the ``chat:[]`` field.
+Where Is The Code
+-----------------
+
+The code for this exercise is located at
+
+https://github.com/christkv/tic-tac-toe-steps/tree/step3
+
+Chatting It Up
+--------------
+
+Let's start with the chat functionality. Chat is defined as a text instant message conversation between two players over a game to be used for taunting and distracting you opponent so you can clinch victory. We have decided to add the chat messages themselves as an array on the board document in play. So let's open the ``lib/models/game.js`` file and modify the ``Game.create_game`` function to add the ``chat:[]`` field.
 
 .. code-block:: javascript
     :linenos:
@@ -36,7 +46,7 @@ Let's start with the chat functionality. Chat is defined as a text instant messa
       })
     }
 
-Then we are going to create a handler for the chat message so let's create the file ``lib/handlers/chat_handler.js`` and open it with our editor.
+Now let's create a handler for the chat messages. Create the file ``lib/handlers/chat_handler.js`` and open it with your editor.
 
 .. code-block:: console
     :linenos:
@@ -49,15 +59,17 @@ enter
     :language: javascript
     :linenos:
 
-The ``chat_handler.js`` file only includes a single method called ``send_message`` that takes a ``SocketIO`` message including the fields ``game_id`` and ``message``. Using the ``Game.find_game`` method we retrieve the game and knowing the caller session id we determine the recipients session id before calling the new method ``Game.save_chat`` in the ``lib/models/game.js`` file.
+The ``chat_handler.js`` file only includes a single method called ``send_message`` that takes a ``SocketIO`` message that includes the fields ``game_id`` and ``message``. Using the ``Game.find_game`` method we retrieve the game and knowing the caller session id from the ``SocketIO`` socket we determine the recipients session id before calling the new method ``Game.save_chat`` in the ``lib/models/game.js`` file.
 
 .. literalinclude:: ex/tic29.js
     :language: javascript
     :linenos:
 
-The ``Game.save_chat`` method uses the ``$push`` operator with a ``MongoDB`` update to insert a message object containing a ``from``, ``to`` and ``message`` field to the back of the ``chat`` field array.
+The ``Game.save_chat`` method performs a ``$push`` update operation to push a message object containing a ``from``, ``to`` and ``message`` field to the back of the ``chat`` field array contained in the game document.
 
-If the insert is successful ``send_message`` notifies both parties in the chat that the message was successfully transmitted. As you can see not very complicated. Finally lets wire up the ``send_message`` handler by opening the ``app.js`` file in our editor and adding the lines below the ``socket.on('place_marker'...`` line.
+If the update is successful ``send_message`` notifies both players that the message was successfully transmitted.
+
+Last but not least, lets wire up the ``send_message`` handler by opening the ``app.js`` file in our editor and adding the lines shown below under the ``socket.on('place_marker'...`` line.
 
 .. code-block:: javascript
     :linenos:
@@ -65,7 +77,7 @@ If the insert is successful ``send_message`` notifies both parties in the chat t
     // Accepts chat messages
     socket.on('send_message', send_message(io, socket, session_store, db));
 
-Don't forget to add the ``send_message`` handler to the ``require`` section at the top.
+Let's not forget to add the ``send_message`` handler to the ``require`` section at the top.
 
 .. code-block:: javascript
     :linenos:
@@ -83,13 +95,13 @@ Don't forget to add the ``send_message`` handler to the ``require`` section at t
 Front End
 ---------
 
-We have to do some modifications to the frontend. Let's start by opening the ``public/javascript/api.js`` file and adding the method ``API.prototype.send_message``.
+We have to do some simle modifications to the frontend. Let's start by opening the ``public/javascript/api.js`` file and adding a method ``API.prototype.send_message``.
 
 .. literalinclude:: ex/tic30.js
     :language: javascript
     :linenos:
 
-Next we need to add the location for our chat window. Open the file ``public/templates/board.ms`` and add add the following to it in the area marked ``<div class="span4">``
+Next we need to add the HTML markup for that makes up the chat interface on the frontend. Open the file ``public/templates/board.ms`` and add add the following to it, in the area marked ``<div class="span4">``
 
 .. code-block:: html
     :linenos:
@@ -99,7 +111,7 @@ Next we need to add the location for our chat window. Open the file ``public/tem
       <input class="input-block-level" type="text" placeholder="chat message" id="chat_message"/>
     </div>
 
-Let's pretty it up a bit by adding some css styling. Open the ``public/css/app.css`` file and add the following to the end of it.
+Let's pretty it up a bit, by adding some css styling. Open the ``public/css/app.css`` file and add the following to the end of it.
 
 .. code-block:: css
     :linenos:
@@ -128,7 +140,7 @@ Let's pretty it up a bit by adding some css styling. Open the ``public/css/app.c
       color: blue;
     }    
 
-Nice that's formating take care off. It's time to wire up the chat functionality to your application. First open up the ``public/javascripts/app.js`` file and add the ``chat_handler`` function to it.
+That's formating take care off. It's time to wire up the chat functionality to your application. First open up the ``public/javascripts/app.js`` file and add the ``chat_handler`` function to it.
 
 .. code-block:: javascript
     :linenos:
@@ -159,7 +171,7 @@ Nice that's formating take care off. It's time to wire up the chat functionality
       }  
     }
 
-Wire it up by adding this line to the end of the ``setupBoardGame`` function in the same ``public/javascripts/app.js`` file.
+Wire it up by adding the line shown below to the end of the ``setupBoardGame`` function in the same ``public/javascripts/app.js`` file.
 
 .. code-block:: javascript
     :linenos:
@@ -167,9 +179,9 @@ Wire it up by adding this line to the end of the ``setupBoardGame`` function in 
     // Map up the chat handler
     $('#chat_message').keypress(chat_handler(application_state, api, template_handler, game));  
 
-The ``chat_handler`` will listen for key presses and if it detects the ``return`` key it will take the content of the chat input box and send it to the server using the ``api.send_message`` function and if it's successful append it to the log.
+The ``chat_handler`` will listen for keyboard key presses and if it detects the ``return`` key it will take the content of the chat input box and send it to the server using the ``api.send_message`` method and append it to the chat window if the sending of the message succeeded.
 
-The last part we need to add is an event handler for the ``chat_message`` event from the server that is triggered when the other player sends a message. To the same file add the following event handler.
+The item we need to add is an event handler for ``chat_message`` events sent from the server. This event is fired when the server relays a message from the other player. Open up the ``public/javascripts/app.js`` and add the event handler shown below.
 
 .. code-block:: javascript
     :linenos:
@@ -187,7 +199,7 @@ The last part we need to add is an event handler for the ``chat_message`` event 
       chat_window.append('<p class="chat_msg_other">' + get_date_time_string() + '&#62; ' + message + '</p>');
     });
 
-As you can see we use a method called ``get_date_time_string`` that is a helper method to format a date-time stamp for the chat message. Add the implementation under the ``Helper`` section of the ``public/javascripts/app.js`` file.
+Notice that we use a method called ``get_date_time_string``. This is a helper method to format a date-time stamp for the chat message. Add the implementation under the ``Helper`` section of the ``public/javascripts/app.js`` file.
 
 .. code-block:: javascript
     :linenos:
@@ -203,27 +215,27 @@ As you can see we use a method called ``get_date_time_string`` that is a helper 
       return string;
     }
 
-And that's it we've added chatting capabilities between two given players on a board. The only thing left to implement is two small scenarios. The first one is if one of the two players close the browser window and the second one is a quit the game button.
+We've now finished adding the functionality for two players to perform a chat during a game. The only thing that's left to implement is the two ways to leave a game in progress. The first one is if one of the two players closes the browser window containing the game in progress, and the second one is a button on the board for the player to leave the game.
 
-The Player Has Left The Building
---------------------------------
+Reddit Is More Interesting I'm Out Of Here
+------------------------------------------
 
-The first scenario happens when one of the players close their window. In this case we should terminate all the current games they are participating in by sending a user went away message.
+The first scenario happens when one of the players close their browser window. In this case we should terminate all the current games they are participating in by sending a user went away message to all the opposing players.
 
-Lets create a new handler that fill handle socket disconnects by messaging the still active players about them. Let's create the handler file.
+Lets start by creating a new handler that handles socket disconnects by messaging the still active players about them. First let's create the empty handler file.
 
 .. code-block:: javascript
     :linenos:
 
     touch lib/handlers/user_handler.js
 
-Fire up your editor and edit the ``lib/handlers/user_handler.js``.
+Then it's time to fire up your editor and edit the newly created file ``lib/handlers/user_handler.js``.
 
 .. literalinclude:: ex/tic31.js
     :language: javascript
     :linenos:
 
-We need to locate all games that are still active for this player and set the to draw. First lets add the ``Gamer.finalize_all_boards_as_draws`` method to the ``lib/models/game.js`` file.
+We need to locate all games that are still active for this player and then set them to the status of a ``draw`` (it might not be the players fault as his internet connection might have dropped). First add the ``Gamer.finalize_all_boards_as_draws`` method to the ``lib/models/game.js`` file.
 
 .. code-block:: javascript
     :linenos:
@@ -241,7 +253,7 @@ We need to locate all games that are still active for this player and set the to
         });    
     }
 
-An active game is a game without the ``winner`` field set. This method locates all the games that the player closing the socket is currently in and sets them to a ``draw`` state. We then signal all active players that we have a disconnect event enabling them to recover from a game in progress.
+If you remember from the last exercise an active game is a game without the ``winner`` field set. This method locates all the games that the player closing the socket is currently in and sets them to a ``draw`` state. It then messages all active players that we have experienced a disconnect event enabling them to recover from a game in progress.
 
 Before we jump to the frontend let's make sure we wire up the new handler. Open the ``app.js`` file and add.
 
@@ -258,12 +270,12 @@ at the top and the handler below the ``send_message`` handler
     // On disconnect
     socket.on('disconnect', disconnected(io, socket, session_store, db));
 
-Let's move to the frontend and get the event wired up.
+Now let's move to the frontend and get the event wired up correctly so the interface can respond to it.
 
 Frontend Handling
 -----------------
 
-Let's open the ``public/javascripts/app.js`` file and add an event handler for the ``disconnect`` event.
+Open the ``public/javascripts/app.js`` file and add an event handler for the ``disconnect`` event.
 
 .. code-block:: javascript
     :linenos:
@@ -305,9 +317,9 @@ Let's open the ``public/javascripts/app.js`` file and add an event handler for t
       }
     });
 
-This handler will catch the ``disconnected`` event and if the game we are currently playing is with the disconnected player we render the dashboard and display an error.
+This handler will trigger on the ``disconnected`` event and if the game we are currently playing is with the disconnected player we render the dashboard and display the disconnect error (this effectively puts the player back in a position where they can challenge another player).
 
-We are nearly there but we need to let the gamer have a way to leave a game in progress as well so we are going to add a button to allow a user to leave a game in progress. Let's modify the ``public/templates/board.ms`` file to add a leave the game button. Open it up and modify the ``<div class="span">``.
+We are nearly there but we need to let the gamer have a way to leave a game at their leisure as well. To allow this we are going to add a button to leave a game in progress. Let's modify the ``public/templates/board.ms`` file to the button. Modify the ``<div class="span">`` with the HTML below adding the ``Quit Game`` button.
 
 .. code-block:: html
     :linenos:
@@ -318,7 +330,7 @@ We are nearly there but we need to let the gamer have a way to leave a game in p
       <input class="input-block-level" type="text" placeholder="chat message" id="chat_message"/>
     </div>
 
-Next we need to add a handler for the button. Let's open up the ``public/javascripts/app.js`` and modify the ``setupBoardGame`` adding a handler ``quit_game_handler`` below the ``$('#chat_message').keypress(chat_handler(application_state, api, template_handler, game));``
+We then need to add a handler for the ``Quit Game`` button. Open up the ``public/javascripts/app.js`` file and modify the ``setupBoardGame`` to add a handler called ``quit_game_handler`` below the ``$('#chat_message').keypress(chat_handler(application_state, api, template_handler, game));`` line.
 
 .. code-block:: javascript
     :linenos:
@@ -351,7 +363,7 @@ Next we need to add a handler for the button. Let's open up the ``public/javascr
       $('#quit_game').click(quit_game_handler(application_state, api, template_handler, game));
     }
 
-Now let's define the ``quit_game_handler`` function and add it to the ``public/javascripts/app.js`` file.
+Now we need to complete the ``quit_game_handler`` method and add it to the ``public/javascripts/app.js`` file.
 
 .. code-block:: javascript
     :linenos:
@@ -385,7 +397,7 @@ Now let's define the ``quit_game_handler`` function and add it to the ``public/j
       }
     }
 
-We are defining a new ``API`` call called ``leave_game`` that will message the server that the player have left the game. It's a fairly simple ``API`` call. Open up ``public/javascripts/api.js`` and add the ``API`` call.
+To make it all work we need to define a new ``API`` call called ``leave_game`` that will send a message to the server signaling that the player has left the game. Open up ``public/javascripts/api.js`` and add the ``API`` call.
 
 .. code-block:: javascript
     :linenos:
@@ -398,7 +410,7 @@ We are defining a new ``API`` call called ``leave_game`` that will message the s
       callback(null, null);
     }
 
-Notice that we not expecting a callback as we are in fact reusing the ``disconnected`` handler in the ``lib/handlers/user_handler.js``. But we are defining a new server ``API`` call named ``leave_game``. So let's wire up the ``disconnect`` handler in the ``app.js`` file.
+Notice that we not expecting a callback as we are in fact reusing the ``disconnected`` handler in the ``lib/handlers/user_handler.js`` file. We do need to define a new server ``API`` call named ``leave_game`` but we can reuse the same ``disconnected`` handler. Let's go ahead and wire up the ``disconnect`` handler in the ``app.js`` file.
 
 .. code-block:: javascript
     :linenos:
@@ -408,6 +420,6 @@ Notice that we not expecting a callback as we are in fact reusing the ``disconne
 We Did It
 ---------
 
-That rounds up the tutorial. It's been a long winding road of code and editor usage but you now have your basic Tic-Tac-Toe multiplayer game. There are lots of possible improvements that be performed on the game of course. You could extend the game to be able to run multiple games at the same time against multiple player. If a player leaves or joins you might not want to render the whole dashboard but just update the list. Maybe introduce a friend relationship with players ?. Your imagination is the limit. Go forth and expand it as much as you want.
+That ends the Tic-Tac-Toe tutorial. It's been a long winding road of code and editor usage but you now have your basic Tic-Tac-Toe multi-player game. There are lots of possible improvements that be implemented in the game of course. You could extend the game to be able to run multiple games at the same time against multiple players. Maybe introduce a friend relationship with players ?. Your imagination is the limit. Go forth and expand it as much as you want.
 
 
