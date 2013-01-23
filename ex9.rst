@@ -64,7 +64,7 @@ $pullAll          Array        Removes all instances of the list of values passe
 $bit              Bitwise      Perform a bitwise operation on a field, letting you do bitmapped files for compact storing of flags etc.
 ==============    ===========  ============================
 
-Since ``atomic`` operations are only guaranteed for one of these operations at a time MongoDB also has a special operator called ``$atomic`` that will guarantee that multiple ``atomic`` operations in an update happen without changes being applied by other applications during it's execution.
+Since ``atomic`` operations are only guaranteed for one of these operations at a time MongoDB also has a special operator called ``$isolated`` that will guarantee that multiple ``atomic`` operations in an update happen without changes being applied by other applications during it's execution.
 
 That's a lot to take in so in this exercise we are going to just focus on the field and bitwise operators and leave the array operators for the next exercise.
 
@@ -209,7 +209,7 @@ If we ``and`` a bit with the value ``1`` it will preserve the existing bit value
 
 Perfect we just flipped the value back to ``0`` setting our flag to ``false``. In short ``bit fields`` can be very useful to compress values into a smaller space in the database. As an example a ``32bit`` integer can contain ``32`` binary flags and will take up very little space in comparision to 32 indidvidual fields or 32 entries in an array.
 
-$atomic or how I came to love the bomb
+$isolated or how I came to love the bomb
 --------------------------------------
 
 Let's start right off the bat in the editor, fire it up and enter the code below.
@@ -241,7 +241,7 @@ So as you might have suspected you can make multiple changes on a document in a 
 
 MongoDB will interleave the operations. In this particular this might cause a problem. Imagine if the matcher for the document is ``only update document if value > 0``. Since both of them match correctly but get intermixed the end value of ``value`` could potentially be ``-1`` not ``0`` as we expect.
 
-To avoid this in the example above we use the ``$atomic`` operator as part of the update matching. This tells MongoDB to not let anyone else modify the document until the current operation is done and forces the ordering to look like.
+To avoid this in the example above we use the ``$isolated`` operator as part of the update matching. This tells MongoDB to not let anyone else modify the document until the current operation is done and forces the ordering to look like.
 
 .. code-block:: console
 
@@ -255,9 +255,9 @@ To avoid this in the example above we use the ``$atomic`` operator as part of th
         first update: $inc: {value: -5}
        second update: $inc: {value: -1} (failes as value is 0)
 
-So as we can see ``$atomic`` can be quite useful. With this we are ready to take the tackle the next step of dealing with arrays when performing updates.
+So as we can see ``$isolated`` can be quite useful. With this we are ready to take the tackle the next step of dealing with arrays when performing updates.
 
 Note
 ----
 
-You might be tempted to always use ``$atomic`` but you should not fall into this temptation. Only use it where appropriate as you are losing out on the benefit of concurrent writes to MongoDB forcing all updates to be serial. But keep it in mind when doing multiple field updates in a document if you are unsure something else could be changing the field while your application is executing a complex update.
+You might be tempted to always use ``$isolated`` but you should not fall into this temptation. Only use it where appropriate as you are losing out on the benefit of concurrent writes to MongoDB forcing all updates to be serial. But keep it in mind when doing multiple field updates in a document if you are unsure something else could be changing the field while your application is executing a complex update.
