@@ -1,7 +1,7 @@
 Exercise 9: Update Basics
 =========================
 
-In the previous exercises we learned how to insert document into MongoDB and what a write concern is. We also learned why ``.save()`` is not a good way of saving your documents and how bulk inserts work. We've managed to get all those documents into MongoDB but now we find we need to update some of the fields. In this exercise we will focus on the basic operations to change your documents in MongoDB and in the next exercise on the more advanced ways to modify your existing documents.
+In the previous exercises we learned how to insert documents into MongoDB and what a write concern is. We also learned why ``.save()`` is not a good way of saving your documents and how bulk inserts work. We've managed to get all those documents into MongoDB but now we find we need to update some of the fields. In this exercise we will focus on the basic operations to change your documents in MongoDB and in the next exercise on the more advanced ways to modify your existing documents.
 
 Lets start with a simple insert and full document update and explain why this in general is a bad idea. Fire up the editor and type in the following code.
 
@@ -9,11 +9,11 @@ Lets start with a simple insert and full document update and explain why this in
     :language: javascript
     :linenos:
 
-We first insert a document with the values ``{_id: 1, a:1}`` then after it inserted we do an update statement 
+We first insert a document with the values ``{_id: 1, a:1}`` then after it inserted we do an update statement
 
 .. code-block:: javascript
 
-    collection.update({_id:1}, {_id:1, b:1}, function(err, result) {      
+    collection.update({_id:1}, {_id:1, b:1}, function(err, result) {
 
       db.close();
     });
@@ -24,7 +24,7 @@ The update statement is made up of two different objects. The first part is the 
 
     ~ $ mongo
     MongoDB shell version: 2.2
-    connecting to: test    
+    connecting to: test
     > use test
     switched to db test
     > db.my_basic_update_documents.find()
@@ -105,7 +105,7 @@ Your console output should look something like.
     { updatedExisting: true, n: 1, connectionId: 75, err: null, ok: 1 }
     { _id: 2 }
 
-The main difference from the previous example is that the second term of the update now reads like ``{$unset: {value: ""}}``, this removes the field ``value`` from the document. That's fairly straight forward. 
+The main difference from the previous example is that the second term of the update now reads like ``{$unset: {value: ""}}``, this removes the field ``value`` from the document. That's fairly straight forward.
 
 $inc Operator
 -------------
@@ -165,7 +165,7 @@ You should see the following output
 
     connected to database
     { _id: 2, value: 17 }
-    { _id: 2, value: 1 }    
+    { _id: 2, value: 1 }
 
 So what does this little example do. It first inserts a document with the field ``value`` set to 1. The first update applies the value ``0x10`` (hex value) against the field using the ``$bit`` operator and an ``or``. First lets we need to understand how ``or`` works. Let's look at the ``or`` table.
 
@@ -228,9 +228,10 @@ Your output should look like.
 So as you might have suspected you can make multiple changes on a document in a single update. However by default each operation is atomic by itself but not all of them together as MongoDB will let other update operations on the same document happen at the same time. What does that mean? Well easier said with an example. Say we have to updates executing at the same time.
 
 .. code-block:: console
+
       initial document state: {value: 5}
      first update operations: $set: {value2: 'hello'} and $inc: {value: -5}
-    second update operations: $inc: {value: -1} 
+    second update operations: $inc: {value: -1}
 
     possible ordering of operations:
     --------------------------------
@@ -243,9 +244,10 @@ MongoDB will interleave the operations. In this particular this might cause a pr
 To avoid this in the example above we use the ``$atomic`` operator as part of the update matching. This tells MongoDB to not let anyone else modify the document until the current operation is done and forces the ordering to look like.
 
 .. code-block:: console
+
       initial document state: {value: 5}
      first update operations: $set: {value2: 'hello'} and $inc: {value: -5}
-    second update operations: $inc: {value: -1} 
+    second update operations: $inc: {value: -1}
 
     possible ordering of operations:
     --------------------------------

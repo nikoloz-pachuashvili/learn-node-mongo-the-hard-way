@@ -1,4 +1,14 @@
 Exercise 10: Update Basics
 ==========================
 
-In the previous exercises we learned how to insert document into MongoDB and what a write concern is. We also learned why ``.save()`` is not a good way of saving your documents and how bulk inserts work. We've got those
+In the previous exercises we learned how to insert document into MongoDB and what a write concern is. We also learned why ``.save()`` is not a good way of saving your documents and how bulk inserts work. Having covered the basics we will spend this exercise looking at how to use the ``update`` array operators to manipulate document level arrays.
+
+$push Operator
+--------------
+
+The ``$push`` operator lets you add a document to the end of an array inside a ``MongoDB`` document. If the array does not exist it will create the array and then add the document to the newly created array. Let's put some code in showing the usage of the ``$push`` operator.
+
+.. literalinclude:: ex/ex28.js
+    :language: javascript
+    :linenos:
+
