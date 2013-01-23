@@ -322,6 +322,8 @@ The results from the update.
 
 The thing to notice is that the ``$sort`` will be applied before the ``slice`` and that it only supports sorting of objects. You cannot use ``$sort`` with an array of numbers for example.
 
+That covers working with arrays when performing updates. As we briefly touched upon earlier there is an additional update command available called ``findAndModify``. In the next exercise we will learn how it works and for what kind of situations it's useful.
+
 
 
 
