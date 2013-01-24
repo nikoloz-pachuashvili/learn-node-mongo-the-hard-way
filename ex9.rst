@@ -12,6 +12,7 @@ Lets start with a simple insert and full document update and explain why this in
 We first insert a document with the values ``{_id: 1, a:1}`` then after it inserted we do an update statement
 
 .. code-block:: javascript
+    :linenos:
 
     collection.update({_id:1}, {_id:1, b:1}, function(err, result) {
 
@@ -210,7 +211,7 @@ If we ``and`` a bit with the value ``1`` it will preserve the existing bit value
 Perfect we just flipped the value back to ``0`` setting our flag to ``false``. In short ``bit fields`` can be very useful to compress values into a smaller space in the database. As an example a ``32bit`` integer can contain ``32`` binary flags and will take up very little space in comparision to 32 indidvidual fields or 32 entries in an array.
 
 $isolated or how I came to love the bomb
---------------------------------------
+----------------------------------------
 
 Let's start right off the bat in the editor, fire it up and enter the code below.
 
@@ -257,7 +258,5 @@ To avoid this in the example above we use the ``$isolated`` operator as part of 
 
 So as we can see ``$isolated`` can be quite useful. With this we are ready to take the tackle the next step of dealing with arrays when performing updates.
 
-Note
-----
-
-You might be tempted to always use ``$isolated`` but you should not fall into this temptation. Only use it where appropriate as you are losing out on the benefit of concurrent writes to MongoDB forcing all updates to be serial. But keep it in mind when doing multiple field updates in a document if you are unsure something else could be changing the field while your application is executing a complex update.
+.. NOTE::
+    You might be tempted to always use ``$isolated`` but you should not fall into this temptation. Only use it where appropriate as you are losing out on the benefit of concurrent writes to MongoDB forcing all updates to be serial. But keep it in mind when doing multiple field updates in a document if you are unsure something else could be changing the field while your application is executing a complex update.

@@ -103,10 +103,8 @@ Let's dissect the code and look at how it works. The first insert is the ``colle
 
 As we can see write concerns can be specified at the ``Db``, ``Collection`` and the individual operation level and if not set the individual operation inherits from the ``Collection`` settings while the ``Collection`` inherits the write concern from the ``Db`` if not set.
 
-Notes
------
-
-``Replicasets`` and write concerns will be covered in later exercises. One of the things to keep in mind about write concerns is that the cost of higher guarantees of durability comes with an insert performance cost. So think carefully if you need your documents to be replicated across multiple ``secondaries`` or if you are good enough with them being ackowledged as written to the memory of the ``primary`` server. A typical mistake is to be to paranoid about losing data and setting the highest possible durability you can do and getting very bad insert performance as a consequence.
+.. NOTE::
+    ``Replicasets`` and write concerns will be covered in later exercises. One of the things to keep in mind about write concerns is that the cost of higher guarantees of durability comes with an insert performance cost. So think carefully if you need your documents to be replicated across multiple ``secondaries`` or if you are good enough with them being ackowledged as written to the memory of the ``primary`` server. A typical mistake is to be to paranoid about losing data and setting the highest possible durability you can do and getting very bad insert performance as a consequence.
 
 
 

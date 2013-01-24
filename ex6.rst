@@ -45,10 +45,8 @@ From MongoDB 2.2 onwards there is a new type of collection called a ``TTL`` coll
 
 Notice the ``collection.ensureIndex()`` method. We will go deeper into how indexes work and how the Node.js driver can create them in a later exercise. The point to notice here is that the ``TTL`` collection needs an index on a data field to work correctly and that the ``expireAfterSeconds`` parameter is in seconds.
 
-Notes
------
-
-One particular note to be made about ``TTL`` collections is that the expiry time is not a hard expiry time. What's meant by hard. Well it means that even if a document is exactly 48 hours old it might not be removed at exactly 48 hours but some time after that when MongoDB has free resources to remove the document. Also due to the fact that ``TTL`` collections need to remove documents from a collection ``TTL`` does not work with ``capped collections`` so keep that in mind.
+.. NOTE::
+    One particular note to be made about ``TTL`` collections is that the expiry time is not a hard expiry time. What's meant by hard. Well it means that even if a document is exactly 48 hours old it might not be removed at exactly 48 hours but some time after that when MongoDB has free resources to remove the document. Also due to the fact that ``TTL`` collections need to remove documents from a collection ``TTL`` does not work with ``capped collections`` so keep that in mind.
 
 
 

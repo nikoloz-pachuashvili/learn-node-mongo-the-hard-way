@@ -43,12 +43,7 @@ to finish thir exercise.
         ~ $ mkdir learn-exercises
         ~ $ cd learn-exercises
 
-Notes
------
-This might be a hard exerices depending on your level of experience but learning these
-fundamental steps is essential to be able to do programming and if not mastered will
-make it difficult to make much progress.
+.. NOTE::
+    This might be a hard exerices depending on your level of experience but learning these fundamental steps is essential to be able to do programming and if not mastered will make it difficult to make much progress.
 
-Programmers might tell you to use other more advanced tools or editors. I suggest you
-stick to simpler tools for the duration of these exercises as these tools will get in
-the way of the essential lessons of this book.
+    Programmers might tell you to use other more advanced tools or editors. I suggest you stick to simpler tools for the duration of these exercises as these tools will get in the way of the essential lessons of this book.

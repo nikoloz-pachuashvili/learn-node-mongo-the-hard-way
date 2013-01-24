@@ -125,9 +125,5 @@ to finish this exercise.
         > exit
         bye
 
-Notes
------
-For the rest of our exercises we are going to assume that you have mongod running on
-your development machine running on ``localhost`` and port ``27017`` which are the
-default. All the code in the rest of the examples that use ``MongoDB`` will assume this
-unless otherwise stated.
+.. NOTE::
+    For the rest of our exercises we are going to assume that you have mongod running on your development machine running on ``localhost`` and port ``27017`` which are the default. All the code in the rest of the examples that use ``MongoDB`` will assume this unless otherwise stated.

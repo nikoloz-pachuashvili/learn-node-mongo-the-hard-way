@@ -27,7 +27,6 @@ That's covered ``MongoClient.connect``. Sometime we want better programatic cont
 
 Notice the line ``Server = mongodb.Server``. It allows us to define the settings for connecting to a server instance. The line ``new MongoClient(new Server('localhost', 27017))`` creates an instance of ``MongoClient`` that is ready to connect to the MongoDB server at localhost on port 27017. The program then calls ``.open`` on the ``MongoClient`` instance. The main difference from the previous connection example using ``MongoClient.connect`` is that the function returns the ``MongoClient`` instance instead of a ``db`` instance. To get hold of the ``db`` instances we have to call the function ``.db('test')`` on the ``MongoClient`` instance. The code does this twice to retrieve a db instance for the databases ``test`` and ``test2`` before finally closing the connection to the MongoDB database. 
 
-Notes
------
-MongoDB can be configured to run as a cluster or sharded system. In later exercises we will learn how to connect to this configuarations. It's very similar to the current examples but has some slight differences. You can read more about the ``URI`` format at http://docs.mongodb.org/manual/reference/connection-string/
+.. NOTE::
+    MongoDB can be configured to run as a cluster or sharded system. In later exercises we will learn how to connect to this configuarations. It's very similar to the current examples but has some slight differences. You can read more about the ``URI`` format at http://docs.mongodb.org/manual/reference/connection-string/
 

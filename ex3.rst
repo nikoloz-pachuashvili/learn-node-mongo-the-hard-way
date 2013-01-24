@@ -136,9 +136,8 @@ through the ``while``. Once the program is done with it's work it calls the call
 repeats. When the first function returns false ``whilst`` calls the last function with the final
 result. The second function is the same as the previous code example.
 
-Notes
------
-Grasping the fundamentals about asynchronous programming is important to the correct behaviour of you applications and also to leverage the high concurrency available in Node.js. Don't worry if you don't grasp it the first time around it can take a while to get used to it especially if you come from another programming platform that is synchronous like ruby, python, perl or php.
+.. NOTE::
+    Grasping the fundamentals about asynchronous programming is important to the correct behaviour of you applications and also to leverage the high concurrency available in Node.js. Don't worry if you don't grasp it the first time around it can take a while to get used to it especially if you come from another programming platform that is synchronous like ruby, python, perl or php.
 
-It's worth spending some time practicing it or understanding how the ``async`` library works.
+    It's worth spending some time practicing it or understanding how the ``async`` library works.
 
