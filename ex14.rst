@@ -415,6 +415,9 @@ One thing we need to mention is that the ``$and`` operator can be expressed in a
 
 The results returned are.
 
+.. code-block:: javascript
+    :linenos:
+
     { "_id" : 1, "name" : "Agent Smith", "location" : "NYC", "age" : 67 }
     { "_id" : 3, "name" : "Trinity", "location" : "NYC", "age" : 28 }
 
@@ -424,6 +427,9 @@ $or
 ---
 
 The ``$or`` or logical OR let's you ask questions such as return all games where the platform is ``pc`` or one of the tags is ``"pc"``. To be selected a document has to satisfy at least one of the ``$or`` statements.
+
+.. code-block:: javascript
+    :linenos:
 
     [{
         _id: 1
