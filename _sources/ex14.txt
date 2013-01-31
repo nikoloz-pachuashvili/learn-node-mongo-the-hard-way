@@ -1,0 +1,867 @@
+Exercise 14: Querying MongoDB
+=============================
+
+To understand how queries work in ``MongoDB`` we need to understand how they work under the covers. When you execute a query against ``MongoDB`` it will create what is called a ``Cursor`` that is pointing to the results from the query. This is easier to show. Let's imagine that we perform a query asking for all cars that are owned by Steve. The might look like this.
+
+.. code-block:: javascript
+    :linenos:
+
+    {owner: 'Steve'}
+
+There might be 1000 results for this query in the database as Steve is a very rich man indeed. To avoid sending all of the documents all at once to your application ``MongoDB`` decides to send only the first ``100`` cars. That leaves  ``900`` cars that we need to transfer. To be able to keep track of where in the 1000 cars we are for the next ``100`` we want to read ``MongoDB`` keeps a ``Cursor`` pointing to the current read location in the 1000 cars result. In this case the ``Cursor`` would point to `100`.
+
+====== ====== ===============
+Start  End    Cursor Position
+====== ====== ===============
+0      100    X
+100    200  
+200    300
+.      .      
+900    1000
+====== ====== ===============
+
+After reading the first ``100`` cars the cursor position changes to point to the next ``100`` cars.
+
+====== ====== ================
+Start  End    Cursor Position
+====== ====== ================
+0      100    
+100    200    X
+200    300
+.      .      
+900    1000
+====== ====== ================
+
+We are only using ``100`` as an example your application could choose to read only 4 documents at the time as you can tell ``MongoDB`` how big you want each read to be. But more about that later. Once you finish reading the documents the ``Cursor`` is removed on ``MongoDB``. There are some limitations on ``Cursors``. You cannot go backwards in time only forward. In other words if you read the first ``100`` cars from the ``Cursor`` you cannot then reread the first ``100`` cars from the same cursor. You will have to execute a brand new query to do this.
+
+The ``NodeJS`` driver represents the ``MongoDB`` cursor using a class called ``Cursor`` that we will explore in depth in later exercises. For this exercise we will explore the ``MongoDB`` query language using the simplest query function the driver has called ``findOne`` that returns the first document from a query. 
+
+The Query Language
+------------------
+
+The ``MongoDB`` query language features several different operators. These include Comparison, Logical, Element, JavaScript, Geospatial and Array operators. In this exercise we will cover the Comparison, Logical, Element, JavaScript and Array operator. We will leave Geospatial ones to a later exercise.
+
+So lets start with the Comparison operators.
+
+Comparison operators
+--------------------
+
+The comparison operators let's you compare documents to values to select the ones you wish to be returned. There are several operators available including ``$all``, ``$gt``, ``$gte``, ``$in``, ``$lt``, ``$lte``, ``$ne`` and ``$nin``. Let's go through them and see how they work (we only look at how the matching works).
+
+$all (Contains all)
+-------------------
+
+Say you have a set of documents containing some tags.
+
+.. code-block:: javascript
+    :linenos:
+
+    [{
+        _id: 1
+      , title: "Wing Commander 72"
+      , tags: ["game", "scifi", "pc", "13+"]
+    },{
+        _id: 2
+      , title: "Dead space 15"
+      , tags: ["game", "scifi", "mac", "18+"]
+    },{
+        _id: 3
+      , title: "Star Controller 2"
+      , tags: ["game", "scifi", "pc", "10+"]
+    }]
+
+Now image that you want to locate all the documents that contain the tags ``"game"``, ``"scifi"`` and ``"pc"``. This is where the ``$all`` operator comes in. Our query would look like this.
+
+.. code-block:: javascript
+    :linenos:
+
+    {tags: {$all: ["game", "scifi", "pc"]}}
+
+The results returned are.
+
+.. code-block:: javascript
+    :linenos:
+
+    { "_id" : 1, "title" : "Wing Commander 72", "tags" : [ "game", "scifi", "pc", "13+" ] }
+    { "_id" : 3, "title" : "Star Controller 2", "tags" : [ "game", "scifi", "pc", "10+" ] }
+
+$gt (Greater Than)
+------------------
+
+Say you have some user documents containing the field age.
+
+.. code-block:: javascript
+    :linenos:
+
+    [{
+        _id: 1
+      , name: "Agent Smith"
+      , age: 67
+    },{
+        _id: 2
+      , name: "Mr Anderson"
+      , age: 25
+    },{
+        _id: 3
+      , name: "Trinity"
+      , age: 28
+    }]
+
+You wish to query for the users that are older than 30 years. Let's use the ``$gt`` or ``Greater Than`` operator. The query would look like this.
+
+.. code-block:: javascript
+    :linenos:
+
+    {age: {$gt: 28}}
+
+The results returned are.
+
+.. code-block:: javascript
+    :linenos:
+
+    { "_id" : 1, "name" : "Agent Smith", "age" : 67 }
+
+$gte (Greater Than or Equal)
+----------------------------
+
+``$gte`` or ``Greater than or Equal`` is similar to ``$gt`` but includes any documents that match the value provided as well as any values larger than the provided value. Given the following documents.
+
+.. code-block:: javascript
+    :linenos:
+
+    [{
+        _id: 1
+      , name: "Agent Smith"
+      , age: 67
+    },{
+        _id: 2
+      , name: "Mr Anderson"
+      , age: 25
+    },{
+        _id: 3
+      , name: "Trinity"
+      , age: 28
+    }]
+
+Let's select all the documents where the age is greater or equal to ``28``.
+
+.. code-block:: javascript
+    :linenos:
+
+    {age: {$gte: 28}}
+
+The results returned are.
+
+.. code-block:: javascript
+    :linenos:
+
+    { "_id" : 1, "name" : "Agent Smith", "age" : 67 }
+    { "_id" : 3, "name" : "Trinity", "age" : 28 }
+
+$in (Contains One Of)
+---------------------
+
+The ``$in`` operator lets us match any document where a value is in a predefined set of values. Let's take a set of documents.
+
+.. code-block:: javascript
+    :linenos:
+
+    [{
+        _id: 1
+      , title: "Wing Commander 72"
+      , platform: "xbox1080"
+    },{
+        _id: 2
+      , title: "Dead space 15"
+      , platform: "ps2000"
+    },{
+        _id: 3
+      , title: "Star Controller 2"
+      , platform: "pc"
+    }]
+
+Let's select all the games that are available for the ``xbox1080`` and the ``ps2000``.
+
+.. code-block:: javascript
+    :linenos:
+
+    {platform: {$in: ["ps2000", "xbox1080"]}}
+
+The results returned are.
+
+.. code-block:: javascript
+    :linenos:
+
+    { "_id" : 1, "title" : "Wing Commander 72", "platform" : "xbox1080" }
+    { "_id" : 2, "title" : "Dead space 15", "platform" : "ps2000" }
+
+$lt (Less Than)
+---------------
+
+Say you have some user documents containing the field age.
+
+.. code-block:: javascript
+    :linenos:
+
+    [{
+        _id: 1
+      , name: "Agent Smith"
+      , age: 67
+    },{
+        _id: 2
+      , name: "Mr Anderson"
+      , age: 25
+    },{
+        _id: 3
+      , name: "Trinity"
+      , age: 28
+    }]
+
+We wish to select all the users where the age is less than 28.
+
+.. code-block:: javascript
+    :linenos:
+
+    {age: {$lt: 28}}
+
+The results returned are.
+
+.. code-block:: javascript
+    :linenos:
+
+    { "_id" : 2, "name" : "Mr Anderson", "age" : 25 }
+
+$lte (Less Than or Equal)
+-------------------------
+
+Just as with ``$gte``, ``$lte`` is a Less than or equal operator letting you find all documents where the specified field is less or equal to the provided value. Let's see it in action.
+
+.. code-block:: javascript
+    :linenos:
+
+    [{
+        _id: 1
+      , name: "Agent Smith"
+      , age: 67
+    },{
+        _id: 2
+      , name: "Mr Anderson"
+      , age: 25
+    },{
+        _id: 3
+      , name: "Trinity"
+      , age: 28
+    }]
+
+We wish to select all the users where the age is less than 28.
+
+.. code-block:: javascript
+    :linenos:
+
+    {age: {$lte: 28}}
+
+The results returned are.
+
+.. code-block:: javascript
+    :linenos:
+
+    { "_id" : 2, "name" : "Mr Anderson", "age" : 25 }
+    { "_id" : 3, "name" : "Trinity", "age" : 28 }
+
+$ne (Not Equal To)
+------------------
+
+Imagine if we wish to find all documents that does not specify a specific value. Let's take an example set of documents.
+
+.. code-block:: javascript
+    :linenos:
+
+    [{
+        _id: 1
+      , name: "Agent Smith"
+      , agent: true
+    },{
+        _id: 2
+      , name: "Mr Anderson"
+    },{
+        _id: 3
+      , name: "Trinity"
+      , agent: false
+    }]
+
+We wish to select all the users who are not agents.
+
+.. code-block:: javascript
+    :linenos:
+
+    {agent: {$ne: true}}
+
+The results returned are.
+
+.. code-block:: javascript
+    :linenos:
+
+    { "_id" : 2, "name" : "Mr Anderson" }
+    { "_id" : 3, "name" : "Trinity", "agent" : false }    
+
+Take not that ``$ne`` matches not only on the document that has ``agent:false`` but also the document that does not contain the ``agent`` field.
+
+$nin (Contains None Of)
+-----------------------
+
+Think of ``$nin`` as a reverse off the ``$in`` operator. Let's define a set of documents.
+
+.. code-block:: javascript
+    :linenos:
+
+    [{
+        _id: 1
+      , title: "Wing Commander 72"
+      , tags: ["game", "scifi", "pc", "13+"]
+    },{
+        _id: 2
+      , title: "Dead space 15"
+      , tags: ["game", "scifi", "mac", "18+"]
+    },{
+        _id: 3
+      , title: "Star Controller 2"
+      , tags: ["game", "scifi", "pc", "10+"]
+    }]
+
+Let's select all the games that do not contain the ``pc`` tag.
+
+.. code-block:: javascript
+    :linenos:
+
+    {tags:{$nin: ["pc"]}}
+
+The results returned are.
+
+.. code-block:: javascript
+    :linenos:
+
+    { "_id" : 2, "title" : "Dead space 15", "tags" : [ "game", "scifi", "mac", "18+" ] }
+
+.. NOTE::
+    In a later exercise we will learn about something called indexes that speed up queries. ``$nin`` is poison for search on very big collections because ``$nin`` queries cannot use an index and needs to scan through all of the document individually. The best is to rewrite you code to avoid ``$nin`` or only use it in very small collections where the cost of scanning through all of the documents is very low.
+
+That covers all the comparison expressions for ``MongoDB``. Next let's see how we can combine them with ``Logical`` operators to make create more advanced queries.
+
+Logical operators
+-----------------
+
+So what if you want to query for an age range (between 10 and 20 years) or return only documents where the age is 20 and the location is Barcelona. This is where the logical operators come in. There are four of them in ``MongoDB``. They are ``$and``, ``$or``, ``$not`` and ``$or``. Let's look at them in turn.
+
+$and
+----
+
+The ``$and`` operator allows to ask questions like find me all users aged 28 and living in New York. Only documents matching both of them will be returned. Let's look at a simple example.
+
+.. code-block:: javascript
+    :linenos:
+
+      [{
+          _id: 1
+        , name: "Agent Smith"
+        , location: "NYC"
+        , age: 67
+      },{
+          _id: 2
+        , name: "Mr Anderson"
+        , location: "NYC"
+        , age: 25
+      },{
+          _id: 3
+        , name: "Trinity"
+        , location: "NYC"
+        , age: 28
+      }]
+
+We wish to select all the users where the age is less than 28.
+
+.. code-block:: javascript
+    :linenos:
+
+    {$and: [{age: 28}, {location: "NYC"}]}
+
+The results returned are.
+
+.. code-block:: javascript
+    :linenos:
+
+    { "_id" : 3, "name" : "Trinity", "location" : "NYC", "age" : 28 }
+
+Let's look at how we can combine the logical operator with a comparison operator to select a range. More specifically all the users living in NYC between and including the ages of 28 and 70.
+
+.. code-block:: javascript
+    :linenos:
+
+    {$and: [{age: {$gte: 28}}, {age: {$lte: 70}}, {location: "NYC"}]}
+
+The results returned are.
+
+.. code-block:: javascript
+    :linenos:
+
+    { "_id" : 1, "name" : "Agent Smith", "location" : "NYC", "age" : 67 }
+    { "_id" : 3, "name" : "Trinity", "location" : "NYC", "age" : 28 }
+
+One thing we need to mention is that the ``$and`` operator can be expressed in a different way. Let's look how. Take the same query as above.
+
+.. code-block:: javascript
+    :linenos:
+
+    {age: {$gte: 28, $lte: 70}, location: "NYC"}
+
+The results returned are.
+
+.. code-block:: javascript
+    :linenos:
+
+    { "_id" : 1, "name" : "Agent Smith", "location" : "NYC", "age" : 67 }
+    { "_id" : 3, "name" : "Trinity", "location" : "NYC", "age" : 28 }
+
+Let's look at what just happened. Take ``age: {$gte: 28, $lte: 70}`` the comma between the ``$gte`` and ``$lte`` is an implicit ``$and`` meaning this is a short form for the same expression as above using the ``$and``. So for short you can use the comma as an ``$and``.
+
+$or
+---
+
+The ``$or`` or logical OR let's you ask questions such as return all games where the platform is ``pc`` or one of the tags is ``"pc"``. To be selected a document has to satisfy at least one of the ``$or`` statements.
+
+.. code-block:: javascript
+    :linenos:
+
+    [{
+        _id: 1
+      , title: "Wing Commander 72"
+      , platform: "steam"
+      , tags: ["game", "scifi", "pc", "13+"]
+    },{
+        _id: 2
+      , title: "Dead space 15"
+      , platform: "ps2000"
+      , tags: ["game", "scifi", "mac", "18+"]
+    },{
+        _id: 3
+      , title: "Star Controller 2"
+      , platform: "pc"
+      , tags: ["game", "scifi", "pc", "10+"]
+    }]
+
+Let's select all the games that do not contain the ``pc`` tag.
+
+.. code-block:: javascript
+    :linenos:
+
+    {$or: [{platform: "pc"}, {tags: {$in: ["pc"]}}]}
+
+The results returned are.
+
+.. code-block:: javascript
+    :linenos:
+
+    { "_id" : 1, "title" : "Wing Commander 72", "platform" : "steam", "tags" : [ "game", "scifi", "pc", "13+" ] }
+    { "_id" : 3, "title" : "Star Controller 2", "platform" : "pc", "tags" : [ "game", "scifi", "pc", "10+" ] }
+
+.. NOTE::
+    Due to each ``$or`` statement actually being checked in parallel by ``MongoDB`` they cannot share what is called a compound index (more on this later). To speed up this query we need to create two different indexes. One for the field tags and one for the field platform.
+
+$not
+----
+
+The ``$not`` or logical NOT let's you ask questions such as, show me all users that are not older than 28. Take the following documents.
+
+.. code-block:: javascript
+    :linenos:
+
+      [{
+          _id: 1
+        , name: "Agent Smith"
+        , location: "NYC"
+        , age: 67
+      },{
+          _id: 2
+        , name: "Mr Anderson"
+        , location: "NYC"
+        , age: 25
+      },{
+          _id: 3
+        , name: "Trinity"
+        , location: "NYC"
+        , age: 28
+      }]
+
+We wish to select all the users where the age is not greater than 28 and less than 26.
+
+.. code-block:: javascript
+    :linenos:
+
+    age: { $not: { $gt: 28, $lt: 26}}}
+
+The results returned are.
+
+.. code-block:: javascript
+    :linenos:
+
+    { "_id" : 3, "name" : "Trinity", "location" : "NYC", "age" : 28 }
+
+In most cases a ``$not`` operator can be considered a reversal of a query and can be useful to quickly find what is not covered by a given query.
+
+$nor
+----
+
+The ``$nor`` or logical NOR is way to locate documents that do not satisfy an expression. Given a set of documents.
+
+.. code-block:: javascript
+    :linenos:
+
+    [{
+        _id: 1
+      , title: "Wing Commander 72"
+      , platform: "steam"
+      , tags: ["game", "scifi", "pc", "13+"]
+    },{
+        _id: 2
+      , title: "Dead space 15"
+      , platform: "ps2000"
+      , tags: ["game", "scifi", "mac", "18+"]
+    },{
+        _id: 3
+      , title: "Star Controller 2"
+      , platform: "pc"
+      , tags: ["game", "scifi", "pc", "10+"]
+    }]
+
+Let's select all the games that do not have the tag ``pc`` nor the tag ``10+``.
+
+.. code-block:: javascript
+    :linenos:
+
+    { $nor: [{tags: "pc"}, {tags: "10+"}]}
+
+The results returned are.
+
+.. code-block:: javascript
+    :linenos:
+
+    { "_id" : 2, "title" : "Dead space 15", "platform" : "ps2000", "tags" : [ "game", "scifi", "mac", "18+" ] }
+
+.. NOTE::
+    Take care when using negations in queries where you rely on indexes as negations can sometime make it impossible for ``MongoDB`` to use an index forcing it to scan the entire collection for matching documents. In a later exercise we will learn all there is to know about indexes in ``MongoDB`` and how to ensure your queries uses them efficiently.
+
+This covers the Logical operators the ``MongoDB`` query language supports. Next up is element level operators.
+
+Element operators
+-----------------
+
+The element operators ``$exists``, ``$mod`` and ``$type`` let you match on if a field exists, a specific module remainder or if the field is of a specific BSON type.
+
+$exists
+-------
+
+The ``$exists`` operator lets us select documents based on if a field exists or not instead of by a specific value. Given the documents below.
+
+.. code-block:: javascript
+    :linenos:
+
+    [{
+        _id: 1
+      , title: "Wing Commander 72"
+      , platform: "steam"
+      , tags: ["game", "scifi", "pc", "13+"]
+    },{
+        _id: 2
+      , title: "Dead space 15"
+      , platform: "ps2000"
+      , sale: true
+      , tags: ["game", "scifi", "mac", "18+"]
+    },{
+        _id: 3
+      , title: "Star Controller 2"
+      , platform: "pc"
+      , tags: ["game", "scifi", "pc", "10+"]
+    }]
+
+Let's select all the games that are for sale (in this case has the field sale).
+
+.. code-block:: javascript
+    :linenos:
+
+    { sale: {$exists: true }}
+
+The results returned are.
+
+.. code-block:: javascript
+    :linenos:
+
+    { "_id" : 2, "title" : "Dead space 15", "platform" : "ps2000", "sale" : true, "tags" : [ "game", "scifi", "mac", "18+" ] }
+
+$mod
+----
+
+The ``$mod`` operator let's us match documents based on the remainder of dividing to numbers. We have two simple examples below.
+
+.. code-block:: console
+    :linenos:
+
+    8 / 8    = 1
+    8 mod 8  = 0
+
+    8 / 9    = 0.88888888
+    8 mod 9  = 0
+
+    16 / 8   = 2
+    16 mod 8 = 0
+
+As you can see the ``remainder`` of the ``8 / 9`` division is ``8`` as it cannot be divided to a whole number. The module only show the remainder of the division. Let's look at an example that's a bit contrived but still demonstrates the usage of the ``$mod`` operator.
+
+.. code-block:: javascript
+    :linenos:
+
+    [{
+        _id: 1
+      , title: "Wing Commander 72"
+      , platform: "steam"
+      , price: 12
+      , tags: ["game", "scifi", "pc", "13+"]
+    },{
+        _id: 2
+      , title: "Dead space 15"
+      , platform: "ps2000"
+      , price: 24
+      , tags: ["game", "scifi", "mac", "18+"]
+    },{
+        _id: 3
+      , title: "Star Controller 2"
+      , platform: "pc"
+      , price: 27
+      , tags: ["game", "scifi", "pc", "10+"]
+    }]
+
+Let's select all games that have a price that's a multiple of 12.
+
+.. code-block:: javascript
+    :linenos:
+
+    { price: {$mod: [12, 0] }}
+
+The results returned are.
+
+.. code-block:: javascript
+    :linenos:
+
+    { "_id" : 1, "title" : "Wing Commander 72", "platform" : "steam", "price" : 12, "tags" : [ "game", "scifi", "pc", "13+" ] }
+    { "_id" : 2, "title" : "Dead space 15", "platform" : "ps2000", "price" : 24, "tags" : [ "game", "scifi", "mac", "18+" ] }
+
+.. NOTE::
+    The ``$mod`` operator cannot use an index so it will force ``MongoDB`` to scan through all of your documents potentially causing slow queries if the collection contains a lot of documents.
+
+$type
+-----
+
+The ``$type`` operator let's us select documents based on what kind of BSON type it is. The BSON types are defined in the following table.
+
+===================   ======================
+Type                  Number
+===================   ======================
+Double                1
+String                2
+Object                3
+Array                 4
+Binary data           5
+Object id             7
+Boolean               8
+Date                  9
+Null                  10
+Regular Expression    11
+JavaScript            13
+Symbol                14
+JavaScript w/scope    15
+32 bit integer        16
+Timestamp             17
+64 bit integer        18
+Min key               -1
+Max key               127
+===================   ======================
+
+Let's look at example using the following documents.
+
+.. code-block:: javascript
+    :linenos:
+
+    [{
+        _id: 1
+      , title: "Wing Commander 72"
+      , price: 12
+    },{
+        _id: 2
+      , title: "Dead space 15"
+      , price: 24
+    },{
+        _id: 3
+      , title: "Star Controller 2"
+      , price: "27"
+    }]
+
+Let's select all the documents where the file is a numeric type.
+
+.. code-block:: javascript
+    :linenos:
+
+    { $or: [ {price: {$type: 16}}, {price: {$type: 18}}, {price: {$type: 1}}]}
+
+The results returned are.
+
+.. code-block:: javascript
+    :linenos:
+
+    { "_id" : 1, "title" : "Wing Commander 72", "price" : 12 }
+    { "_id" : 2, "title" : "Dead space 15", "price" : 24 }
+
+Since ``MongoDB`` allows a field to have any the ``$type`` operator can be very useful to detect if you have documents that use a different field type than the one expected.
+
+JavaScript operators
+--------------------
+
+The ``MongoDB`` query language also supports the use of JavaScript in queries in the form of the ``$regexp`` and ``$where`` operators. However its prudent to warn against using ``$where`` in your queries as it will run the comparison over all of the documents in the collection as well as in the ``MongoDB`` JavaScript runtime meaning performance leaves a lot to be desired.
+
+$regexp (Regular expressions)
+-----------------------------
+
+The ``$regexp`` operator lets you perform string matches using the  (http://www.pcre.org/). The ``MongoDB`` query language supports the following options.
+
+========== ===================================================
+Option     Description
+========== ===================================================
+i          allows case insensitive matches
+m          will match across multiple lines (otherwise stops at the first line)
+x          ignores all white space in the text
+s          allows dot character to match all characters
+========== ===================================================
+
+Let's look at example using the following documents.
+
+.. code-block:: javascript
+    :linenos:
+
+    [{
+        _id: 1
+      , title: "Wing Commander 72"
+      , price: 12
+    },{
+        _id: 2
+      , title: "Dead space 15"
+      , price: 24
+    },{
+        _id: 3
+      , title: "Star Controller 2"
+      , price: "27"
+    }]
+
+Let's select all the documents starting with Wing.
+
+.. code-block:: javascript
+    :linenos:
+
+    { title: /^Wing/ }
+
+The results returned are.
+
+.. code-block:: javascript
+    :linenos:
+
+    { "_id" : 1, "title" : "Wing Commander 72", "price" : 12 }
+
+.. NOTE::
+    One of the problems with the ``$regexp`` operator is that it needs to search through all of the documents in a collection do locate matches for most cases. The only case where it will use an index (and thus execute more rapidly) is if the regular expression is performing a case sensitive match from the start of the string such as ``/^Wing``.
+
+$where
+------
+
+The ``$where`` operator lets you match documents using JavaScript expression. However it comes with a massive ``Here lies dragons`` warning sign as it needs to scan the entire collection to match documents (using no indexes) and runs inside the ``MongoDB`` JavaScript engine meaning it impacts the performance of the server and is fairly slow. Use with extreme caution. Give the dire warning let's look at an example. Given the following documents.
+
+.. code-block:: javascript
+    :linenos:
+
+    [{
+        _id: 1
+      , title: "Wing Commander 72"
+      , platform: "steam"
+      , price: 12
+      , tags: ["game", "scifi", "pc", "13+"]
+    },{
+        _id: 2
+      , title: "Dead space 15"
+      , platform: "ps2000"
+      , price: 24
+      , tags: ["game", "scifi", "mac", "18+"]
+    },{
+        _id: 3
+      , title: "Star Controller 2"
+      , platform: "pc"
+      , price: 27
+      , tags: ["game", "scifi", "pc", "10+", "steam"]
+    }]
+
+Let's select all the documents where the number of tags is more than four.
+
+.. code-block:: javascript
+    :linenos:
+
+    { $where: "this.tags.length > 4" }
+
+The results returned are.
+
+.. code-block:: javascript
+    :linenos:
+
+    { "_id" : 3, "title" : "Star Controller 2", "platform" : "pc", "price" : 27, "tags" : [ "game", "scifi", "pc", "10+", "steam" ] }
+
+.. NOTE::
+    As mentioned before use extreme caution when using ``$where`` as it will impact your application performance.
+
+Array Operators
+---------------
+
+The last set of query operators we will cover in this exercise is the Array operator ``$size``.
+
+$size
+-----
+
+The ``$size`` operator let's us match on the size of an array. Take the following documents.
+
+.. code-block:: javascript
+    :linenos:
+
+    [{
+        _id: 1
+      , title: "Wing Commander 72"
+      , tags: ["game", "scifi", "pc", "13+"]
+    },{
+        _id: 2
+      , title: "Dead space 15"
+      , tags: ["game", "scifi", "mac", "18+"]
+    },{
+        _id: 3
+      , title: "Star Controller 2"
+      , tags: ["game", "scifi", "pc", "10+", "steam"]
+    }]
+
+Let's select all the documents where the number of tags is four.
+
+.. code-block:: javascript
+    :linenos:
+
+    { tags: {$size:4}}
+
+The results returned are.
+
+.. code-block:: javascript
+    :linenos:
+
+    { "_id" : 1, "title" : "Wing Commander 72", "tags" : [ "game", "scifi", "pc", "13+" ] }
+    { "_id" : 2, "title" : "Dead space 15", "tags" : [ "game", "scifi", "mac", "18+" ] } 
+    
+This covers the query operators in ``MongoDB`` that we wanted to cover in this exercise. We have intentionally skipped ``Geospatial`` query operators as well as ``Projection`` operators as we will introduce them in later exercises.
+
+

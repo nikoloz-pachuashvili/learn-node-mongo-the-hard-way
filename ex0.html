@@ -1,0 +1,177 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Exercise 0: The Setup &mdash; Learn MongoDB And Node.js The Hard Way</title>
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '2.0',
+        COLLAPSE_MODINDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Learn MongoDB And Node.js The Hard Way" href="index.html" />
+    <link rel="next" title="Exercise 1: The package manager" href="ex1.html" />
+    <link rel="prev" title="The Hard Way Is Easier" href="intro.html" /> 
+  </head>
+  <body>
+    <div class="related">
+        <ul>
+          <li class="right"><a style="color: #C40B46;" href="http://docs.mongodb.org/manual/" title="MongoDB Docs">MongoDB Docs</a></li>
+          <li class="right"><a style="color: #C40B46;" href="http://mongodb.github.com/node-mongodb-native/" title="Driver Docs">Driver Docs</a> | </li>
+        </ul>
+    </div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="ex1.html" title="Exercise 1: The package manager"
+             accesskey="N">next</a></li>
+        <li class="right" >
+          <a href="intro.html" title="The Hard Way Is Easier"
+             accesskey="P">previous</a> |</li>
+        <li><a href="http://ruby.learncodethehardway.org/">Learn MongoDB And Node.js The Hard Way</a> &raquo;</li> 
+        <li class="right"><a href="search.html" title="search">search</a> | </li>
+      </ul>
+    </div>
+
+
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="exercise-0-the-setup">
+<h1>Exercise 0: The Setup<a class="headerlink" href="#exercise-0-the-setup" title="Permalink to this headline">¶</a></h1>
+<p>The first thing we need to do is to setup your computer with the correct
+tools to allow you to Node.js and MongoDB. Try to follow the instructions
+to the letter.</p>
+<p>The book assumes we are using the latest Node.js. Let's get started installing.
+It also assumes you have experience in <tt class="docutils literal"><span class="pre">javascript</span></tt> as it will only focus
+on <tt class="docutils literal"><span class="pre">Node.js</span></tt> and <tt class="docutils literal"><span class="pre">MongoDB</span></tt>.</p>
+<div class="section" id="mac-osx">
+<h2>Mac OSX<a class="headerlink" href="#mac-osx" title="Permalink to this headline">¶</a></h2>
+<p>This exercise is made up by the following tasks that need to be completed
+to finish thir exercise.</p>
+<ol class="arabic">
+<li><p class="first">Open a web browser</p>
+</li>
+<li><p class="first">Go to the url <a class="reference external" href="http://www.barebones.com/products/textwrangler/">http://www.barebones.com/products/textwrangler/</a>, and download
+the <tt class="docutils literal"><span class="pre">TextWrangler</span></tt> text editor. After downloading it install it.</p>
+</li>
+<li><p class="first">Put the <tt class="docutils literal"><span class="pre">TextWrangler</span></tt> text editor in your doc for easy access.</p>
+</li>
+<li><p class="first">Locate your <tt class="docutils literal"><span class="pre">Terminal</span></tt> application (Under <tt class="docutils literal"><span class="pre">Applications</span></tt> and then <tt class="docutils literal"><span class="pre">Utilities</span></tt>)
+then drag it to the Dock aswell for easy access.</p>
+</li>
+<li><p class="first">It's time to download node.js. Open a browser and go to <a class="reference external" href="http://nodejs.org/">http://nodejs.org/</a>, Click
+the <tt class="docutils literal"><span class="pre">install</span></tt> button and download the node .pkg file</p>
+</li>
+<li><p class="first">Open the node pkg file and follow the instructions to install node.js on your system</p>
+</li>
+<li><p class="first">Open the <tt class="docutils literal"><span class="pre">Terminal</span></tt> application and type.</p>
+<div class="highlight-console"><div class="highlight"><pre><span class="go">~ $ node</span>
+<span class="gp">&gt;</span>
+<span class="gp">&gt;</span> console.log<span class="o">(</span><span class="s2">&quot;Hello world!&quot;</span><span class="o">)</span>;
+<span class="go">Hello world!</span>
+<span class="go">undefined</span>
+</pre></div>
+</div>
+<p><tt class="docutils literal"><span class="pre">CTRL-C</span></tt> twice to exit the shell and go back to the terminal prompt.</p>
+</li>
+<li><p class="first">Let's create a directory for our exercises so we can start working.</p>
+<div class="highlight-console"><div class="highlight"><pre><span class="go">~ $ cd</span>
+<span class="go">~ $ mkdir learn-exercises</span>
+<span class="go">~ $ cd learn-exercises</span>
+</pre></div>
+</div>
+</li>
+</ol>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>This might be a hard exerices depending on your level of experience but learning these fundamental steps is essential to be able to do programming and if not mastered will make it difficult to make much progress.</p>
+<p class="last">Programmers might tell you to use other more advanced tools or editors. I suggest you stick to simpler tools for the duration of these exercises as these tools will get in the way of the essential lessons of this book.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+        <ul>
+          <li class="right"><a style="color: #C40B46;" href="http://docs.mongodb.org/manual/" title="MongoDB Docs">MongoDB Docs</a></li>
+          <li class="right"><a style="color: #C40B46;" href="http://mongodb.github.com/node-mongodb-native/" title="Driver Docs">Driver Docs</a> | </li>
+        </ul>
+    </div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="ex1.html" title="Exercise 1: The package manager"
+             >next</a></li>
+        <li class="right" >
+          <a href="intro.html" title="The Hard Way Is Easier"
+             >previous</a> |</li>
+        <li><a href="http://ruby.learncodethehardway.org/">Learn MongoDB And Node.js The Hard Way</a> &raquo;</li> 
+        <li class="right"><a href="search.html" title="search">search</a> | </li>
+      </ul>
+    </div>
+    <a name="comments"><hr/></a>
+
+<div sytle="text-align: left">
+    <div style="background: white; padding: 10px" id="disqus_thread"></div>
+</div>
+    <script type="text/javascript">
+        var dow = new Date().getDay();
+
+        if(dow == 5 || dow == 6) {
+            $("#disqus_thread").html("<h1>Today Is Christians's Day Off</h1><p>I take Saturday and Sunday off.  Comments open again on Monday-Friday.</p>")
+        } else {
+            /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+            var disqus_shortname = 'learn-code-the-hard-way'; // required: replace example with your forum shortname
+
+
+            /* * * DON'T EDIT BELOW THIS LINE * * */
+            (function() {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        }
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <div class="footer">
+      &copy; Copyright 2012, Christian Amor Kvalheim.
+      Last updated on Jan 31, 2013.
+</div>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-24168052-9']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </body>
+</html>

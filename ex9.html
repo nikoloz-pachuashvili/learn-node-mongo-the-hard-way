@@ -1,0 +1,761 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Exercise 9: Update Basics &mdash; Learn MongoDB And Node.js The Hard Way</title>
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '2.0',
+        COLLAPSE_MODINDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Learn MongoDB And Node.js The Hard Way" href="index.html" />
+    <link rel="next" title="Exercise 10: Update Basics" href="ex10.html" />
+    <link rel="prev" title="Exercise 8: Write Concerns" href="ex8.html" /> 
+  </head>
+  <body>
+    <div class="related">
+        <ul>
+          <li class="right"><a style="color: #C40B46;" href="http://docs.mongodb.org/manual/" title="MongoDB Docs">MongoDB Docs</a></li>
+          <li class="right"><a style="color: #C40B46;" href="http://mongodb.github.com/node-mongodb-native/" title="Driver Docs">Driver Docs</a> | </li>
+        </ul>
+    </div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="ex10.html" title="Exercise 10: Update Basics"
+             accesskey="N">next</a></li>
+        <li class="right" >
+          <a href="ex8.html" title="Exercise 8: Write Concerns"
+             accesskey="P">previous</a> |</li>
+        <li><a href="http://ruby.learncodethehardway.org/">Learn MongoDB And Node.js The Hard Way</a> &raquo;</li> 
+        <li class="right"><a href="search.html" title="search">search</a> | </li>
+      </ul>
+    </div>
+
+
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="exercise-9-update-basics">
+<h1>Exercise 9: Update Basics<a class="headerlink" href="#exercise-9-update-basics" title="Permalink to this headline">¶</a></h1>
+<p>In the previous exercises we learned how to insert documents into MongoDB and what a write concern is. We also learned why <tt class="docutils literal"><span class="pre">.save()</span></tt> is not a good way of saving your documents and how bulk inserts work. We've managed to get all those documents into MongoDB but now we find we need to update some of the fields. In this exercise we will focus on the basic operations to change your documents in MongoDB and in the next exercise on the more advanced ways to modify your existing documents.</p>
+<p>Lets start with a simple insert and full document update and explain why this in general is a bad idea. Fire up the editor and type in the following code.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23</pre></div></td><td class="code"><div class="highlight"><pre><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+
+<span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>    
+  <span class="p">}</span>
+
+  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;my_basic_update_documents&#39;</span><span class="p">);</span>
+  
+  <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">,</span> <span class="nx">a</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>      
+    <span class="p">}</span>
+
+    <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">,</span> <span class="nx">b</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>      
+
+      <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+    <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">});</span>
+</pre></div>
+</td></tr></table></div>
+<p>We first insert a document with the values <tt class="docutils literal"><span class="pre">{_id:</span> <span class="pre">1,</span> <span class="pre">a:1}</span></tt> then after it inserted we do an update statement</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4</pre></div></td><td class="code"><div class="highlight"><pre><span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">,</span> <span class="nx">b</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+
+  <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<span class="p">});</span>
+</pre></div>
+</td></tr></table></div>
+<p>The update statement is made up of two different objects. The first part is the query to match locate the document we wish to change <tt class="docutils literal"><span class="pre">{_id:1}</span></tt> and the second object is the way we wish to change the document. In this case we are passing in the document <tt class="docutils literal"><span class="pre">{_id:1,</span> <span class="pre">b:1}</span></tt> which will replace the existing document with the new one. Let's see what's in the database. Let's fire up mongo.</p>
+<div class="highlight-console"><div class="highlight"><pre><span class="go">~ $ mongo</span>
+<span class="go">MongoDB shell version: 2.2</span>
+<span class="go">connecting to: test</span>
+<span class="gp">&gt;</span> use <span class="nb">test</span>
+<span class="go">switched to db test</span>
+<span class="gp">&gt;</span> db.my_basic_update_documents.find<span class="o">()</span>
+<span class="go">{ &quot;_id&quot; : 1, &quot;b&quot; : 1 }</span>
+</pre></div>
+</div>
+<p>As we can see the whole document <tt class="docutils literal"><span class="pre">{_id:</span> <span class="pre">1,</span> <span class="pre">a:1}</span></tt> was replaced. This can cause some issues. Imagine that there are several applications trying to modify the same document. Each <tt class="docutils literal"><span class="pre">update</span></tt> would overwrite any changes in the document meaning we would loose all changes but the last update. This is what the <tt class="docutils literal"><span class="pre">collection.save()</span></tt> function does. There is also a problem of efficiency. When we save the whole document we need to transfer the whole document to MongoDB even if we only want to change one field. This is less than optimial as we can imagine especially if we have a large document. Luckily we don't have to do that and we can also avoid the problem of overwritting any existing changes in a document. We do this using special operators called <tt class="docutils literal"><span class="pre">atomic</span></tt> operators.</p>
+<div class="section" id="atomic-operators">
+<h2>Atomic Operators<a class="headerlink" href="#atomic-operators" title="Permalink to this headline">¶</a></h2>
+<p>Let's start with the basics of what an Atomic operator is. To do this let's imagine that we have a document that looks like this.</p>
+<div class="highlight-json"><div class="highlight"><pre><span class="p">{</span>
+  <span class="nt">&quot;value&quot;</span> <span class="p">:</span> <span class="mi">1</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Now let's imagine that two different applications wish to change the value by incrementing it by one. The end result should be <tt class="docutils literal"><span class="pre">3</span></tt>. To make sure that <tt class="docutils literal"><span class="pre">value</span></tt> is incremented correctly we need to ensure that only one of the two applications can change the the <tt class="docutils literal"><span class="pre">value</span></tt> at any given time. Otherwise both applications might read the <tt class="docutils literal"><span class="pre">value</span></tt> to be incremented at the same time and increment it from <tt class="docutils literal"><span class="pre">1</span></tt> to <tt class="docutils literal"><span class="pre">2</span></tt>. The property of ensuring only one application can change the value at a time is called an atomic operation. The second benefit of atomic operators is that we are changing are only sending the changes to MongoDB not the whole document so the amount of information that needs to be sent over the network is smaller and MongoDB can in most cases update the document where it is in memory without having to move the document to a new location on the Database.</p>
+<p>So what kind of operators does MongoDB have that are atomic.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="9%" />
+<col width="7%" />
+<col width="84%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Operator</th>
+<th class="head">Operates On</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>$set</td>
+<td>Field</td>
+<td>Set a particular field in the document</td>
+</tr>
+<tr class="row-odd"><td>$unset</td>
+<td>Field</td>
+<td>Remove a particular field from the document</td>
+</tr>
+<tr class="row-even"><td>$inc</td>
+<td>Field</td>
+<td>Increments a numeric field by the provided value and sets it to the provided value if the field does not exist</td>
+</tr>
+<tr class="row-odd"><td>$rename</td>
+<td>Field</td>
+<td>Renames a field or overwrites the existing field with the new field</td>
+</tr>
+<tr class="row-even"><td>$</td>
+<td>Array</td>
+<td>Updates an element in an array field to update without specifiying the exact position. Acts as a placeholder for the first match.</td>
+</tr>
+<tr class="row-odd"><td>$push</td>
+<td>Array</td>
+<td>Appends a value to an array, if the array does not exist it gets created.</td>
+</tr>
+<tr class="row-even"><td>$pushAll</td>
+<td>Array</td>
+<td>Works as $push but lets you push multiple values to the array</td>
+</tr>
+<tr class="row-odd"><td>$addToSet</td>
+<td>Array</td>
+<td>Only adds the value to the array if it does not already exist</td>
+</tr>
+<tr class="row-even"><td>$pop</td>
+<td>Array</td>
+<td>Pop the last element off the array or shift the first element of the array</td>
+</tr>
+<tr class="row-odd"><td>$pull</td>
+<td>Array</td>
+<td>Removes all instances of a value from an array</td>
+</tr>
+<tr class="row-even"><td>$pullAll</td>
+<td>Array</td>
+<td>Removes all instances of the list of values passed from an array</td>
+</tr>
+<tr class="row-odd"><td>$bit</td>
+<td>Bitwise</td>
+<td>Perform a bitwise operation on a field, letting you do bitmapped files for compact storing of flags etc.</td>
+</tr>
+</tbody>
+</table>
+<p>Since <tt class="docutils literal"><span class="pre">atomic</span></tt> operations are only guaranteed for one of these operations at a time MongoDB also has a special operator called <tt class="docutils literal"><span class="pre">$isolated</span></tt> that will guarantee that multiple <tt class="docutils literal"><span class="pre">atomic</span></tt> operations in an update happen without changes being applied by other applications during it's execution.</p>
+<p>That's a lot to take in so in this exercise we are going to just focus on the field and bitwise operators and leave the array operators for the next exercise.</p>
+</div>
+<div class="section" id="set-unset-operators">
+<h2>$set/$unset Operators<a class="headerlink" href="#set-unset-operators" title="Permalink to this headline">¶</a></h2>
+<p>Let's have a look at the <tt class="docutils literal"><span class="pre">$set</span></tt>. For this exercise we will also use a method called <tt class="docutils literal"><span class="pre">collection.findOne()</span></tt> to retrieve the document and allow us to print it out to see the changes instead of using the <tt class="docutils literal"><span class="pre">mongo</span></tt> console. Also notice that we are removing all the documents from the collection before starting using the <tt class="docutils literal"><span class="pre">collection.remove()</span></tt> method. Fire up the editor and enter the code below.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33</pre></div></td><td class="code"><div class="highlight"><pre><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+
+<span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>    
+  <span class="p">}</span>
+
+  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;my_basic_update_documents&#39;</span><span class="p">);</span>  
+
+  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">2</span><span class="p">,</span> <span class="nx">value</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>      
+      <span class="p">}</span>
+
+      <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="p">{</span><span class="nx">$set</span><span class="o">:</span> <span class="p">{</span><span class="nx">value</span><span class="o">:</span> <span class="mi">2</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;updated &quot;</span> <span class="o">+</span> <span class="nx">result</span> <span class="o">+</span> <span class="s2">&quot; number of documents&quot;</span><span class="p">);</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">full_result</span><span class="p">);</span>
+
+        <span class="nx">collection</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+
+          <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+
+          <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+        <span class="p">});</span>
+      <span class="p">});</span>
+    <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">});</span>
+</pre></div>
+</td></tr></table></div>
+<p>Run the code in the console and you should see the following ouput</p>
+<div class="highlight-console"><div class="highlight"><pre><span class="go">connected to database</span>
+<span class="go">updated 1 number of documents</span>
+<span class="go">{ updatedExisting: true, n: 1, connectionId: 55, err: null, ok: 1 }</span>
+<span class="go">{ _id: 2, value: 2 }</span>
+</pre></div>
+</div>
+<p>Let's dissect the code we just ran. The <tt class="docutils literal"><span class="pre">collection.remove()</span></tt> function does what name implies. It removes all the documents in the collection. This is just done so it will be a bit easier to run the example multiple times as we can avoid the duplicate document errors. The next operation <tt class="docutils literal"><span class="pre">collection.insert()</span></tt> should be familiar by now. It inserts a document containing <tt class="docutils literal"><span class="pre">{_id:2,</span> <span class="pre">value:1}</span></tt> in the collection. The following operation is what we are interested in here. <tt class="docutils literal"><span class="pre">collection.update({_id:</span> <span class="pre">2},</span> <span class="pre">{$set:</span> <span class="pre">{value:</span> <span class="pre">2}},</span> <span class="pre">function(err,</span> <span class="pre">result)</span> <span class="pre">{})</span></tt>. The first part of the <tt class="docutils literal"><span class="pre">update</span></tt> operation <tt class="docutils literal"><span class="pre">{_id:</span> <span class="pre">2}</span></tt> matches the first document where <tt class="docutils literal"><span class="pre">_id:</span> <span class="pre">2</span></tt>. Note <tt class="docutils literal"><span class="pre">changes</span> <span class="pre">the</span> <span class="pre">first</span> <span class="pre">document</span> <span class="pre">matched</span></tt>, if you have two documents with the same field you are matching on it will not change both just the first one it finds which which might not be consistent. In the next exercise we will explain how to do multi document updates. The second part of the update is the bread and butter of this exercise namely the <tt class="docutils literal"><span class="pre">atomic</span></tt> operator <tt class="docutils literal"><span class="pre">$set</span></tt>. The statement <tt class="docutils literal"><span class="pre">{$set:</span> <span class="pre">{value:</span> <span class="pre">2}}</span></tt> sets the <tt class="docutils literal"><span class="pre">value</span></tt> field of the matched document to 2.</p>
+<p>Once the update operation has finished the callback happens and returns the result. Notice that we have 3 return parameters in this case. The first <tt class="docutils literal"><span class="pre">err</span></tt> is the normal error object, the second is the number of documents changed during the update and the last <tt class="docutils literal"><span class="pre">full_result</span></tt> contains the whole update result including a special field called <tt class="docutils literal"><span class="pre">updatedExisting</span></tt> that will contain the information if we updated an existing document or a new one was created. The secret of this field will be revealed in the next exercise.</p>
+<p>Let's move on and look at $unset. Enter the following code in your editor and run it.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33</pre></div></td><td class="code"><div class="highlight"><pre><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+
+<span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>    
+  <span class="p">}</span>
+
+  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;my_basic_update_documents&#39;</span><span class="p">);</span>  
+
+  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">2</span><span class="p">,</span> <span class="nx">value</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>      
+      <span class="p">}</span>
+
+      <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="p">{</span><span class="nx">$unset</span><span class="o">:</span> <span class="p">{</span><span class="nx">value</span><span class="o">:</span> <span class="s2">&quot;&quot;</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;updated &quot;</span> <span class="o">+</span> <span class="nx">result</span> <span class="o">+</span> <span class="s2">&quot; number of documents&quot;</span><span class="p">);</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">full_result</span><span class="p">);</span>
+
+        <span class="nx">collection</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+
+          <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+
+          <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+        <span class="p">});</span>
+      <span class="p">});</span>
+    <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">});</span>
+</pre></div>
+</td></tr></table></div>
+<p>Your console output should look something like.</p>
+<div class="highlight-console"><div class="highlight"><pre><span class="go">connected to database</span>
+<span class="go">updated 1 number of documents</span>
+<span class="go">{ updatedExisting: true, n: 1, connectionId: 75, err: null, ok: 1 }</span>
+<span class="go">{ _id: 2 }</span>
+</pre></div>
+</div>
+<p>The main difference from the previous example is that the second term of the update now reads like <tt class="docutils literal"><span class="pre">{$unset:</span> <span class="pre">{value:</span> <span class="pre">&quot;&quot;}}</span></tt>, this removes the field <tt class="docutils literal"><span class="pre">value</span></tt> from the document. That's fairly straight forward.</p>
+</div>
+<div class="section" id="inc-operator">
+<h2>$inc Operator<a class="headerlink" href="#inc-operator" title="Permalink to this headline">¶</a></h2>
+<p>Let's move on to the <tt class="docutils literal"><span class="pre">$inc</span></tt> operator that lets us manipulate a numeric value. Fire up your editor and enter the code.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38</pre></div></td><td class="code"><div class="highlight"><pre><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+
+<span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>    
+  <span class="p">}</span>
+
+  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;my_basic_update_documents&#39;</span><span class="p">);</span>  
+
+  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">2</span><span class="p">,</span> <span class="nx">value</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>      
+      <span class="p">}</span>
+
+      <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="p">{</span><span class="nx">$inc</span><span class="o">:</span> <span class="p">{</span><span class="nx">value</span><span class="o">:</span> <span class="mi">1</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;updated &quot;</span> <span class="o">+</span> <span class="nx">result</span> <span class="o">+</span> <span class="s2">&quot; number of documents&quot;</span><span class="p">);</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">full_result</span><span class="p">);</span>
+
+        <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="p">{</span><span class="nx">$inc</span><span class="o">:</span> <span class="p">{</span><span class="nx">value2</span><span class="o">:</span> <span class="o">-</span><span class="mf">5.1</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+          <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;updated &quot;</span> <span class="o">+</span> <span class="nx">result</span> <span class="o">+</span> <span class="s2">&quot; number of documents&quot;</span><span class="p">);</span>
+          <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">full_result</span><span class="p">);</span>
+
+          <span class="nx">collection</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+
+            <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+
+            <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+          <span class="p">});</span>
+        <span class="p">});</span>
+      <span class="p">});</span>
+    <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">});</span>
+</pre></div>
+</td></tr></table></div>
+<p>Execute the code and your output should look something like.</p>
+<div class="highlight-console"><div class="highlight"><pre><span class="go">connected to database</span>
+<span class="go">updated 1 number of documents</span>
+<span class="go">{ updatedExisting: true, n: 1, connectionId: 85, err: null, ok: 1 }</span>
+<span class="go">updated 1 number of documents</span>
+<span class="go">{ updatedExisting: true, n: 1, connectionId: 86, err: null, ok: 1 }</span>
+<span class="go">{ _id: 2, value: 2, value2: -5.1 }</span>
+</pre></div>
+</div>
+<p>The first update operation uses the update statement <tt class="docutils literal"><span class="pre">{$inc:</span> <span class="pre">{value:</span> <span class="pre">1}}</span></tt>, since the <tt class="docutils literal"><span class="pre">value</span></tt> field already exists it gets incremented by 1. The operation translates to <tt class="docutils literal"><span class="pre">new</span> <span class="pre">value</span> <span class="pre">=</span> <span class="pre">old</span> <span class="pre">value</span> <span class="pre">+</span> <span class="pre">increment</span> <span class="pre">value</span></tt>. The second update statement creates the field <tt class="docutils literal"><span class="pre">value2</span></tt> as it does not already exist and sets it to <tt class="docutils literal"><span class="pre">-5.1</span></tt>. Pretty cool we can now do such things as keeping count of items. Also note that <tt class="docutils literal"><span class="pre">$inc</span></tt> works with floating point values aswell as whole integers.</p>
+</div>
+<div class="section" id="bit-operator">
+<h2>$bit Operator<a class="headerlink" href="#bit-operator" title="Permalink to this headline">¶</a></h2>
+<p>Sweet let's touch on the last field operator before we show how we can apply multiple updates to a single document. The last field operator is the <tt class="docutils literal"><span class="pre">$bit</span></tt> operator. It's very useful for some situations. Imagine that you might want to store <tt class="docutils literal"><span class="pre">8</span></tt> different status flags. You could do it like this.</p>
+<div class="highlight-console"><div class="highlight"><pre><span class="go">{</span>
+<span class="go">    flag1: true</span>
+<span class="go">  , flag2: true</span>
+<span class="go">  , flag3: true</span>
+<span class="go">  , flag4: true</span>
+<span class="go">  , flag5: true</span>
+<span class="go">  , flag6: true</span>
+<span class="go">  , flag7: true</span>
+<span class="go">  , flag8: true</span>
+<span class="go">}</span>
+
+<span class="go">or maybe like this</span>
+
+<span class="go">{</span>
+<span class="go">  flags: [true, true, true, true, true, true, true, true]</span>
+<span class="go">}</span>
+</pre></div>
+</div>
+<p>But they take up quite a bit of memory space. So say you want to save space and want to pack all the <tt class="docutils literal"><span class="pre">8</span></tt> flags into a single field. That's where bitwise operators come in (more information on bit fields at <a class="reference external" href="http://en.wikipedia.org/wiki/Bit_field">http://en.wikipedia.org/wiki/Bit_field</a>). Let's fire up the editor and enter the code below. Don't worry if bitwise operations are a bit difficult to understand, consider it priming you brain with an idea you can exploit at some later point in the future.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37</pre></div></td><td class="code"><div class="highlight"><pre><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+
+<span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>    
+  <span class="p">}</span>
+
+  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;my_basic_update_documents&#39;</span><span class="p">);</span>  
+
+  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">2</span><span class="p">,</span> <span class="nx">value</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>      
+      <span class="p">}</span>
+
+      <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="p">{</span><span class="nx">$bit</span><span class="o">:</span> <span class="p">{</span><span class="nx">value</span><span class="o">:</span> <span class="p">{</span><span class="nx">or</span><span class="o">:</span> <span class="mh">0x10</span><span class="p">}}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">collection</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+
+          <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+
+          <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="p">{</span><span class="nx">$bit</span><span class="o">:</span> <span class="p">{</span><span class="nx">value</span><span class="o">:</span> <span class="p">{</span><span class="nx">and</span><span class="o">:</span> <span class="mh">0xEF</span><span class="p">}}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nx">collection</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+
+              <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+
+              <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+            <span class="p">});</span>
+          <span class="p">});</span>
+        <span class="p">});</span>
+      <span class="p">});</span>
+    <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">});</span>
+</pre></div>
+</td></tr></table></div>
+<p>You should see the following output</p>
+<div class="highlight-console"><div class="highlight"><pre><span class="go">connected to database</span>
+<span class="go">{ _id: 2, value: 17 }</span>
+<span class="go">{ _id: 2, value: 1 }</span>
+</pre></div>
+</div>
+<p>So what does this little example do. It first inserts a document with the field <tt class="docutils literal"><span class="pre">value</span></tt> set to 1. The first update applies the value <tt class="docutils literal"><span class="pre">0x10</span></tt> (hex value) against the field using the <tt class="docutils literal"><span class="pre">$bit</span></tt> operator and an <tt class="docutils literal"><span class="pre">or</span></tt>. First lets we need to understand how <tt class="docutils literal"><span class="pre">or</span></tt> works. Let's look at the <tt class="docutils literal"><span class="pre">or</span></tt> table.</p>
+<div class="highlight-console"><div class="highlight"><pre><span class="go">    value: 0 0 1 1</span>
+<span class="go"> or value: 0 1 0 1</span>
+<span class="go">------------------</span>
+<span class="go">   result: 0 1 1 1</span>
+</pre></div>
+</div>
+<p>Basically if the bit position is not set it will be set if we <tt class="docutils literal"><span class="pre">or</span></tt> with a <tt class="docutils literal"><span class="pre">1</span></tt> while preserving existing flags.Let's see what happens to the value when we apply it.</p>
+<div class="highlight-console"><div class="highlight"><pre><span class="go"> existing value:   0 0 0 0  0 0 0 1</span>
+<span class="go">or value (0x10):   0 0 0 1  0 0 0 0</span>
+<span class="go">-----------------------------------</span>
+<span class="go">    final value:   0 0 0 1  0 0 0 1</span>
+<span class="go">      hex value:   0x11</span>
+<span class="go">  decimal value:   17</span>
+</pre></div>
+</div>
+<p>Cool we flipped a single bit positon to 1 which we consider to be the true value. What if we want to flip it back. Normally you would use an operation called <tt class="docutils literal"><span class="pre">xor</span></tt> to do this but as of now MongoDB does not support <tt class="docutils literal"><span class="pre">xor</span></tt>. Luckily it does support an operation called <tt class="docutils literal"><span class="pre">and</span></tt>. How does and work. Well let's look at the <tt class="docutils literal"><span class="pre">and</span></tt> table.</p>
+<div class="highlight-console"><div class="highlight"><pre><span class="go">    value: 0 0 1 1</span>
+<span class="go">and value: 0 1 0 1</span>
+<span class="go">------------------</span>
+<span class="go">   result: 0 0 0 1</span>
+</pre></div>
+</div>
+<p>If we <tt class="docutils literal"><span class="pre">and</span></tt> a bit with the value <tt class="docutils literal"><span class="pre">1</span></tt> it will preserve the existing bit value. If we <tt class="docutils literal"><span class="pre">and</span></tt> it with <tt class="docutils literal"><span class="pre">0</span></tt> it will set the corresponding bit to <tt class="docutils literal"><span class="pre">0</span></tt> as well. This lets us flip a bit to <tt class="docutils literal"><span class="pre">0</span></tt> as long as all the bits in our value are set to <tt class="docutils literal"><span class="pre">1</span></tt>. Let's see what happens when we apply the value.</p>
+<div class="highlight-console"><div class="highlight"><pre><span class="go">  existing value:   0 0 0 1  0 0 0 1</span>
+<span class="go">and value (0xEF):   1 1 1 0  1 1 1 1</span>
+<span class="go">------------------------------------</span>
+<span class="go">     final value:   0 0 0 0  0 0 0 1</span>
+<span class="go">       hex value:   0x01</span>
+<span class="go">   decimal value:   1</span>
+</pre></div>
+</div>
+<p>Perfect we just flipped the value back to <tt class="docutils literal"><span class="pre">0</span></tt> setting our flag to <tt class="docutils literal"><span class="pre">false</span></tt>. In short <tt class="docutils literal"><span class="pre">bit</span> <span class="pre">fields</span></tt> can be very useful to compress values into a smaller space in the database. As an example a <tt class="docutils literal"><span class="pre">32bit</span></tt> integer can contain <tt class="docutils literal"><span class="pre">32</span></tt> binary flags and will take up very little space in comparision to 32 indidvidual fields or 32 entries in an array.</p>
+</div>
+<div class="section" id="isolated-or-how-i-came-to-love-the-bomb">
+<h2>$isolated or how I came to love the bomb<a class="headerlink" href="#isolated-or-how-i-came-to-love-the-bomb" title="Permalink to this headline">¶</a></h2>
+<p>Let's start right off the bat in the editor, fire it up and enter the code below.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32</pre></div></td><td class="code"><div class="highlight"><pre><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+
+<span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>    
+  <span class="p">}</span>
+
+  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;my_basic_update_documents&#39;</span><span class="p">);</span>  
+
+  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">2</span><span class="p">,</span> <span class="nx">value</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>      
+      <span class="p">}</span>
+
+      <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">,</span> <span class="nx">$atomic</span><span class="o">:</span> <span class="mi">1</span><span class="p">}</span>
+        <span class="p">,</span> <span class="p">{</span><span class="nx">$set</span><span class="o">:</span> <span class="p">{</span><span class="nx">value2</span><span class="o">:</span> <span class="s1">&#39;hello&#39;</span><span class="p">},</span> <span class="nx">$inc</span><span class="o">:</span> <span class="p">{</span><span class="nx">value</span><span class="o">:</span> <span class="o">-</span><span class="mi">5</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+  
+          <span class="nx">collection</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+
+            <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+
+            <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+          <span class="p">});</span>
+      <span class="p">});</span>
+    <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">});</span>
+</pre></div>
+</td></tr></table></div>
+<p>Your output should look like.</p>
+<div class="highlight-console"><div class="highlight"><pre><span class="go">connected to database</span>
+<span class="go">{ _id: 2, value: -4, value2: &#39;hello&#39; }</span>
+</pre></div>
+</div>
+<p>So as you might have suspected you can make multiple changes on a document in a single update. However by default each operation is atomic by itself but not all of them together as MongoDB will let other update operations on the same document happen at the same time. What does that mean? Well easier said with an example. Say we have to updates executing at the same time.</p>
+<div class="highlight-console"><div class="highlight"><pre><span class="go">  initial document state: {value: 5}</span>
+<span class="go"> first update operations: $set: {value2: &#39;hello&#39;} and $inc: {value: -5}</span>
+<span class="go">second update operations: $inc: {value: -1}</span>
+
+<span class="go">possible ordering of operations:</span>
+<span class="go">--------------------------------</span>
+<span class="go">    first update: $set: {value2: &#39;hello&#39;}</span>
+<span class="go">   second update: $inc: {value: -1}</span>
+<span class="go">    first update: $inc: {value: -5}</span>
+</pre></div>
+</div>
+<p>MongoDB will interleave the operations. In this particular this might cause a problem. Imagine if the matcher for the document is <tt class="docutils literal"><span class="pre">only</span> <span class="pre">update</span> <span class="pre">document</span> <span class="pre">if</span> <span class="pre">value</span> <span class="pre">&gt;</span> <span class="pre">0</span></tt>. Since both of them match correctly but get intermixed the end value of <tt class="docutils literal"><span class="pre">value</span></tt> could potentially be <tt class="docutils literal"><span class="pre">-1</span></tt> not <tt class="docutils literal"><span class="pre">0</span></tt> as we expect.</p>
+<p>To avoid this in the example above we use the <tt class="docutils literal"><span class="pre">$isolated</span></tt> operator as part of the update matching. This tells MongoDB to not let anyone else modify the document until the current operation is done and forces the ordering to look like.</p>
+<div class="highlight-console"><div class="highlight"><pre><span class="go">  initial document state: {value: 5}</span>
+<span class="go"> first update operations: $set: {value2: &#39;hello&#39;} and $inc: {value: -5}</span>
+<span class="go">second update operations: $inc: {value: -1}</span>
+
+<span class="go">possible ordering of operations:</span>
+<span class="go">--------------------------------</span>
+<span class="go">    first update: $set: {value2: &#39;hello&#39;}</span>
+<span class="go">    first update: $inc: {value: -5}</span>
+<span class="go">   second update: $inc: {value: -1} (failes as value is 0)</span>
+</pre></div>
+</div>
+<p>So as we can see <tt class="docutils literal"><span class="pre">$isolated</span></tt> can be quite useful. With this we are ready to take the tackle the next step of dealing with arrays when performing updates.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">You might be tempted to always use <tt class="docutils literal"><span class="pre">$isolated</span></tt> but you should not fall into this temptation. Only use it where appropriate as you are losing out on the benefit of concurrent writes to MongoDB forcing all updates to be serial. But keep it in mind when doing multiple field updates in a document if you are unsure something else could be changing the field while your application is executing a complex update.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+        <ul>
+          <li class="right"><a style="color: #C40B46;" href="http://docs.mongodb.org/manual/" title="MongoDB Docs">MongoDB Docs</a></li>
+          <li class="right"><a style="color: #C40B46;" href="http://mongodb.github.com/node-mongodb-native/" title="Driver Docs">Driver Docs</a> | </li>
+        </ul>
+    </div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="ex10.html" title="Exercise 10: Update Basics"
+             >next</a></li>
+        <li class="right" >
+          <a href="ex8.html" title="Exercise 8: Write Concerns"
+             >previous</a> |</li>
+        <li><a href="http://ruby.learncodethehardway.org/">Learn MongoDB And Node.js The Hard Way</a> &raquo;</li> 
+        <li class="right"><a href="search.html" title="search">search</a> | </li>
+      </ul>
+    </div>
+    <a name="comments"><hr/></a>
+
+<div sytle="text-align: left">
+    <div style="background: white; padding: 10px" id="disqus_thread"></div>
+</div>
+    <script type="text/javascript">
+        var dow = new Date().getDay();
+
+        if(dow == 5 || dow == 6) {
+            $("#disqus_thread").html("<h1>Today Is Christians's Day Off</h1><p>I take Saturday and Sunday off.  Comments open again on Monday-Friday.</p>")
+        } else {
+            /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+            var disqus_shortname = 'learn-code-the-hard-way'; // required: replace example with your forum shortname
+
+
+            /* * * DON'T EDIT BELOW THIS LINE * * */
+            (function() {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        }
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <div class="footer">
+      &copy; Copyright 2012, Christian Amor Kvalheim.
+      Last updated on Jan 31, 2013.
+</div>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-24168052-9']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </body>
+</html>

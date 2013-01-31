@@ -1,0 +1,779 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Exercise 12: FindAndModify &mdash; Learn MongoDB And Node.js The Hard Way</title>
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '2.0',
+        COLLAPSE_MODINDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Learn MongoDB And Node.js The Hard Way" href="index.html" />
+    <link rel="next" title="Exercise 13: Removing Documents" href="ex13.html" />
+    <link rel="prev" title="Exercise 11: Final Update" href="ex11.html" /> 
+  </head>
+  <body>
+    <div class="related">
+        <ul>
+          <li class="right"><a style="color: #C40B46;" href="http://docs.mongodb.org/manual/" title="MongoDB Docs">MongoDB Docs</a></li>
+          <li class="right"><a style="color: #C40B46;" href="http://mongodb.github.com/node-mongodb-native/" title="Driver Docs">Driver Docs</a> | </li>
+        </ul>
+    </div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="ex13.html" title="Exercise 13: Removing Documents"
+             accesskey="N">next</a></li>
+        <li class="right" >
+          <a href="ex11.html" title="Exercise 11: Final Update"
+             accesskey="P">previous</a> |</li>
+        <li><a href="http://ruby.learncodethehardway.org/">Learn MongoDB And Node.js The Hard Way</a> &raquo;</li> 
+        <li class="right"><a href="search.html" title="search">search</a> | </li>
+      </ul>
+    </div>
+
+
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="exercise-12-findandmodify">
+<h1>Exercise 12: FindAndModify<a class="headerlink" href="#exercise-12-findandmodify" title="Permalink to this headline">¶</a></h1>
+<p>In exercise 10 we introduced the <tt class="docutils literal"><span class="pre">$pop</span></tt> command that removes an element from the start or the end of an array in a document. Unfortunately it does not return the actual element. What if we need to modify and retrieve a document in one go ? Thankfully we have a command called <tt class="docutils literal"><span class="pre">findAndModify</span></tt> that allows you to do exactly that.</p>
+<div class="section" id="the-findandmodify-command">
+<h2>The findAndModify Command<a class="headerlink" href="#the-findandmodify-command" title="Permalink to this headline">¶</a></h2>
+<p>The definition of the method looks like <tt class="docutils literal"><span class="pre">findAndModify</span> <span class="pre">(query,</span> <span class="pre">sort,</span> <span class="pre">doc,</span> <span class="pre">options,</span> <span class="pre">callback)</span></tt>. Let's have a look at what the different parameters mean.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="15%" />
+<col width="85%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Parameter</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>query</td>
+<td>The query matching to the document we wish to change</td>
+</tr>
+<tr class="row-odd"><td>sort</td>
+<td>The sort order of the documents returned from the query</td>
+</tr>
+<tr class="row-even"><td>doc</td>
+<td>The update statements for the first document returned from the query and sort</td>
+</tr>
+<tr class="row-odd"><td>options</td>
+<td>A set of options that allow us to define how the operation will behave</td>
+</tr>
+</tbody>
+</table>
+<p>Let's look at the options that we use to define how our <tt class="docutils literal"><span class="pre">findAndModify</span></tt> command will operate.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="9%" />
+<col width="91%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Parameter</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>remove</td>
+<td>Will remove the document from the collection and return it</td>
+</tr>
+<tr class="row-odd"><td>upsert</td>
+<td>Will create a new document if none is found to modify</td>
+</tr>
+<tr class="row-even"><td>new</td>
+<td>Will return the modified document (if false will return the original document before changes. This is ignored if you set remove to true)</td>
+</tr>
+</tbody>
+</table>
+<p>Let's start with the simplest example. We will insert four documents into a collection we call work and then retrieve the highest priority document where work has not been started.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64</pre></div></td><td class="code"><div class="highlight"><pre><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+
+<span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kd">var</span> <span class="nx">documents</span> <span class="o">=</span> <span class="p">[{</span>
+      <span class="nx">_id</span> <span class="o">:</span> <span class="mi">1</span>
+    <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Buy milk&quot;</span>
+    <span class="p">,</span> <span class="nx">priority</span><span class="o">:</span> <span class="mi">5</span>
+    <span class="p">,</span> <span class="nx">started</span><span class="o">:</span> <span class="kc">false</span>
+    <span class="p">,</span> <span class="nx">done</span><span class="o">:</span> <span class="kc">false</span>
+    <span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span> <span class="kc">null</span>
+    <span class="p">,</span> <span class="nx">endTime</span><span class="o">:</span> <span class="kc">null</span>
+    <span class="p">},</span> <span class="p">{</span>
+      <span class="nx">_id</span> <span class="o">:</span> <span class="mi">2</span>
+    <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Become a Billionaire&quot;</span>
+    <span class="p">,</span> <span class="nx">priority</span><span class="o">:</span> <span class="mi">1</span>
+    <span class="p">,</span> <span class="nx">started</span><span class="o">:</span> <span class="kc">false</span>
+    <span class="p">,</span> <span class="nx">done</span><span class="o">:</span> <span class="kc">false</span>
+    <span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span> <span class="kc">null</span>
+    <span class="p">,</span> <span class="nx">endTime</span><span class="o">:</span> <span class="kc">null</span>
+    <span class="p">},</span> <span class="p">{</span>
+      <span class="nx">_id</span> <span class="o">:</span> <span class="mi">3</span>
+    <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Play DOOM&quot;</span>
+    <span class="p">,</span> <span class="nx">priority</span><span class="o">:</span> <span class="mi">1000</span>
+    <span class="p">,</span> <span class="nx">started</span><span class="o">:</span> <span class="kc">false</span>
+    <span class="p">,</span> <span class="nx">done</span><span class="o">:</span> <span class="kc">false</span>
+    <span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span> <span class="kc">null</span>
+    <span class="p">,</span> <span class="nx">endTime</span><span class="o">:</span> <span class="kc">null</span>
+    <span class="p">}</span>
+  <span class="p">]</span>
+
+  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;work&#39;</span><span class="p">);</span>
+  
+  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">(</span><span class="nx">documents</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>
+      <span class="p">}</span>
+
+      <span class="nx">collection</span><span class="p">.</span><span class="nx">findAndModify</span><span class="p">(</span>
+          <span class="p">{</span><span class="nx">started</span><span class="o">:</span><span class="kc">false</span><span class="p">}</span>
+        <span class="p">,</span> <span class="p">{</span><span class="nx">priority</span><span class="o">:-</span><span class="mi">1</span><span class="p">}</span>
+        <span class="p">,</span> <span class="p">{</span><span class="nx">$set</span><span class="o">:</span> <span class="p">{</span><span class="nx">started</span><span class="o">:</span><span class="kc">true</span><span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span><span class="k">new</span> <span class="nb">Date</span><span class="p">()}}</span>
+        <span class="p">,</span> <span class="p">{</span><span class="k">new</span><span class="o">:</span><span class="kc">true</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+          <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;changed document&quot;</span><span class="p">);</span>
+          <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+
+          <span class="nx">collection</span><span class="p">.</span><span class="nx">find</span><span class="p">({}).</span><span class="nx">toArray</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">docs</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;all documents&quot;</span><span class="p">);</span>
+            <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">docs</span><span class="p">);</span>
+
+            <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+          <span class="p">});</span>
+      <span class="p">});</span>
+    <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">});</span>
+</pre></div>
+</td></tr></table></div>
+<p>Execute the code and you should see the following results.</p>
+<div class="highlight-console"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31</pre></div></td><td class="code"><div class="highlight"><pre><span class="go">connected to database</span>
+<span class="go">changed document</span>
+<span class="go">{ _id: 3,</span>
+<span class="go">  done: false,</span>
+<span class="go">  endTime: null,</span>
+<span class="go">  priority: 1000,</span>
+<span class="go">  startTime: Thu Jan 24 2013 11:47:22 GMT+0100 (CET),</span>
+<span class="go">  started: true,</span>
+<span class="go">  title: &#39;Play DOOM&#39; }</span>
+<span class="go">all documents</span>
+<span class="go">[ { _id: 1,</span>
+<span class="go">    title: &#39;Buy milk&#39;,</span>
+<span class="go">    priority: 5,</span>
+<span class="go">    started: false,</span>
+<span class="go">    done: false,</span>
+<span class="go">    startTime: null,</span>
+<span class="go">    endTime: null },</span>
+<span class="go">  { _id: 2,</span>
+<span class="go">    title: &#39;Become a Billionaire&#39;,</span>
+<span class="go">    priority: 1,</span>
+<span class="go">    started: false,</span>
+<span class="go">    done: false,</span>
+<span class="go">    startTime: null,</span>
+<span class="go">    endTime: null },</span>
+<span class="go">  { _id: 3,</span>
+<span class="go">    done: false,</span>
+<span class="go">    endTime: null,</span>
+<span class="go">    priority: 1000,</span>
+<span class="go">    startTime: Thu Jan 24 2013 11:47:22 GMT+0100 (CET),</span>
+<span class="go">    started: true,</span>
+<span class="go">    title: &#39;Play DOOM&#39; } ]</span>
+</pre></div>
+</td></tr></table></div>
+<p>Let's look at the code we just entered, more specifically the line.</p>
+<div class="highlight-console"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4
+5
+6</pre></div></td><td class="code"><div class="highlight"><pre><span class="go">  collection.findAndModify(</span>
+<span class="go">      {started:false}</span>
+<span class="go">    , {priority:-1}</span>
+<span class="go">    , {$set: {started:true, startTime:new Date()}}</span>
+<span class="go">    , {new:true}, function(err, doc) {</span>
+<span class="go">  });</span>
+</pre></div>
+</td></tr></table></div>
+<p>Let's break down the <tt class="docutils literal"><span class="pre">findAndModify</span></tt> operation we did above.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="5%" />
+<col width="24%" />
+<col width="71%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Parameter</th>
+<th class="head">Statement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>query</td>
+<td>{started:false}</td>
+<td>Locate all the documents where the field started equals false</td>
+</tr>
+<tr class="row-odd"><td>sort</td>
+<td>{priority:-1}</td>
+<td>Sort the documents in descending order (highest priority ones first, meaning the first one will be the one with the biggest priority)</td>
+</tr>
+<tr class="row-even"><td>doc</td>
+<td>{$set: {started:true, startTime:new Date()}}</td>
+<td>If we find a document set started to true and assign a start time</td>
+</tr>
+<tr class="row-odd"><td>options</td>
+<td>{new:true}</td>
+<td>Return the changed document</td>
+</tr>
+</tbody>
+</table>
+<p>From the breakdown we can see that we will modify the document with the highest priority where work has not started. Since <tt class="docutils literal"><span class="pre">findAndModify</span></tt> is an <tt class="docutils literal"><span class="pre">atomic</span></tt> command it means that nobody else can modify the document while it's executing on the server. We are using this property in this example to model a queue of work where only one <tt class="docutils literal"><span class="pre">worker</span></tt> works on a given task at a time. In a later exercise we will leverage this property to build a work queue and also a shopping cart.</p>
+<p>Now let's assume we've finished performing the work and need to remove the document from the list of work (maybe to insert into a history collection of work done). Let's modify the code a little bit to do this. Notice that when using the <tt class="docutils literal"><span class="pre">remove</span></tt> option we are not able to modify the document so this has to happen be done in code.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78</pre></div></td><td class="code"><div class="highlight"><pre><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+
+<span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kd">var</span> <span class="nx">documents</span> <span class="o">=</span> <span class="p">[{</span>
+      <span class="nx">_id</span> <span class="o">:</span> <span class="mi">1</span>
+    <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Buy milk&quot;</span>
+    <span class="p">,</span> <span class="nx">priority</span><span class="o">:</span> <span class="mi">5</span>
+    <span class="p">,</span> <span class="nx">started</span><span class="o">:</span> <span class="kc">false</span>
+    <span class="p">,</span> <span class="nx">done</span><span class="o">:</span> <span class="kc">false</span>
+    <span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span> <span class="kc">null</span>
+    <span class="p">,</span> <span class="nx">endTime</span><span class="o">:</span> <span class="kc">null</span>
+    <span class="p">},</span> <span class="p">{</span>
+      <span class="nx">_id</span> <span class="o">:</span> <span class="mi">2</span>
+    <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Become a Billionaire&quot;</span>
+    <span class="p">,</span> <span class="nx">priority</span><span class="o">:</span> <span class="mi">1</span>
+    <span class="p">,</span> <span class="nx">started</span><span class="o">:</span> <span class="kc">false</span>
+    <span class="p">,</span> <span class="nx">done</span><span class="o">:</span> <span class="kc">false</span>
+    <span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span> <span class="kc">null</span>
+    <span class="p">,</span> <span class="nx">endTime</span><span class="o">:</span> <span class="kc">null</span>
+    <span class="p">},</span> <span class="p">{</span>
+      <span class="nx">_id</span> <span class="o">:</span> <span class="mi">3</span>
+    <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Play DOOM&quot;</span>
+    <span class="p">,</span> <span class="nx">priority</span><span class="o">:</span> <span class="mi">1000</span>
+    <span class="p">,</span> <span class="nx">started</span><span class="o">:</span> <span class="kc">false</span>
+    <span class="p">,</span> <span class="nx">done</span><span class="o">:</span> <span class="kc">false</span>
+    <span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span> <span class="kc">null</span>
+    <span class="p">,</span> <span class="nx">endTime</span><span class="o">:</span> <span class="kc">null</span>
+    <span class="p">}</span>
+  <span class="p">]</span>
+
+  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;work&#39;</span><span class="p">);</span>
+  
+  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">(</span><span class="nx">documents</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>
+      <span class="p">}</span>
+
+      <span class="nx">collection</span><span class="p">.</span><span class="nx">findAndModify</span><span class="p">(</span>
+          <span class="p">{</span><span class="nx">started</span><span class="o">:</span><span class="kc">false</span><span class="p">}</span>
+        <span class="p">,</span> <span class="p">{</span><span class="nx">priority</span><span class="o">:-</span><span class="mi">1</span><span class="p">}</span>
+        <span class="p">,</span> <span class="p">{</span><span class="nx">$set</span><span class="o">:</span> <span class="p">{</span><span class="nx">started</span><span class="o">:</span><span class="kc">true</span><span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span><span class="k">new</span> <span class="nb">Date</span><span class="p">()}}</span>
+        <span class="p">,</span> <span class="p">{</span><span class="k">new</span><span class="o">:</span><span class="kc">true</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+          <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;changed document&quot;</span><span class="p">);</span>
+          <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+
+          <span class="nx">collection</span><span class="p">.</span><span class="nx">find</span><span class="p">({}).</span><span class="nx">toArray</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">docs</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;all documents&quot;</span><span class="p">);</span>
+            <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">docs</span><span class="p">);</span>
+
+            <span class="nx">collection</span><span class="p">.</span><span class="nx">findAndModify</span><span class="p">(</span>
+                <span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="nx">doc</span><span class="p">.</span><span class="nx">_id</span><span class="p">}</span>
+              <span class="p">,</span> <span class="p">{}</span>
+              <span class="p">,</span> <span class="p">{}</span>
+              <span class="p">,</span> <span class="p">{</span><span class="nx">remove</span><span class="o">:</span><span class="kc">true</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+                <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;removed document&quot;</span><span class="p">);</span>
+                <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+      
+                <span class="nx">collection</span><span class="p">.</span><span class="nx">find</span><span class="p">({}).</span><span class="nx">toArray</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">docs</span><span class="p">)</span> <span class="p">{</span>
+                  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;all documents&quot;</span><span class="p">);</span>
+                  <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">docs</span><span class="p">);</span>
+
+                  <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+                <span class="p">});</span>
+              <span class="p">});</span>
+          <span class="p">});</span>
+      <span class="p">});</span>
+    <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">});</span>
+</pre></div>
+</td></tr></table></div>
+<p>The results should look like this.</p>
+<div class="highlight-console"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54</pre></div></td><td class="code"><div class="highlight"><pre><span class="go">connected to database</span>
+<span class="go">changed document</span>
+<span class="go">{ _id: 3,</span>
+<span class="go">  done: false,</span>
+<span class="go">  endTime: null,</span>
+<span class="go">  priority: 1000,</span>
+<span class="go">  startTime: Thu Jan 24 2013 12:32:50 GMT+0100 (CET),</span>
+<span class="go">  started: true,</span>
+<span class="go">  title: &#39;Play DOOM&#39; }</span>
+<span class="go">all documents</span>
+<span class="go">[ { _id: 1,</span>
+<span class="go">    title: &#39;Buy milk&#39;,</span>
+<span class="go">    priority: 5,</span>
+<span class="go">    started: false,</span>
+<span class="go">    done: false,</span>
+<span class="go">    startTime: null,</span>
+<span class="go">    endTime: null },</span>
+<span class="go">  { _id: 2,</span>
+<span class="go">    title: &#39;Become a Billionaire&#39;,</span>
+<span class="go">    priority: 1,</span>
+<span class="go">    started: false,</span>
+<span class="go">    done: false,</span>
+<span class="go">    startTime: null,</span>
+<span class="go">    endTime: null },</span>
+<span class="go">  { _id: 3,</span>
+<span class="go">    done: false,</span>
+<span class="go">    endTime: null,</span>
+<span class="go">    priority: 1000,</span>
+<span class="go">    startTime: Thu Jan 24 2013 12:32:50 GMT+0100 (CET),</span>
+<span class="go">    started: true,</span>
+<span class="go">    title: &#39;Play DOOM&#39; } ]</span>
+<span class="go">removed document</span>
+<span class="go">{ _id: 3,</span>
+<span class="go">  done: false,</span>
+<span class="go">  endTime: null,</span>
+<span class="go">  priority: 1000,</span>
+<span class="go">  startTime: Thu Jan 24 2013 12:32:50 GMT+0100 (CET),</span>
+<span class="go">  started: true,</span>
+<span class="go">  title: &#39;Play DOOM&#39; }</span>
+<span class="go">all documents</span>
+<span class="go">[ { _id: 1,</span>
+<span class="go">    title: &#39;Buy milk&#39;,</span>
+<span class="go">    priority: 5,</span>
+<span class="go">    started: false,</span>
+<span class="go">    done: false,</span>
+<span class="go">    startTime: null,</span>
+<span class="go">    endTime: null },</span>
+<span class="go">  { _id: 2,</span>
+<span class="go">    title: &#39;Become a Billionaire&#39;,</span>
+<span class="go">    priority: 1,</span>
+<span class="go">    started: false,</span>
+<span class="go">    done: false,</span>
+<span class="go">    startTime: null,</span>
+<span class="go">    endTime: null } ]</span>
+</pre></div>
+</td></tr></table></div>
+<p>For the remove option of <tt class="docutils literal"><span class="pre">findAndModify</span></tt> you can use a special version of it on the <tt class="docutils literal"><span class="pre">collection</span></tt> called <tt class="docutils literal"><span class="pre">findAndRemove</span></tt> that just removes the <tt class="docutils literal"><span class="pre">update</span></tt> section of the <tt class="docutils literal"><span class="pre">findAndModify</span></tt> command. If you do want to perform removes I recommend using this method to avoid the confusion of <tt class="docutils literal"><span class="pre">remove</span></tt> not allowing modifications of the document.</p>
+<p>You might have noticed that there is an <tt class="docutils literal"><span class="pre">upsert</span></tt> option for the <tt class="docutils literal"><span class="pre">findAndModify</span></tt> command. This works exactly as the <tt class="docutils literal"><span class="pre">upsert</span></tt> for the <tt class="docutils literal"><span class="pre">update</span></tt> command but of course let's you return the document. Let's take a look at a simple example using it.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31</pre></div></td><td class="code"><div class="highlight"><pre><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+
+<span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;work&#39;</span><span class="p">);</span>
+  
+  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">collection</span><span class="p">.</span><span class="nx">findAndModify</span><span class="p">(</span>
+        <span class="p">{</span><span class="nx">started</span><span class="o">:</span><span class="kc">false</span><span class="p">}</span>
+      <span class="p">,</span> <span class="p">{</span><span class="nx">priority</span><span class="o">:-</span><span class="mi">1</span><span class="p">}</span>
+      <span class="p">,</span> <span class="p">{</span><span class="nx">$set</span><span class="o">:</span> <span class="p">{</span><span class="nx">started</span><span class="o">:</span><span class="kc">true</span><span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span><span class="k">new</span> <span class="nb">Date</span><span class="p">()}}</span>
+      <span class="p">,</span> <span class="p">{</span><span class="k">new</span><span class="o">:</span><span class="kc">true</span><span class="p">,</span> <span class="nx">upsert</span><span class="o">:</span><span class="kc">true</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;added document&quot;</span><span class="p">);</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+
+        <span class="nx">collection</span><span class="p">.</span><span class="nx">find</span><span class="p">({}).</span><span class="nx">toArray</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">docs</span><span class="p">)</span> <span class="p">{</span>
+          <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;all documents&quot;</span><span class="p">);</span>
+          <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">docs</span><span class="p">);</span>
+
+          <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+        <span class="p">});</span>
+    <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">});</span>
+</pre></div>
+</td></tr></table></div>
+<p>You should see the following when executing the code.</p>
+<div class="highlight-console"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9</pre></div></td><td class="code"><div class="highlight"><pre><span class="go">connected to database</span>
+<span class="go">added document</span>
+<span class="go">{ _id: 51011f910ac025483df1af06,</span>
+<span class="go">  startTime: Thu Jan 24 2013 12:48:33 GMT+0100 (CET),</span>
+<span class="go">  started: true }</span>
+<span class="go">all documents</span>
+<span class="go">[ { _id: 51011f910ac025483df1af06,</span>
+<span class="go">    startTime: Thu Jan 24 2013 12:48:33 GMT+0100 (CET),</span>
+<span class="go">    started: true } ]</span>
+</pre></div>
+</td></tr></table></div>
+<p>This pretty much covers the <tt class="docutils literal"><span class="pre">findAndModify</span></tt> and <tt class="docutils literal"><span class="pre">findAndRemove</span></tt> commands.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">It might be tempting to use <tt class="docutils literal"><span class="pre">findAndModify</span></tt> everywhere you would typically use an update. You should avoid this temptation and use it only when appropriate as it takes out a write lock for the duration of the operation potentially slowing down all the other write operations in the affected database. Most of the time you might discover that you do not in fact need the returned the document and that the operation can be better described as a query and update operation. Use <tt class="docutils literal"><span class="pre">findAndModify</span></tt> when you have to ensure that only a single operation can modify the document in question. The example above with the work queue is a good candidate for the usage of <tt class="docutils literal"><span class="pre">findAndModify</span></tt> and in later exercises we will look at some more concrete examples that are good fits.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+        <ul>
+          <li class="right"><a style="color: #C40B46;" href="http://docs.mongodb.org/manual/" title="MongoDB Docs">MongoDB Docs</a></li>
+          <li class="right"><a style="color: #C40B46;" href="http://mongodb.github.com/node-mongodb-native/" title="Driver Docs">Driver Docs</a> | </li>
+        </ul>
+    </div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="ex13.html" title="Exercise 13: Removing Documents"
+             >next</a></li>
+        <li class="right" >
+          <a href="ex11.html" title="Exercise 11: Final Update"
+             >previous</a> |</li>
+        <li><a href="http://ruby.learncodethehardway.org/">Learn MongoDB And Node.js The Hard Way</a> &raquo;</li> 
+        <li class="right"><a href="search.html" title="search">search</a> | </li>
+      </ul>
+    </div>
+    <a name="comments"><hr/></a>
+
+<div sytle="text-align: left">
+    <div style="background: white; padding: 10px" id="disqus_thread"></div>
+</div>
+    <script type="text/javascript">
+        var dow = new Date().getDay();
+
+        if(dow == 5 || dow == 6) {
+            $("#disqus_thread").html("<h1>Today Is Christians's Day Off</h1><p>I take Saturday and Sunday off.  Comments open again on Monday-Friday.</p>")
+        } else {
+            /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+            var disqus_shortname = 'learn-code-the-hard-way'; // required: replace example with your forum shortname
+
+
+            /* * * DON'T EDIT BELOW THIS LINE * * */
+            (function() {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        }
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <div class="footer">
+      &copy; Copyright 2012, Christian Amor Kvalheim.
+      Last updated on Jan 31, 2013.
+</div>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-24168052-9']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </body>
+</html>

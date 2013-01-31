@@ -1,0 +1,741 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Exercise 10: Update Basics &mdash; Learn MongoDB And Node.js The Hard Way</title>
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '2.0',
+        COLLAPSE_MODINDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Learn MongoDB And Node.js The Hard Way" href="index.html" />
+    <link rel="next" title="Exercise 11: Final Update" href="ex11.html" />
+    <link rel="prev" title="Exercise 9: Update Basics" href="ex9.html" /> 
+  </head>
+  <body>
+    <div class="related">
+        <ul>
+          <li class="right"><a style="color: #C40B46;" href="http://docs.mongodb.org/manual/" title="MongoDB Docs">MongoDB Docs</a></li>
+          <li class="right"><a style="color: #C40B46;" href="http://mongodb.github.com/node-mongodb-native/" title="Driver Docs">Driver Docs</a> | </li>
+        </ul>
+    </div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="ex11.html" title="Exercise 11: Final Update"
+             accesskey="N">next</a></li>
+        <li class="right" >
+          <a href="ex9.html" title="Exercise 9: Update Basics"
+             accesskey="P">previous</a> |</li>
+        <li><a href="http://ruby.learncodethehardway.org/">Learn MongoDB And Node.js The Hard Way</a> &raquo;</li> 
+        <li class="right"><a href="search.html" title="search">search</a> | </li>
+      </ul>
+    </div>
+
+
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="exercise-10-update-basics">
+<h1>Exercise 10: Update Basics<a class="headerlink" href="#exercise-10-update-basics" title="Permalink to this headline">¶</a></h1>
+<p>In the previous exercises we learned how to insert document into MongoDB and what a write concern is. We also learned why <tt class="docutils literal"><span class="pre">.save()</span></tt> is not a good way of saving your documents and how bulk inserts work. Having covered the basics we will spend this exercise looking at how to use the <tt class="docutils literal"><span class="pre">update</span></tt> array operators to manipulate document level arrays.</p>
+<div class="section" id="push-operator">
+<h2>$push Operator<a class="headerlink" href="#push-operator" title="Permalink to this headline">¶</a></h2>
+<p>The <tt class="docutils literal"><span class="pre">$push</span></tt> operator lets you add a document to the end of an array inside a <tt class="docutils literal"><span class="pre">MongoDB</span></tt> document. If the array does not exist it will create the array and then add the document to the newly created array. Let's put some code in showing the usage of the <tt class="docutils literal"><span class="pre">$push</span></tt> operator.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32</pre></div></td><td class="code"><div class="highlight"><pre><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+
+<span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;my_basic_update_documents&#39;</span><span class="p">);</span>
+
+  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">2</span><span class="p">,</span> <span class="nx">value</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>
+      <span class="p">}</span>
+
+      <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">}</span>
+        <span class="p">,</span> <span class="p">{</span><span class="nx">$push</span><span class="o">:</span> <span class="p">{</span><span class="nx">array</span><span class="o">:</span> <span class="mi">1</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+
+          <span class="nx">collection</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+
+            <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+
+            <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+          <span class="p">});</span>
+      <span class="p">});</span>
+    <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">});</span>
+</pre></div>
+</td></tr></table></div>
+<p>The output from running the script with <tt class="docutils literal"><span class="pre">node</span></tt> should look like.</p>
+<div class="highlight-console"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2</pre></div></td><td class="code"><div class="highlight"><pre><span class="go">connected to database</span>
+<span class="go">{ _id: 2, array: [ 1 ], value: 1 }</span>
+</pre></div>
+</td></tr></table></div>
+<p>If we look at the code we you'll notice that the <tt class="docutils literal"><span class="pre">update</span></tt> statement looks like.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span class="p">{</span><span class="nx">$push</span><span class="o">:</span> <span class="p">{</span><span class="nx">array</span><span class="o">:</span> <span class="mi">1</span><span class="p">}}</span>
+</pre></div>
+</td></tr></table></div>
+<p>The way the <tt class="docutils literal"><span class="pre">$push</span></tt> operator works is that it will attempt to locate the field named <tt class="docutils literal"><span class="pre">array</span></tt> in the document with <tt class="docutils literal"><span class="pre">_id</span></tt> equal to <tt class="docutils literal"><span class="pre">2</span></tt>. Since there is no field named <tt class="docutils literal"><span class="pre">array</span></tt> in the document it will create a new field <tt class="docutils literal"><span class="pre">array</span></tt> that is an empty array and then will add the value <tt class="docutils literal"><span class="pre">1</span></tt> to the array. The value added to the array can be of any type. It's thus possible to do things like.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span class="p">{</span><span class="nx">$push</span><span class="o">:</span> <span class="p">{</span><span class="nx">array</span><span class="o">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]}}</span>
+</pre></div>
+</td></tr></table></div>
+<p>that will return a document looking like this.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span class="p">{</span> <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;array&quot;</span> <span class="o">:</span> <span class="p">[</span> <span class="p">[</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span> <span class="p">]</span> <span class="p">]</span> <span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+<p>Or even adding a document to the array.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span class="p">{</span><span class="nx">$push</span><span class="o">:</span> <span class="p">{</span><span class="nx">array</span><span class="o">:</span> <span class="p">{</span><span class="nx">a</span><span class="o">:</span> <span class="mi">1</span><span class="p">}}}</span>
+</pre></div>
+</td></tr></table></div>
+<p>that will return a document looking like this.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span class="p">{</span> <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;array&quot;</span> <span class="o">:</span> <span class="p">[</span> <span class="p">{</span><span class="nx">a</span><span class="o">:</span> <span class="mi">1</span><span class="p">}</span> <span class="p">]</span> <span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+<p>The only time the <tt class="docutils literal"><span class="pre">$push</span></tt> operation will fail is if the document already contains a field named <tt class="docutils literal"><span class="pre">array</span></tt> that is not an array. So what if we want to push a series of documents to an array all at the same time ? Well there is an operator for that too.</p>
+</div>
+<div class="section" id="pushall-operator">
+<h2>$pushAll Operator<a class="headerlink" href="#pushall-operator" title="Permalink to this headline">¶</a></h2>
+<p>Let's consider a document that represents a meeting. The first part of the meeting might be a simple one line title outlining the reason for the meeting and it might also have some sort of description as well as a start time and end time. We also have an array of users that we want to add as participants to the meeting in question. Let's enter the code.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45</pre></div></td><td class="code"><div class="highlight"><pre><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+
+<span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kd">var</span> <span class="nx">meeting</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="nx">_id</span> <span class="o">:</span> <span class="mi">1</span>
+    <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Let&#39;s buy a widget&quot;</span>
+    <span class="p">,</span> <span class="nx">description</span><span class="o">:</span> <span class="s2">&quot;We need to buy the ACME widget and need budget approval&quot;</span>
+    <span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">()</span>
+    <span class="p">,</span> <span class="nx">endTime</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">()</span>
+  <span class="p">}</span>
+
+  <span class="kd">var</span> <span class="nx">users</span> <span class="o">=</span> <span class="p">[</span>
+      <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;April&#39;</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">&#39;april@inc.com&#39;</span><span class="p">}</span>
+    <span class="p">,</span> <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;John&#39;</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">&#39;john@inc.com&#39;</span><span class="p">}</span>
+  <span class="p">]</span>
+
+  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;meetings&#39;</span><span class="p">);</span>
+  
+  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">(</span><span class="nx">meeting</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>
+      <span class="p">}</span>
+
+      <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span> <span class="nx">_id</span><span class="o">:</span> <span class="nx">meeting</span><span class="p">.</span><span class="nx">_id</span> <span class="p">}</span>
+        <span class="p">,</span> <span class="p">{</span><span class="nx">$pushAll</span><span class="o">:</span> <span class="p">{</span><span class="nx">participants</span><span class="o">:</span> <span class="nx">users</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+
+          <span class="nx">collection</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span> <span class="nx">_id</span><span class="o">:</span> <span class="nx">meeting</span><span class="p">.</span><span class="nx">_id</span> <span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+
+            <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+
+            <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+          <span class="p">});</span>
+      <span class="p">});</span>
+    <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">});</span>
+</pre></div>
+</td></tr></table></div>
+<p>the output should look like this.</p>
+<div class="highlight-console"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9</pre></div></td><td class="code"><div class="highlight"><pre><span class="go">connected to database</span>
+<span class="go">{ _id: 1,</span>
+<span class="go">  description: &#39;We need to buy the ACME widget and need budget approval&#39;,</span>
+<span class="go">  endTime: Wed Jan 23 2013 14:18:21 GMT+0100 (CET),</span>
+<span class="go">  participants:</span>
+<span class="go">   [ { name: &#39;April&#39;, email: &#39;april@inc.com&#39; },</span>
+<span class="go">     { name: &#39;John&#39;, email: &#39;john@inc.com&#39; } ],</span>
+<span class="go">  startTime: Wed Jan 23 2013 14:18:21 GMT+0100 (CET),</span>
+<span class="go">  title: &#39;Let\&#39;s buy a widget&#39; }</span>
+</pre></div>
+</td></tr></table></div>
+<p>As you can see the <tt class="docutils literal"><span class="pre">$pushAll</span></tt> operator added both of the documents in the <tt class="docutils literal"><span class="pre">user</span></tt> array to the <tt class="docutils literal"><span class="pre">meeting</span></tt> document under the field name <tt class="docutils literal"><span class="pre">participants</span></tt>. Just as with <tt class="docutils literal"><span class="pre">$push</span></tt> the <tt class="docutils literal"><span class="pre">$pushAll</span></tt> operator will fail if there is an existing field that is not an array. If the field does exist and is an array the documents will be added to the end of the array. But what if we wish to remove documents from an Array ?</p>
+</div>
+<div class="section" id="pull-operator">
+<h2>$pull Operator<a class="headerlink" href="#pull-operator" title="Permalink to this headline">¶</a></h2>
+<p>Let's imagine that <tt class="docutils literal"><span class="pre">April</span></tt> no longer can attend the meeting. How do we remove her from the list ? Let's fire up our editor and enter some code and then have a look at how it works.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49</pre></div></td><td class="code"><div class="highlight"><pre><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+
+<span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kd">var</span> <span class="nx">meeting</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="nx">_id</span> <span class="o">:</span> <span class="mi">1</span>
+    <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Let&#39;s buy a widget&quot;</span>
+    <span class="p">,</span> <span class="nx">description</span><span class="o">:</span> <span class="s2">&quot;We need to buy the ACME widget and need budget approval&quot;</span>
+    <span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">()</span>
+    <span class="p">,</span> <span class="nx">endTime</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">()</span>
+  <span class="p">}</span>
+
+  <span class="kd">var</span> <span class="nx">users</span> <span class="o">=</span> <span class="p">[</span>
+      <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;April&#39;</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">&#39;april@inc.com&#39;</span><span class="p">}</span>
+    <span class="p">,</span> <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;John&#39;</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">&#39;john@inc.com&#39;</span><span class="p">}</span>
+  <span class="p">]</span>
+
+  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;meetings&#39;</span><span class="p">);</span>
+  
+  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">(</span><span class="nx">meeting</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>
+      <span class="p">}</span>
+
+      <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span> <span class="nx">_id</span><span class="o">:</span> <span class="nx">meeting</span><span class="p">.</span><span class="nx">_id</span> <span class="p">}</span>
+        <span class="p">,</span> <span class="p">{</span><span class="nx">$pushAll</span><span class="o">:</span> <span class="p">{</span><span class="nx">participants</span><span class="o">:</span> <span class="nx">users</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+
+          <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="nx">meeting</span><span class="p">.</span><span class="nx">_id</span><span class="p">},</span> <span class="p">{</span><span class="nx">$pull</span><span class="o">:</span> <span class="p">{</span> <span class="nx">participants</span><span class="o">:</span> <span class="p">{</span><span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;April&#39;</span><span class="p">}}}</span>
+            <span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+            
+              <span class="nx">collection</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span> <span class="nx">_id</span><span class="o">:</span> <span class="nx">meeting</span><span class="p">.</span><span class="nx">_id</span> <span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+
+                <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+
+                <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+              <span class="p">});</span>
+          <span class="p">})</span>
+      <span class="p">});</span>
+    <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">});</span>
+</pre></div>
+</td></tr></table></div>
+<p>the output should look like this.</p>
+<div class="highlight-console"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4
+5
+6</pre></div></td><td class="code"><div class="highlight"><pre><span class="go">{ _id: 1,</span>
+<span class="go">  description: &#39;We need to buy the ACME widget and need budget approval&#39;,</span>
+<span class="go">  endTime: Wed Jan 23 2013 14:30:29 GMT+0100 (CET),</span>
+<span class="go">  participants: [ { name: &#39;John&#39;, email: &#39;john@inc.com&#39; } ],</span>
+<span class="go">  startTime: Wed Jan 23 2013 14:30:29 GMT+0100 (CET),</span>
+<span class="go">  title: &#39;Let\&#39;s buy a widget&#39; }</span>
+</pre></div>
+</td></tr></table></div>
+<p>The <tt class="docutils literal"><span class="pre">$pull</span></tt> operator removes all instances of a value from an existing array. Given the update statement.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="nx">meeting</span><span class="p">.</span><span class="nx">_id</span><span class="p">},</span> <span class="p">{</span><span class="nx">$pull</span><span class="o">:</span> <span class="p">{</span> <span class="nx">participants</span><span class="o">:</span> <span class="p">{</span><span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;April&#39;</span><span class="p">}}}</span> <span class="p">....</span>
+</pre></div>
+</td></tr></table></div>
+<p><tt class="docutils literal"><span class="pre">MongoDB</span></tt> will first locate the document that matches the initial query of <tt class="docutils literal"><span class="pre">{_id:</span> <span class="pre">meeting._id}</span></tt> and then the <tt class="docutils literal"><span class="pre">$pull</span></tt> operator will traverse the array <tt class="docutils literal"><span class="pre">participants</span></tt> looking for any values that contains the field <tt class="docutils literal"><span class="pre">name</span></tt> with the value set to <tt class="docutils literal"><span class="pre">April</span></tt> and if found will remove them from the <tt class="docutils literal"><span class="pre">participants</span></tt> array.</p>
+<p>The <tt class="docutils literal"><span class="pre">$pull</span></tt> operator and the <tt class="docutils literal"><span class="pre">$push</span></tt> operator make it easy to operate on arrays inside of <tt class="docutils literal"><span class="pre">MongoDB</span></tt> documents.</p>
+</div>
+<div class="section" id="pop-operator">
+<h2>$pop Operator<a class="headerlink" href="#pop-operator" title="Permalink to this headline">¶</a></h2>
+<p>The <tt class="docutils literal"><span class="pre">$pop</span></tt> operator let's you remove the first or the last document from an array in a document.</p>
+<p>Give a document that looks like this.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">a</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">b</span><span class="o">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]}</span>
+</pre></div>
+</td></tr></table></div>
+<p>the update statement</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">$pop</span><span class="o">:</span> <span class="p">{</span> <span class="nx">b</span><span class="o">:</span> <span class="mi">1</span><span class="p">}}</span> <span class="p">....</span>
+</pre></div>
+</td></tr></table></div>
+<p>would remove the element <tt class="docutils literal"><span class="pre">3</span></tt> from the array in field <tt class="docutils literal"><span class="pre">b</span></tt>. leaving you with a document looking like this.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">a</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">b</span><span class="o">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]}</span>
+</pre></div>
+</td></tr></table></div>
+<p>similarly the statement.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">$pop</span><span class="o">:</span> <span class="p">{</span> <span class="nx">b</span><span class="o">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">}}</span> <span class="p">....</span>
+</pre></div>
+</td></tr></table></div>
+<p>would remove the element <tt class="docutils literal"><span class="pre">1</span></tt> from the array in field <tt class="docutils literal"><span class="pre">b</span></tt>, leaving you with a document looking like this.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">a</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">b</span><span class="o">:</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]}</span>
+</pre></div>
+</td></tr></table></div>
+<p>Unfortunately the <tt class="docutils literal"><span class="pre">$pop</span></tt> operator does not actually return the value that was removed. There is a special command for this called <tt class="docutils literal"><span class="pre">findAndModify</span></tt> that we will cover in the next exercise. What if we need to guarantee that there is only a single instance of a specific document in an array.</p>
+</div>
+<div class="section" id="addtoset-operator">
+<h2>$addToSet Operator<a class="headerlink" href="#addtoset-operator" title="Permalink to this headline">¶</a></h2>
+<p>The <tt class="docutils literal"><span class="pre">$addToSet</span></tt> only adds a value to an array if the value does not already exist. Let's see how we can use this in practice. Remember the meeting. Well let's use <tt class="docutils literal"><span class="pre">$addToSet</span></tt> and attempt to add a duplicate document. Open up your editor and type in.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51</pre></div></td><td class="code"><div class="highlight"><pre><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+
+<span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kd">var</span> <span class="nx">meeting</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="nx">_id</span> <span class="o">:</span> <span class="mi">1</span>
+    <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Let&#39;s buy a widget&quot;</span>
+    <span class="p">,</span> <span class="nx">description</span><span class="o">:</span> <span class="s2">&quot;We need to buy the ACME widget and need budget approval&quot;</span>
+    <span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">()</span>
+    <span class="p">,</span> <span class="nx">endTime</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">()</span>
+  <span class="p">}</span>
+
+  <span class="kd">var</span> <span class="nx">users</span> <span class="o">=</span> <span class="p">[</span>
+      <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;April&#39;</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">&#39;april@inc.com&#39;</span><span class="p">}</span>
+    <span class="p">,</span> <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;John&#39;</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">&#39;john@inc.com&#39;</span><span class="p">}</span>
+  <span class="p">]</span>
+
+  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;meetings&#39;</span><span class="p">);</span>
+  
+  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">(</span><span class="nx">meeting</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>
+      <span class="p">}</span>
+
+      <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span> <span class="nx">_id</span><span class="o">:</span> <span class="nx">meeting</span><span class="p">.</span><span class="nx">_id</span> <span class="p">}</span>
+        <span class="p">,</span> <span class="p">{</span><span class="nx">$pushAll</span><span class="o">:</span> <span class="p">{</span><span class="nx">participants</span><span class="o">:</span> <span class="nx">users</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+
+          <span class="kd">var</span> <span class="nx">april</span> <span class="o">=</span> <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;April&#39;</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">&#39;april@inc.com&#39;</span><span class="p">};</span>
+
+          <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="nx">meeting</span><span class="p">.</span><span class="nx">_id</span><span class="p">}</span>
+            <span class="p">,</span> <span class="p">{</span><span class="nx">$addToSet</span><span class="o">:</span> <span class="p">{</span><span class="nx">participants</span><span class="o">:</span> <span class="nx">april</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+
+            <span class="nx">collection</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span> <span class="nx">_id</span><span class="o">:</span> <span class="nx">meeting</span><span class="p">.</span><span class="nx">_id</span> <span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+
+              <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+
+              <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+            <span class="p">});</span>
+        <span class="p">});</span>
+      <span class="p">});</span>
+    <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">});</span>
+</pre></div>
+</td></tr></table></div>
+<p>Your output should look like the following.</p>
+<div class="highlight-console"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9</pre></div></td><td class="code"><div class="highlight"><pre><span class="go">connected to database</span>
+<span class="go">{ _id: 1,</span>
+<span class="go">  description: &#39;We need to buy the ACME widget and need budget approval&#39;,</span>
+<span class="go">  endTime: Wed Jan 23 2013 15:35:03 GMT+0100 (CET),</span>
+<span class="go">  participants:</span>
+<span class="go">   [ { name: &#39;April&#39;, email: &#39;april@inc.com&#39; },</span>
+<span class="go">     { name: &#39;John&#39;, email: &#39;john@inc.com&#39; } ],</span>
+<span class="go">  startTime: Wed Jan 23 2013 15:35:03 GMT+0100 (CET),</span>
+<span class="go">  title: &#39;Let\&#39;s buy a widget&#39; }</span>
+</pre></div>
+</td></tr></table></div>
+<p>As you can see there was no duplicate entries of the user <tt class="docutils literal"><span class="pre">April</span></tt> in the participants field when using <tt class="docutils literal"><span class="pre">$addToSet</span></tt>. But what if we want to modify a document inside an array, not remove it from the array but set a value on it. Luckily there are a couple of ways we can go about doing this.</p>
+</div>
+<div class="section" id="updating-a-document-in-an-array">
+<h2>Updating a document in an array<a class="headerlink" href="#updating-a-document-in-an-array" title="Permalink to this headline">¶</a></h2>
+<p>If we know the where in the array a particular document is we can specify to update that particular document. Let's take our sample meetings document.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4
+5
+6
+7
+8</pre></div></td><td class="code"><div class="highlight"><pre><span class="p">{</span> <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+  <span class="nx">description</span><span class="o">:</span> <span class="s1">&#39;We need to buy the ACME widget and need budget approval&#39;</span><span class="p">,</span>
+  <span class="nx">endTime</span><span class="o">:</span> <span class="nx">Wed</span> <span class="nx">Jan</span> <span class="mi">23</span> <span class="mi">2013</span> <span class="mi">15</span><span class="o">:</span><span class="mi">35</span><span class="o">:</span><span class="mi">03</span> <span class="nx">GMT</span><span class="o">+</span><span class="mi">0100</span> <span class="p">(</span><span class="nx">CET</span><span class="p">),</span>
+  <span class="nx">participants</span><span class="o">:</span>
+   <span class="p">[</span> <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;April&#39;</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">&#39;april@inc.com&#39;</span> <span class="p">},</span>
+     <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;John&#39;</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">&#39;john@inc.com&#39;</span> <span class="p">}</span> <span class="p">],</span>
+  <span class="nx">startTime</span><span class="o">:</span> <span class="nx">Wed</span> <span class="nx">Jan</span> <span class="mi">23</span> <span class="mi">2013</span> <span class="mi">15</span><span class="o">:</span><span class="mi">35</span><span class="o">:</span><span class="mi">03</span> <span class="nx">GMT</span><span class="o">+</span><span class="mi">0100</span> <span class="p">(</span><span class="nx">CET</span><span class="p">),</span>
+  <span class="nx">title</span><span class="o">:</span> <span class="s1">&#39;Let\&#39;s buy a widget&#39;</span> <span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+<p>Say we want to add a contact number for <tt class="docutils literal"><span class="pre">April</span></tt> to the document. Since we know it's the first document we can address it as element <tt class="docutils literal"><span class="pre">0</span></tt> in the array (more information about it's why <tt class="docutils literal"><span class="pre">0</span></tt> and not <tt class="docutils literal"><span class="pre">1</span></tt> at <a class="reference external" href="http://en.wikipedia.org/wiki/Zero-based_numbering">http://en.wikipedia.org/wiki/Zero-based_numbering</a>). Let's write the update statement to add the phone number.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2</pre></div></td><td class="code"><div class="highlight"><pre><span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">$set</span><span class="o">:</span> <span class="p">{</span><span class="s1">&#39;participants.0.phone&#39;</span><span class="o">:</span> <span class="s1">&#39;333-444-5555&#39;</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<span class="p">});</span>
+</pre></div>
+</td></tr></table></div>
+<p>After the update the document will look like.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4
+5
+6
+7
+8</pre></div></td><td class="code"><div class="highlight"><pre><span class="p">{</span> <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+  <span class="nx">description</span><span class="o">:</span> <span class="s1">&#39;We need to buy the ACME widget and need budget approval&#39;</span><span class="p">,</span>
+  <span class="nx">endTime</span><span class="o">:</span> <span class="nx">Wed</span> <span class="nx">Jan</span> <span class="mi">23</span> <span class="mi">2013</span> <span class="mi">15</span><span class="o">:</span><span class="mi">35</span><span class="o">:</span><span class="mi">03</span> <span class="nx">GMT</span><span class="o">+</span><span class="mi">0100</span> <span class="p">(</span><span class="nx">CET</span><span class="p">),</span>
+  <span class="nx">participants</span><span class="o">:</span>
+   <span class="p">[</span> <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;April&#39;</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">&#39;april@inc.com&#39;</span><span class="p">,</span> <span class="nx">phone</span> <span class="o">:</span> <span class="s1">&#39;333-444-5555&#39;</span> <span class="p">},</span>
+     <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;John&#39;</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">&#39;john@inc.com&#39;</span> <span class="p">}</span> <span class="p">],</span>
+  <span class="nx">startTime</span><span class="o">:</span> <span class="nx">Wed</span> <span class="nx">Jan</span> <span class="mi">23</span> <span class="mi">2013</span> <span class="mi">15</span><span class="o">:</span><span class="mi">35</span><span class="o">:</span><span class="mi">03</span> <span class="nx">GMT</span><span class="o">+</span><span class="mi">0100</span> <span class="p">(</span><span class="nx">CET</span><span class="p">),</span>
+  <span class="nx">title</span><span class="o">:</span> <span class="s1">&#39;Let\&#39;s buy a widget&#39;</span> <span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+<p>Notice <tt class="docutils literal"><span class="pre">'participants.0.phone'</span></tt> this tells <tt class="docutils literal"><span class="pre">MongoDB</span></tt> that the field <tt class="docutils literal"><span class="pre">participants</span></tt> is an array and that we are accessing the first element of the array and in that element we wish to set the field <tt class="docutils literal"><span class="pre">phone</span></tt>.</p>
+<p>That's great but what if we don't know the location of the document in the array <tt class="docutils literal"><span class="pre">participants</span></tt>. How do we select the right document to update. Luckily for us we have a operator called the positional operator available to do this. The positional operator is the <tt class="docutils literal"><span class="pre">$</span></tt> sign. Let's show it with an update example. Let's add a phone number to <tt class="docutils literal"><span class="pre">John</span></tt> using the positional operator.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3</pre></div></td><td class="code"><div class="highlight"><pre><span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">,</span> <span class="nx">participants</span><span class="p">.</span><span class="nx">name</span><span class="o">:</span><span class="s1">&#39;John&#39;</span><span class="p">},</span> <span class="p">{</span><span class="nx">$set</span><span class="o">:</span> <span class="p">{</span><span class="s1">&#39;participants.$.phone&#39;</span><span class="o">:</span> <span class="s1">&#39;111-222-3333&#39;</span><span class="p">}}</span>
+  <span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+  <span class="p">});</span>
+</pre></div>
+</td></tr></table></div>
+<p>After the update the document will look like.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4
+5
+6
+7
+8</pre></div></td><td class="code"><div class="highlight"><pre><span class="p">{</span> <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+  <span class="nx">description</span><span class="o">:</span> <span class="s1">&#39;We need to buy the ACME widget and need budget approval&#39;</span><span class="p">,</span>
+  <span class="nx">endTime</span><span class="o">:</span> <span class="nx">Wed</span> <span class="nx">Jan</span> <span class="mi">23</span> <span class="mi">2013</span> <span class="mi">15</span><span class="o">:</span><span class="mi">35</span><span class="o">:</span><span class="mi">03</span> <span class="nx">GMT</span><span class="o">+</span><span class="mi">0100</span> <span class="p">(</span><span class="nx">CET</span><span class="p">),</span>
+  <span class="nx">participants</span><span class="o">:</span>
+   <span class="p">[</span> <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;April&#39;</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">&#39;april@inc.com&#39;</span><span class="p">,</span> <span class="nx">phone</span> <span class="o">:</span> <span class="s1">&#39;333-444-5555&#39;</span> <span class="p">},</span>
+     <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;John&#39;</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">&#39;john@inc.com&#39;</span><span class="p">,</span> <span class="nx">phone</span> <span class="o">:</span> <span class="s1">&#39;111-222-3333&#39;</span> <span class="p">}</span> <span class="p">],</span>
+  <span class="nx">startTime</span><span class="o">:</span> <span class="nx">Wed</span> <span class="nx">Jan</span> <span class="mi">23</span> <span class="mi">2013</span> <span class="mi">15</span><span class="o">:</span><span class="mi">35</span><span class="o">:</span><span class="mi">03</span> <span class="nx">GMT</span><span class="o">+</span><span class="mi">0100</span> <span class="p">(</span><span class="nx">CET</span><span class="p">),</span>
+  <span class="nx">title</span><span class="o">:</span> <span class="s1">&#39;Let\&#39;s buy a widget&#39;</span> <span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+<p>Notice the two main differences. The first part is the query which looks like <tt class="docutils literal"><span class="pre">{_id:1,</span> <span class="pre">participants.name:'John'}</span></tt>. This will locate the document where <tt class="docutils literal"><span class="pre">_id</span></tt> is <tt class="docutils literal"><span class="pre">1</span></tt> and it contains a participant document where the <tt class="docutils literal"><span class="pre">name</span></tt> field equals to <tt class="docutils literal"><span class="pre">John</span></tt>.</p>
+<p>The update part  <tt class="docutils literal"><span class="pre">{$set:</span> <span class="pre">{'participants.$.phone':</span> <span class="pre">'111-222-3333'}}</span></tt> contains the <tt class="docutils literal"><span class="pre">$</span></tt> which tells <tt class="docutils literal"><span class="pre">MongoDB</span></tt> to locate the first participant who's <tt class="docutils literal"><span class="pre">name</span></tt> field equals <tt class="docutils literal"><span class="pre">John</span></tt> and update <tt class="docutils literal"><span class="pre">$set</span></tt> the value of the field <tt class="docutils literal"><span class="pre">phone</span></tt> in that document to <a href="#id1"><span class="problematic" id="id2">``</span></a>111-222-3333`.</p>
+<p>There is a couple of limitations to the <tt class="docutils literal"><span class="pre">$</span></tt> operator. The first is that it will only change the <tt class="docutils literal"><span class="pre">first</span></tt> matching document so if you use a <tt class="docutils literal"><span class="pre">query</span></tt> that is picking a document in an array by a <tt class="docutils literal"><span class="pre">field</span></tt> that is not unique it will only update the first match. So it's important to make sure you are using a field in the documents for your query uniquely identifies it. There are some other limitations for the command that you can read more about at <a class="reference external" href="http://docs.mongodb.org/manual/reference/operator/positional/#_S_">http://docs.mongodb.org/manual/reference/operator/positional/#_S_</a>.</p>
+</div>
+<div class="section" id="one-push-to-rule-them-all">
+<h2>One $push To Rule Them All<a class="headerlink" href="#one-push-to-rule-them-all" title="Permalink to this headline">¶</a></h2>
+<p><tt class="docutils literal"><span class="pre">MongoDB</span></tt> 2.4 or higher introduces some changes in the <tt class="docutils literal"><span class="pre">$push</span></tt> operator that deprecates the usage of <tt class="docutils literal"><span class="pre">$pushAll</span></tt> and allows you to fix the max size of an array. This is most easily showed using an example.</p>
+<p>Say we have a document that looks like this.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span class="p">{</span> <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">a</span><span class="o">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span> <span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+<p>Let's add 2 more elements but we want to keep the size fixed to a max of 5 elements.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2</pre></div></td><td class="code"><div class="highlight"><pre><span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">$push</span><span class="o">:</span> <span class="p">{</span> <span class="nx">a</span><span class="o">:</span> <span class="p">{</span> <span class="nx">$each</span><span class="o">:</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">],</span> <span class="nx">$slice</span><span class="o">:</span> <span class="o">-</span><span class="mi">5</span><span class="p">}}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<span class="p">});</span>
+</pre></div>
+</td></tr></table></div>
+<p>The results from the update.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span class="p">{</span> <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">a</span><span class="o">:</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">]</span> <span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+<p>Let's pick apart the update statement.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span class="p">{</span><span class="nx">$push</span><span class="o">:</span> <span class="p">{</span> <span class="nx">a</span><span class="o">:</span> <span class="p">{</span> <span class="nx">$each</span><span class="o">:</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">],</span> <span class="nx">$slice</span><span class="o">:</span> <span class="o">-</span><span class="mi">5</span><span class="p">}}}</span>
+</pre></div>
+</td></tr></table></div>
+<p>The <tt class="docutils literal"><span class="pre">$each</span></tt> parameter of the <tt class="docutils literal"><span class="pre">$push</span></tt> operator takes an array of values or objects and replaces the <tt class="docutils literal"><span class="pre">$pushAll</span></tt> operation. so the operation <tt class="docutils literal"><span class="pre">{$push:</span> <span class="pre">{</span> <span class="pre">a:</span> <span class="pre">{</span> <span class="pre">$each:</span> <span class="pre">[6,</span> <span class="pre">7]}}}</span></tt> is equivalent to <tt class="docutils literal"><span class="pre">{$pushAll:</span> <span class="pre">{a</span> <span class="pre">:</span> <span class="pre">[6,</span> <span class="pre">7]}}</span></tt>. The second parameter is <tt class="docutils literal"><span class="pre">$slice</span></tt>. <tt class="docutils literal"><span class="pre">$slice</span></tt> takes a value that is <tt class="docutils literal"><span class="pre">0</span></tt> or less and trims the number of elements in the array from right to left. In other words the following happens.</p>
+<div class="highlight-console"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3</pre></div></td><td class="code"><div class="highlight"><pre><span class="go">[1, 2, 3, 4, 5]</span>
+<span class="go">[1, 2, 3, 4, 5, 6, 7]</span>
+<span class="go">[3, 4, 5, 6, 7]</span>
+</pre></div>
+</td></tr></table></div>
+<p>Between the second and third step the <tt class="docutils literal"><span class="pre">$push</span></tt> operator takes the last five elements and removes the rest. This makes it possible to <tt class="docutils literal"><span class="pre">enforce</span></tt> a fixed size array field in a document. The last parameter we will show is the <tt class="docutils literal"><span class="pre">$sort</span></tt> parameter. Let's write up an example. Take a document like.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span class="p">{</span> <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">a</span><span class="o">:</span> <span class="p">[{</span><span class="nx">pri</span><span class="o">:</span><span class="mi">4</span><span class="p">},</span> <span class="p">{</span><span class="nx">pri</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">pri</span><span class="o">:</span><span class="mi">2</span><span class="p">},</span> <span class="p">{</span><span class="nx">pri</span><span class="o">:</span><span class="mi">4</span><span class="p">},</span> <span class="p">{</span><span class="nx">pri</span><span class="o">:</span><span class="mi">3</span><span class="p">}]</span> <span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+<p>Now let's add some new objects to our fixed size array and sort them in <tt class="docutils literal"><span class="pre">descending</span></tt> order with the highest priority object first.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4</pre></div></td><td class="code"><div class="highlight"><pre><span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">$push</span><span class="o">:</span> <span class="p">{</span> <span class="nx">a</span><span class="o">:</span> <span class="p">{</span> <span class="nx">$each</span><span class="o">:</span> <span class="p">[</span> <span class="p">{</span><span class="nx">pri</span><span class="o">:</span><span class="mi">2</span><span class="p">},</span> <span class="p">{</span><span class="nx">pri</span><span class="o">:</span><span class="mi">1</span><span class="p">}],</span> <span class="nx">$slice</span><span class="o">:</span> <span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="nx">$sort</span><span class="o">:</span> <span class="p">{</span><span class="nx">pri</span><span class="o">:-</span><span class="mi">1</span><span class="p">}}}}</span>
+  <span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+
+  <span class="p">});</span>
+</pre></div>
+</td></tr></table></div>
+<p>The results from the update.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span class="p">{</span> <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">a</span><span class="o">:</span> <span class="p">[{</span><span class="nx">pri</span><span class="o">:</span><span class="mi">3</span><span class="p">},</span> <span class="p">{</span><span class="nx">pri</span><span class="o">:</span><span class="mi">2</span><span class="p">},</span> <span class="p">{</span><span class="nx">pri</span><span class="o">:</span><span class="mi">2</span><span class="p">},</span> <span class="p">{</span><span class="nx">pri</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">pri</span><span class="o">:</span><span class="mi">1</span><span class="p">}]</span> <span class="p">}</span>
+</pre></div>
+</td></tr></table></div>
+<p>The thing to notice is that the <tt class="docutils literal"><span class="pre">$sort</span></tt> will be applied before the <tt class="docutils literal"><span class="pre">slice</span></tt> and that it only supports sorting of objects. You cannot use <tt class="docutils literal"><span class="pre">$sort</span></tt> with an array of numbers for example.</p>
+<p>That covers working with arrays when performing updates. As we briefly touched upon earlier there is an additional update command available called <tt class="docutils literal"><span class="pre">findAndModify</span></tt>. In the next exercise we will learn how it works and for what kind of situations it's useful.</p>
+</div>
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+        <ul>
+          <li class="right"><a style="color: #C40B46;" href="http://docs.mongodb.org/manual/" title="MongoDB Docs">MongoDB Docs</a></li>
+          <li class="right"><a style="color: #C40B46;" href="http://mongodb.github.com/node-mongodb-native/" title="Driver Docs">Driver Docs</a> | </li>
+        </ul>
+    </div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="ex11.html" title="Exercise 11: Final Update"
+             >next</a></li>
+        <li class="right" >
+          <a href="ex9.html" title="Exercise 9: Update Basics"
+             >previous</a> |</li>
+        <li><a href="http://ruby.learncodethehardway.org/">Learn MongoDB And Node.js The Hard Way</a> &raquo;</li> 
+        <li class="right"><a href="search.html" title="search">search</a> | </li>
+      </ul>
+    </div>
+    <a name="comments"><hr/></a>
+
+<div sytle="text-align: left">
+    <div style="background: white; padding: 10px" id="disqus_thread"></div>
+</div>
+    <script type="text/javascript">
+        var dow = new Date().getDay();
+
+        if(dow == 5 || dow == 6) {
+            $("#disqus_thread").html("<h1>Today Is Christians's Day Off</h1><p>I take Saturday and Sunday off.  Comments open again on Monday-Friday.</p>")
+        } else {
+            /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+            var disqus_shortname = 'learn-code-the-hard-way'; // required: replace example with your forum shortname
+
+
+            /* * * DON'T EDIT BELOW THIS LINE * * */
+            (function() {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        }
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <div class="footer">
+      &copy; Copyright 2012, Christian Amor Kvalheim.
+      Last updated on Jan 31, 2013.
+</div>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-24168052-9']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </body>
+</html>

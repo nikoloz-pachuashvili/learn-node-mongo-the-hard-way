@@ -1,0 +1,366 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Exercise 11: Final Update &mdash; Learn MongoDB And Node.js The Hard Way</title>
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '2.0',
+        COLLAPSE_MODINDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Learn MongoDB And Node.js The Hard Way" href="index.html" />
+    <link rel="next" title="Exercise 12: FindAndModify" href="ex12.html" />
+    <link rel="prev" title="Exercise 10: Update Basics" href="ex10.html" /> 
+  </head>
+  <body>
+    <div class="related">
+        <ul>
+          <li class="right"><a style="color: #C40B46;" href="http://docs.mongodb.org/manual/" title="MongoDB Docs">MongoDB Docs</a></li>
+          <li class="right"><a style="color: #C40B46;" href="http://mongodb.github.com/node-mongodb-native/" title="Driver Docs">Driver Docs</a> | </li>
+        </ul>
+    </div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="ex12.html" title="Exercise 12: FindAndModify"
+             accesskey="N">next</a></li>
+        <li class="right" >
+          <a href="ex10.html" title="Exercise 10: Update Basics"
+             accesskey="P">previous</a> |</li>
+        <li><a href="http://ruby.learncodethehardway.org/">Learn MongoDB And Node.js The Hard Way</a> &raquo;</li> 
+        <li class="right"><a href="search.html" title="search">search</a> | </li>
+      </ul>
+    </div>
+
+
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="exercise-11-final-update">
+<h1>Exercise 11: Final Update<a class="headerlink" href="#exercise-11-final-update" title="Permalink to this headline">¶</a></h1>
+<p>The last two elements we are going to touch when it comes to the <tt class="docutils literal"><span class="pre">update</span></tt> operation is the <tt class="docutils literal"><span class="pre">upsert</span></tt> and the <tt class="docutils literal"><span class="pre">multi</span></tt> option. Let's start with a simple example to illustrate the usage of the <tt class="docutils literal"><span class="pre">upsert</span></tt> option.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35</pre></div></td><td class="code"><div class="highlight"><pre><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+
+<span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;upserts&#39;</span><span class="p">);</span>
+  
+  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">,</span> <span class="nx">value</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;added document&quot;</span><span class="p">);</span>
+
+      <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">$set</span><span class="o">:</span> <span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;will fail&quot;</span><span class="p">);</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">err</span><span class="p">);</span>
+
+        <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">value</span><span class="o">:</span><span class="mi">2</span><span class="p">},</span> <span class="p">{</span><span class="nx">$set</span><span class="o">:</span> <span class="p">{</span><span class="nx">upserted</span><span class="o">:</span><span class="kc">true</span><span class="p">}},</span> <span class="p">{</span><span class="nx">upsert</span><span class="o">:</span><span class="kc">true</span><span class="p">}</span>
+          <span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;upserted document&quot;</span><span class="p">);</span>
+
+            <span class="nx">collection</span><span class="p">.</span><span class="nx">find</span><span class="p">().</span><span class="nx">toArray</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">docs</span><span class="p">)</span> <span class="p">{</span>
+              <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;documents&quot;</span><span class="p">);</span>
+              <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">docs</span><span class="p">);</span>
+              <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+            <span class="p">});</span>
+        <span class="p">});</span>
+      <span class="p">});</span>
+    <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">});</span>
+</pre></div>
+</td></tr></table></div>
+<p>The results should look like this.</p>
+<div class="highlight-console"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14</pre></div></td><td class="code"><div class="highlight"><pre><span class="go">connected to database</span>
+<span class="go">added document</span>
+<span class="go">will fail</span>
+<span class="go">{ [MongoError: Mod on _id not allowed]</span>
+<span class="go">  name: &#39;MongoError&#39;,</span>
+<span class="go">  err: &#39;Mod on _id not allowed&#39;,</span>
+<span class="go">  code: 10148,</span>
+<span class="go">  n: 0,</span>
+<span class="go">  connectionId: 153,</span>
+<span class="go">  ok: 1 }</span>
+<span class="go">upserted document</span>
+<span class="go">documents</span>
+<span class="go">[ { _id: 1, value: 1 },</span>
+<span class="go">  { _id: 510124cc0ac025483df1af08, upserted: true, value: 2 } ]</span>
+</pre></div>
+</td></tr></table></div>
+<p>The <tt class="docutils literal"><span class="pre">upsert</span></tt> option will run the update creating a new document if no document is found for the query. The first <tt class="docutils literal"><span class="pre">upsert</span></tt> fails because we cannot modify the <tt class="docutils literal"><span class="pre">_id</span></tt> field as it's the unique identifier for the document. The second succeeds as there is not document with the field <tt class="docutils literal"><span class="pre">value</span></tt> set to <tt class="docutils literal"><span class="pre">2</span></tt>. This means the update is run but creates a new document. If there had been a document present it would have been modified as if it was a normal update statement.</p>
+<div class="section" id="multi">
+<h2>Multi<a class="headerlink" href="#multi" title="Permalink to this headline">¶</a></h2>
+<p>As you might have discovered by now the <tt class="docutils literal"><span class="pre">update</span></tt> command updates a single document at the time. But what if we want do update all documents matching a query. This is where the <tt class="docutils literal"><span class="pre">multi</span></tt> command comes in. Let's have a look at an example.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45</pre></div></td><td class="code"><div class="highlight"><pre><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+
+<span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="kd">var</span> <span class="nx">documents</span> <span class="o">=</span> <span class="p">[{</span>
+        <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+      <span class="p">,</span> <span class="nx">user</span><span class="o">:</span> <span class="mi">1</span>
+      <span class="p">,</span> <span class="nx">read</span><span class="o">:</span><span class="kc">false</span>
+    <span class="p">},</span> <span class="p">{</span>
+        <span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span>
+      <span class="p">,</span> <span class="nx">user</span><span class="o">:</span> <span class="mi">1</span>
+      <span class="p">,</span> <span class="nx">read</span><span class="o">:</span><span class="kc">false</span>
+    <span class="p">},</span> <span class="p">{</span>
+        <span class="nx">_id</span><span class="o">:</span> <span class="mi">3</span>
+      <span class="p">,</span> <span class="nx">user</span><span class="o">:</span> <span class="mi">2</span>
+      <span class="p">,</span> <span class="nx">read</span><span class="o">:</span><span class="kc">false</span>
+    <span class="p">}</span>
+  <span class="p">];</span>
+
+  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;upserts&#39;</span><span class="p">);</span>
+  
+  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">(</span><span class="nx">documents</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;added document&quot;</span><span class="p">);</span>
+
+      <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">user</span><span class="o">:</span><span class="mi">1</span><span class="p">,</span> <span class="nx">read</span><span class="o">:</span><span class="kc">false</span><span class="p">},</span> <span class="p">{</span><span class="nx">$set</span><span class="o">:</span> <span class="p">{</span><span class="nx">read</span><span class="o">:</span><span class="kc">true</span><span class="p">}},</span> <span class="p">{</span><span class="nx">multi</span><span class="o">:</span><span class="kc">true</span><span class="p">}</span>
+        <span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+          <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;updated documents&quot;</span><span class="p">);</span>
+
+          <span class="nx">collection</span><span class="p">.</span><span class="nx">find</span><span class="p">().</span><span class="nx">toArray</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">docs</span><span class="p">)</span> <span class="p">{</span>
+            <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;documents&quot;</span><span class="p">);</span>
+            <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">docs</span><span class="p">);</span>
+            <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+          <span class="p">});</span>          
+        <span class="p">});</span>
+    <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">});</span>
+</pre></div>
+</td></tr></table></div>
+<p>The results should look like this.</p>
+<div class="highlight-console"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4
+5
+6
+7</pre></div></td><td class="code"><div class="highlight"><pre><span class="go">connected to database</span>
+<span class="go">added document</span>
+<span class="go">updated documents</span>
+<span class="go">documents</span>
+<span class="go">[ { _id: 1, user: 1, read: true },</span>
+<span class="go">  { _id: 2, user: 1, read: true },</span>
+<span class="go">  { _id: 3, user: 2, read: false } ]</span>
+</pre></div>
+</td></tr></table></div>
+<p>Our <tt class="docutils literal"><span class="pre">update</span></tt> statement will select all the documents that match the expression <tt class="docutils literal"><span class="pre">{user:1,</span> <span class="pre">read:false}</span></tt>.</p>
+<div class="highlight-javascript"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4
+5
+6
+7
+8
+9</pre></div></td><td class="code"><div class="highlight"><pre><span class="p">[{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="nx">user</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="nx">read</span><span class="o">:</span><span class="kc">false</span>
+<span class="p">},</span> <span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="nx">user</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="nx">read</span><span class="o">:</span><span class="kc">false</span>
+<span class="p">}]</span>
+</pre></div>
+</td></tr></table></div>
+<p>And will then set the <tt class="docutils literal"><span class="pre">read</span></tt> field for both documents to <tt class="docutils literal"><span class="pre">true</span></tt>. This covers the last two options of the <tt class="docutils literal"><span class="pre">update</span></tt> command. In the next exercise we will introduce a way to modify and retrieve a document in one operation called <tt class="docutils literal"><span class="pre">findAndModify</span></tt>.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">You might be tempted to use <tt class="docutils literal"><span class="pre">update</span></tt> with <tt class="docutils literal"><span class="pre">upsert</span></tt> set to true instead of <tt class="docutils literal"><span class="pre">insert</span></tt>. This might have a performance impact as you collection grows as the database needs to perform a query and an update operation instead of just an insert operation.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+        <ul>
+          <li class="right"><a style="color: #C40B46;" href="http://docs.mongodb.org/manual/" title="MongoDB Docs">MongoDB Docs</a></li>
+          <li class="right"><a style="color: #C40B46;" href="http://mongodb.github.com/node-mongodb-native/" title="Driver Docs">Driver Docs</a> | </li>
+        </ul>
+    </div>
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="ex12.html" title="Exercise 12: FindAndModify"
+             >next</a></li>
+        <li class="right" >
+          <a href="ex10.html" title="Exercise 10: Update Basics"
+             >previous</a> |</li>
+        <li><a href="http://ruby.learncodethehardway.org/">Learn MongoDB And Node.js The Hard Way</a> &raquo;</li> 
+        <li class="right"><a href="search.html" title="search">search</a> | </li>
+      </ul>
+    </div>
+    <a name="comments"><hr/></a>
+
+<div sytle="text-align: left">
+    <div style="background: white; padding: 10px" id="disqus_thread"></div>
+</div>
+    <script type="text/javascript">
+        var dow = new Date().getDay();
+
+        if(dow == 5 || dow == 6) {
+            $("#disqus_thread").html("<h1>Today Is Christians's Day Off</h1><p>I take Saturday and Sunday off.  Comments open again on Monday-Friday.</p>")
+        } else {
+            /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+            var disqus_shortname = 'learn-code-the-hard-way'; // required: replace example with your forum shortname
+
+
+            /* * * DON'T EDIT BELOW THIS LINE * * */
+            (function() {
+                var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+                (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+            })();
+        }
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <div class="footer">
+      &copy; Copyright 2012, Christian Amor Kvalheim.
+      Last updated on Jan 31, 2013.
+</div>
+<script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-24168052-9']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+</script>
+
+  </body>
+</html>
