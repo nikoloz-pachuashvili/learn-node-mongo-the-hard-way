@@ -1,0 +1,110 @@
+Exercise 18: The Importance of Schema Design
+============================================
+
+The hardest part of starting to work with MongoDB is to unlearn most of the skills you have applied to data modeling when using a traditional Relational Database. That's not to say that the skills are wasted it's just that the emphasis is on on other factors than when creating a relational model.
+
+One of the main goals of Relational Databases is to avoid duplication of information as well as the integrity of said data. This is usually accomplished by providing a Database Description Language that allows you to specify constraints and relationships between data items (including one to one, one to many and many to many relationships). The focus on demoralization of the data (avoid duplicated data) means we store the relationships in ``join tables`` and merge the data together at query time to reconstitute the final result. There are a lot of fancy words here. Let's make it simpler by showing a model some very simple entities, namely a book and an author.
+
+Let's write down some facts about the book (I studied at Swinburne in Melbourne the homestead of ORM, object relational modeling).
+
+Book Facts
+----------
+- A book has a title of 'Moby Dick'
+- A book had a an unique ISBN number
+- A book has a published data
+- A book has a publisher
+- A book was written by one or more authors
+
+Author Facts
+------------
+- An author has a name
+- An author has written one or more books
+
+Publisher Facts
+---------------
+- A publisher has a name
+- A publisher has published one mor more books
+
+So what would this look like if using an ``Entity Relational Modeling Diagram``. Let's have a look at what a normalized data model for this could look like.
+
+.. graphviz::
+
+  graph ER {
+    node [shape=box]; book; publisher; author;
+    node [shape=ellipse]; {node [label="title"] title0 }
+      isbn;
+      published_date;
+      {node [label="name"] name0, name1 }
+    node [shape=diamond,style=filled,color=lightgrey]; "book_author", "book_publisher";
+    title0 -- book;
+    isbn -- book;
+    published_date -- book;
+    publisher -- name0;
+    author -- name1;
+    book -- "book_author" [label="m", len=1.00];
+    "book_author" -- author [label="n", len=1.00];
+    book -- "book_publisher" [label="n", len=1.00];
+    "book_publisher" -- publisher [label="1", len=1.00];
+
+    label = "\n\nEntity Relation Diagram\n";
+    fontsize=20;
+  }
+
+Let's translate this into a set of tables we could use in a relational database. First up are the basic entity tables for ``book``, ``publisher`` and ``author``.
+
+Book Table
+----------
+
+======================= ==================================
+Field                   Type
+======================= ==================================
+Id                      autoincrement int
+Title                   varchar (255)
+ISBN                    varchar (25)
+Published               datetime
+Publisher_id            ``Foreign Key Id`` to table Publishers
+======================= ==================================
+
+Since there is only a single ``publisher`` we can include a reference to the publisher entity directly in the ``book`` table.
+
+Publisher Table
+---------------
+
+======================= ==================================
+Field                   Type
+======================= ==================================
+Id                      autoincrement int
+Name                    varchar (255)
+======================= ==================================
+
+Author Table
+------------
+
+======================= ==================================
+Field                   Type
+======================= ==================================
+Id                      autoincrement int
+Name                    varchar (255)
+======================= ==================================
+
+Next up we need to define the relationships between the entities. Luckily for us the relationship between a ``publisher`` and a ``book`` is that a ``publisher`` can publish many ``books`` but a ``book`` can only have one ``publisher``. This means we don't need a special join table to be able to retrieve both sides of the query. It's enough to just put the ``publisher's id`` in the ``book`` table.
+
+On the other hand an ``author`` can have written many books and a book can have more than one ``author``. We need to introduce a table to model this relation. This is called a ``join table``. This table well show the relationships between individual books and authors.
+
+AuthorBook table
+----------------
+
+======================= ==================================
+Field                   Type
+======================= ==================================
+Book Id                 ``Foreign Key Id`` to table Books
+Author Id               ``Foreign Key Id`` to table Author
+======================= ==================================
+
+Awesome we have an initial model for how to store a book. Now let's use this in our fancy OO language. Let's define a set of classes that allows us to represent a book, an author and a publisher.
+
+.. literalinclude:: ex/ex17/ex1.js
+    :language: javascript
+    :linenos:
+
+
