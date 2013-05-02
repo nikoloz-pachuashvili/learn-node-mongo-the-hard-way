@@ -1,4 +1,4 @@
-Exercise 15: Basic Indexes in MongoDB
+Exercise 16: Basic Indexes in MongoDB
 =====================================
 
 In this exercise we will focus on the basics of creating indexes for MongoDB, using them and understanding how our queries use indexes. To kick off let's insert some documents into a database and create an index on the field salary.
