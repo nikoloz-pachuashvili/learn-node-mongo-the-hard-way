@@ -142,7 +142,7 @@ Now let's add an index to this field.
     > use test
     > db.sorting.ensureIndex({a:1})
 
-The unique index can be created in the following way with the driver.
+The index can be created in the following way with the driver.
 
 .. code-block:: javascript
     :linenos:
@@ -261,7 +261,7 @@ So we've looked at single value indexes. But what if we want to search by ``a`` 
     > db.sorting.dropIndexes()
     > db.sorting.ensureIndex({a:1, b:1})
 
-The unique index can be created in the following way with the driver.
+The index can be created in the following way with the driver.
 
 .. code-block:: javascript
     :linenos:
@@ -432,7 +432,7 @@ No let's create a compound index over the tree fields present.
     > db.users.dropIndexes()
     > db.users.ensureIndex({pid:1, name:1, salary:1})
 
-The unique index can be created in the following way with the driver.
+The index can be created in the following way with the driver.
 
 .. code-block:: javascript
     :linenos:
@@ -611,7 +611,7 @@ Let's create a sparse index on the field ``city``
     > use test
     > db.sparse.ensureIndex({city:1}, {sparse:true})
 
-The unique index can be created in the following way with the driver.
+The index can be created in the following way with the driver.
 
 .. code-block:: javascript
     :linenos:
@@ -634,7 +634,7 @@ Let's take the situation of a social security number. Only one person can have a
     > db.employees.insert({ssid:'123', name:'Peter'})
     > db.employees.ensureIndex({ssid:1}, {unique:true})
 
-The unique index can be created in the following way with the driver.
+The index can be created in the following way with the driver.
 
 .. code-block:: javascript
     :linenos:
@@ -663,7 +663,7 @@ One more thing to note is that this also works for ``compound indexes``. Let's s
     E11000 duplicate key error index: test.employees.$ssid_1_name_1  dup key: { : "123", : "Peter" }
     > db.employees.insert({ssid:'123', name:'Peter2'})
 
-The unique index can be created in the following way with the driver.
+The index can be created in the following way with the driver.
 
 .. code-block:: javascript
     :linenos:
@@ -675,5 +675,115 @@ As you can see it works perfectly with a ``compound index`` as well.
 .. NOTE::
   All documents include the ``_id`` field which a unique index. This is to ensure a document in a collection can be ``uniquely`` identified.
 
+So far we have been indexing single fields, but what if we want to index fields that are arrays or sub documents?
 
+Indexing Arrays and Sub Documents
+---------------------------------
 
+MongoDB can index both array field and sub documents. But how to go about it. Let's take an example document that contains tags.
+
+We assume we have the following documents stored in the database ``test`` and collection ``docs``.
+
+.. code-block:: javascript
+    :linenos:
+
+    {
+      title: 'Abgenders 2',
+      tags: ['comic', 'scifi', 'parody'],
+      published: {
+        year: 2012
+      }
+    }
+
+    {
+      title: 'Nerds 4',
+      tags: ['comic', 'scifi', 'serious'],
+      published: {
+        year: 2011
+      }
+    }
+
+Let's create two indexes to allow us to query by tag and also by date.
+
+.. code-block:: console
+    :linenos:
+
+    > use test
+    > db.docs.dropIndexes()
+    > db.docs.ensureIndex({tags: 1})
+    > db.docs.ensureIndex({'published.year': 1})
+
+The index can be created in the following way with the driver.
+
+.. code-block:: javascript
+    :linenos:
+
+    db.collection('employees').ensureIndex({tags:1}, function(err, result) {});
+    db.collection('employees').ensureIndex({'published.year':1}, function(err, result) {});
+
+Let's execute a query using each of the indexes.
+
+.. code-block:: console
+    :linenos:
+
+    > use test
+    > db.docs.find({tags:'scifi'}).explain()
+    {
+      "cursor" : "BtreeCursor tags_1",
+      "isMultiKey" : true,
+      "n" : 2,
+      "nscannedObjects" : 2,
+      "nscanned" : 2,
+      "nscannedObjectsAllPlans" : 2,
+      "nscannedAllPlans" : 2,
+      "scanAndOrder" : false,
+      "indexOnly" : false,
+      "nYields" : 0,
+      "nChunkSkips" : 0,
+      "millis" : 0,
+      "indexBounds" : {
+        "tags" : [
+          [
+            "scifi",
+            "scifi"
+          ]
+        ]
+      },
+      "server" : "localhost:27017"
+    }    
+
+and
+
+.. code-block:: console
+    :linenos:
+
+    > use test
+    > db.docs.find({'published.year':2012}).explain()
+    {
+      "cursor" : "BtreeCursor published.year_1",
+      "isMultiKey" : false,
+      "n" : 1,
+      "nscannedObjects" : 1,
+      "nscanned" : 1,
+      "nscannedObjectsAllPlans" : 1,
+      "nscannedAllPlans" : 1,
+      "scanAndOrder" : false,
+      "indexOnly" : false,
+      "nYields" : 0,
+      "nChunkSkips" : 0,
+      "millis" : 0,
+      "indexBounds" : {
+        "published.year" : [
+          [
+            2012,
+            2012
+          ]
+        ]
+      },
+      "server" : "localhost:27017"
+    }
+
+As we can see we both of the queries uses indexes to retrieve the values. One of the possibilities of being able to index arrays is that you can create a word index lookup. Imagine that you want to be able to look for documents that matches a specific word. You could do this using a ``regular`` expression query but this would most likely force a table scan for your query. What if you instead split the text into words, add them to a field ``words`` as an array and then ``ensureIndex(words:1)``. Now you can leverage the index to do a quick lookup.
+
+.. NOTE::
+  In 2.4 or later MongoDB includes an experimental ``text index`` that we will talk more about in a later exercise.
