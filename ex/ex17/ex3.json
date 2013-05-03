@@ -1,0 +1,14 @@
+{
+    "id": 1
+  , "title": "Moby Dick"
+  , "isbn": " 978-1853260087"
+  , "published": 1992
+  , "authors": [{
+        "id": 1
+      , "name": "Herman Melville"
+    }] 
+  , "publisher": {
+      "id": 1
+    , "name": "Wordsworth Editions Ltd"
+  }
+}
