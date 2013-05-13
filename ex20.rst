@@ -1,2 +1,44 @@
 A RESTFul Programming exercise
 ==============================
+
+Let's get cracking on the RESTful experience for our application. We are of course going to do this simply and from scratch so we won't be using such fancy things as express but instead keep it real with low level code (makes it easier to keep this exercise up to data aswell as we won't be tied to changes in Express.JS so much).
+
+We are of course ignoring any sort of concept of user security sessions and such trivial real world important features.
+
+It's alive
+----------
+
+Let's get the code up and running and let's print the most useless but also the most common greeting in all programming tutorial. I present the "Hello World step".
+
+Fire up the editor, open the file server.js and get cracking.
+
+.. literalinclude:: ex/ex20/ex1.js
+    :language: javascript
+    :linenos:
+
+The code will fire up an ``HTTP`` server and will listen to the ``9090`` socket port. Let's validate that the server is up and running. You can boot up the browser and point it to ``http://localhost:9090`` and you should see a web page that says ``Hello world!``. We are going to use a tool that comes with unixes called ``curl`` going forward for simplicities sake. But any ``url`` used with curl can be used in the browser aswell.
+
+.. code-block:: console
+    :linenos:
+
+    curl http://localhost:9090
+    hello world!
+
+Sweet our website is up and running (not that it does anything yet). Next it's time to connect to mongodb.
+
+We've got power
+---------------
+
+It's time to add some ``MongoDB`` to our little app. For simplicities sake we are going to just do a global ``MongoDB`` ``NPM`` install, later we will package up the code using a proper ``package.json`` file. Let's execute the following on the console.
+
+.. code-block:: console
+    :linenos:
+
+    npm install -g mongodb
+
+Let's modify the code slightly so we boot up our HTTP server and also connect to our ``MongoDB`` database.
+
+.. literalinclude:: ex/ex20/ex2.js
+    :language: javascript
+    :linenos:
+
