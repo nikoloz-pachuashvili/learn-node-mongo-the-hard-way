@@ -272,4 +272,4 @@ The first thing to notice is that the ``update selector`` contains not only the 
       }
     }, function(err, doc) {});
 
-  This concludes the schema design for our simple library application. In the next chapter we will implement a ``REST`` api that allows you to write your frontend code for the library application.
+This concludes the schema design for our simple library application. In the next chapter we will implement a ``REST`` api that allows you to write your frontend code for the library application.

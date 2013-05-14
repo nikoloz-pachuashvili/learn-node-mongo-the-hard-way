@@ -1,9 +1,13 @@
-A RESTFul Programming exercise
-==============================
+Exercise 20: A RESTFul Programming exercise
+===========================================
 
 Let's get cracking on the RESTful experience for our application. We are of course going to do this simply and from scratch so we won't be using such fancy things as express but instead keep it real with low level code (makes it easier to keep this exercise up to data aswell as we won't be tied to changes in Express.JS so much).
 
 We are of course ignoring any sort of concept of user security sessions and such trivial real world important features.
+
+.. NOTE::
+
+What's a ``REST API`` you might ask. ``HTTP`` contains several verbs that make up what we call ``CRUD`` operations. These verbs are ``GET``, ``POST``, ``PUT`` and ``DELETE``. Think off them as basic verbs of modifying a document. So ``GET`` would be equivalent to a ``MongoDB find`` operation, ``POST`` would be an ``insert``, ``PUT`` an ``update`` and ``DELETE`` a remove. Bare with us as we will cover them in more detail as we implement our ``API``.
 
 It's alive
 ----------
@@ -39,6 +43,41 @@ It's time to add some ``MongoDB`` to our little app. For simplicities sake we ar
 Let's modify the code slightly so we boot up our HTTP server and also connect to our ``MongoDB`` database.
 
 .. literalinclude:: ex/ex20/ex2.js
+    :language: javascript
+    :linenos:
+
+Booting up the application we should see
+
+.. code-block:: console
+    :linenos:
+
+    node server.js
+    connected to mongodb
+    listening on  9090
+
+This code ensures we have a live connection before we stat accepting any ``HTTP`` requests from users. It's time to get cracking on our ``REST API``. Let's look at what kind of operations we are going to be supporting for our library application.
+
+=========================================== ==========================================
+Method Url
+=========================================== ==========================================
+GET     /book/?id                           Get a specific book by id
+REMOVE  /book/?id                           Remove a specific book by id
+GET     /book/search?query=?                Search for books by title
+GET     /author/search?query=?              Search for author
+GET     /author/?id/books                   Get books by author
+GET     /publisher/search?query=?           Search for author
+GET     /publisher/?id/books                Get the books by publisher
+GET     /user/?id/loans                     Get all the books loaned by a specific user
+POST    /user/?id/loan                      Borrow a book
+DELETE  /user/?id/loan                      Return a book
+PUT     /user/?id/loan                      Extend a loan period / modify a loan period
+GET     /loan/overdue                       Get a list of all overdue books
+GET     /loan/overdue/?days                 Get a list of all overdue books in ?days days
+=========================================== ==========================================
+
+Let's get cracking on adding the initial book API support. The first step is to write a simple router for our application. Let's write it to support the initial book URL's. Fire up the editor and let's get cracking.
+
+.. literalinclude:: ex/ex20/ex3.js
     :language: javascript
     :linenos:
 
