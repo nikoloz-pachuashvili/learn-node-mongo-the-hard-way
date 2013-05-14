@@ -1,7 +1,8 @@
 var http = require('http')
   , mongodb = require('mongodb')
   , parse = require('url').parse
-  , MongoClient = mongodb.MongoClient;
+  , MongoClient = mongodb.MongoClient
+  , ObjectID = mongodb.ObjectID;
 
 var dbInstance = null;
 var router = {
@@ -100,9 +101,6 @@ var returnAABook = function(req, res) { res.end('returnAABook'); }
 var modifyLoan = function(req, res) { res.end('modifyLoan'); }
 var overdueLoans = function(req, res) { res.end('overdueLoans'); }
 var overdueLoansByDays = function(req, res) { res.end('overdueLoansByDays'); }
-var getAuthor = function(req, res) { res.end('getAuthor'); }
-var createAuthor = function(req, res) { res.end('createAuthor'); }
-var deleteAuthor = function(req, res) { res.end('deleteAuthor'); }
 var getPublisher = function(req, res) { res.end('getPublisher'); }
 var createPublisher = function(req, res) { res.end('createPublisher'); }
 var deletePublisher  = function(req, res) { res.end('deletePublisher'); }
@@ -112,6 +110,76 @@ router.post("/book", createBook);
 router.get("/book/:id", getBook);
 router.delete("/book/:id", deleteBook);
 router.get("/book/search", searchByBook);
+
+var writeError = function(res, code, message) {
+  res.writeHead(code, message, {'content-type': 'text/plain'});
+  res.end(message);
+}
+
+var postJSONHelper = function(req, callback) {  
+  var data = '';
+  
+  req.on('data', function(chunk) {
+    data += chunk;
+  })
+
+  req.on('end', function() {
+    try {
+      var obj = JSON.parse(data);
+      callback(null, obj);
+    } catch(err) {
+      callback(err);      
+    }
+  })
+}
+
+// Methods for the author
+// POST /author
+var createAuthor = function(req, res) { 
+  postJSONHelper(req, function(err, object) {
+    if(err) 
+      return writeError(res, 406, 'Illegal JSON');
+
+    // Insert the user
+    dbInstance.collection('authors').insert(object, function(err, doc) {
+      if(err) 
+        return writeError(res, 500, 'Failed to insert document');
+
+      res.end(JSON.stringify(doc[0]));
+    });
+  });
+}
+
+// GET /author/:id
+var getAuthor = function(req, res) { 
+  dbInstance.collection('authors').findOne({_id: new ObjectID(req.params.id)}, function(err, doc) {
+    if(err || doc == null) 
+      return writeError(res, 404, 'Failed to retrieve document from database for id ' + req.params.id);
+   
+    res.end(JSON.stringify(doc));
+  });
+}
+
+// DELETE /author/:id
+var deleteAuthor = function(req, res) { 
+  dbInstance.collection('books').count({"authors.id": new ObjectID(req.params.id)}, function(err, count) {
+    if(err) 
+      return writeError(res, 500, 'Failed to delete document from database for id ' + req.params.id);
+
+    if(count > 0)
+      return writeError(res, 406, 'Author with ' + req.params.id + " cannot be deleted as it's associated with existing books");
+
+    dbInstance.collection('authors').remove({_id: new ObjectID(req.params.id)}, function(err, deleted) {
+      if(err) 
+        return writeError(res, 500, 'Failed to delete document from database for id ' + req.params.id);
+      
+      if(deleted == 0)
+        return writeError(res, 404, 'No document with id ' + req.params.id + ' found in database');
+
+      res.end(JSON.stringify({_id: req.params.id}));
+    });
+  });
+}
 
 // Routes for the author
 router.get("/author/search", searchByAuthor);

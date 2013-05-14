@@ -122,32 +122,9 @@ Let's look at a possible Author document.
     {
         "_id": 1
       , "name": "James W Kirk"
-      , "books": [1]
     }
 
-The Author document contains information about a specific author and the books he has published. As you can see we are only keeping an ``array`` of book ids not the whole document as we can safely normalize the document structure in this case. Let's look at the operations for manipulating the Author document.
-
-1. Add a Book to the Author's list of books
-
-.. code-block:: javascript
-    :linenos:
-
-    db.collection('authors').update(
-        {_id: 1}
-      , {
-          $push: {books: 1}
-        }, function(err, result) {})
-
-2. Remove a Book from the Author's list of books
-
-.. code-block:: javascript
-    :linenos:
-
-    db.collection('authors').update(
-        {_id: 1}
-      , {
-          $pop: {books:2}
-        }, function(err, result) {})
+As you can see we don't include an array of authored ``Book`` id's because we will be including the array of authors in the ``Book`` document so we can easily browse books by author. This is similar to the traditional ``1:N`` relational database relationship.
 
 Similarly a publisher is represented as a separate document. 
 
