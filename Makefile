@@ -1,4 +1,4 @@
-FINAL=learn-x-the-hard-way
+FINAL=learn-node-mongo-the-hard-way
 SOURCE=book
 WEBSITE=WHERE_YOUR_SITE_GOES
 
