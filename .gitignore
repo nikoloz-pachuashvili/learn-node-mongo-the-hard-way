@@ -4,3 +4,6 @@
 _build/
 ex/node_modules/
 data/
+logs/
+output-long/
+output/
