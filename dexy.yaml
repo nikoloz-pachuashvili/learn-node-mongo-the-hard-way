@@ -14,6 +14,9 @@ html-code:
     - code/*.sh-session|pyg|h
     - code/*.js|pyg|h
     - code/*.json|pyg|h
+    - code/*.html|pyg|h
+    - code/*.ms|pyg|h
+    - code/*.css|pyg|h
     - code/*.py|pyg|h
     - code/*.py|py
     - code/*.txt
@@ -21,7 +24,10 @@ html-code:
 latex-code:
     - code/*.sh-session|pyg|l
     - code/*.js|pyg|l
-    - code/*.json|pyg|h
+    - code/*.json|pyg|l
+    - code/*.html|pyg|l
+    - code/*.ms|pyg|l
+    - code/*.css|pyg|l
     - code/*.py|pyg|l
     - code/*.py|py
     - code/*.txt

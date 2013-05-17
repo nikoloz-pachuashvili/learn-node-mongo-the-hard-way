@@ -60,7 +60,6 @@ Mac OSX and Linux
 Go to the directory where you want to store your application and let's set up the basics.
 
 .. code-block:: console
-    :linenos:
 
     mkdir tic-tac-toe
     cd tic-tac-toe
@@ -98,7 +97,6 @@ Notice the part called ``dependencies``. This tells NPM that the application nee
 ``NPM`` will now download the declared dependencies. Once ``NPM`` finishes we need to ``bootstrap`` the application or in other words set up the initial structure. Let's boot up the console and create our directory structure as well as grab the libraries like ``bootstrap``, ``jquery``, ``mustache`` and the images we need for the board.
 
 .. code-block:: console
-    :linenos:
 
     mkdir public
     mkdir public/javascripts
@@ -134,21 +132,15 @@ App.js
 
 First, let's have a look at the ``app.js`` file. Fire up your preferred code editor and type in the code.
 
-.. literalinclude:: ex/tic1.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/tic/tic1/tic1.js|pyg') }}
 
 Something to notice here is that we have hidden most of the plumbing of the application in the ``env.js`` file but that we are setting up the ``controllers`` and ``SocketIO`` in the ``app.js`` file. The function ``app.get('/', ....)`` maps the handler ``main_controller.index()`` to the root of the web address (if the server is running on ``localhost`` and port ``3000`` it would map to ``http://localhost:3000``). Let's have a quick look at ``main_controller.js``
 
-.. literalinclude:: ex/tic2.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/tic/tic1/tic2.js|pyg') }}
 
 Notice how the ``index`` function returns a function that takes a request and a response parameter. Returning a function lets us do things like ``index(db)`` and create a function that knows about a shared ``MongoDB`` database object (we are creating a function in a scope where the db object exists). In the next exercise we will see how this is used to create handlers for the ``SocketIO`` based ``API``. The ``index`` controller reads the file ``lib/views/index.html`` and sends it to the browser. The ``index.html`` file contains the start screen of our Tic-Tac-Toe application. Fire up your editor and enter it.
 
-.. literalinclude:: ex/tic3.html
-    :language: html
-    :linenos:
+{{ ork.code('code/tic/tic1/tic3.html|pyg') }}
 
 If you are wondering how this HTML works I suggest you have a look at http://twitter.github.com/bootstrap/index.html for documentation. In short, it lets people like me with lesser well developed design abilities create websites that are not complete eyesores. Also, notice that we are including the javascript files for ``api.js``, ``app.js`` and ``template_handler.js`` that we ``touched`` when we created the initial directory structure. These will include the actual logic for the client side part of the game and their secrets will be revealed in due time.
 
@@ -157,14 +149,11 @@ Env.js
 
 Let's take a quick look at ``env.js`` file. If you remember the ``app.js`` file you would have noticed that it contained two methods that did not exist in the ``app.js`` file. The first one was ``initialize`` and the second one was ``run``. Open up your editor and bring up the ``env.js`` file and get coding.
 
-.. literalinclude:: ex/tic4.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/tic/tic1/tic4.js|pyg') }}
 
 So, what do the methods do? Well, the ``intialize`` function sets up the ``Express JS`` web framework with a ``session`` store and a location for static file serving of all files under the ``/public`` directory which lets us access the javascripts, css and image files from the browser. At the top of the file, you'll notice the three core lines.
 
 .. code-block:: javascript
-    :linenos:
 
     , app = express()
     , server = require('http').createServer(app)
