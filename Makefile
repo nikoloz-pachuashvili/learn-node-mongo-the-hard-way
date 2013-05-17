@@ -1,6 +1,6 @@
 FINAL=learn-node-mongo-the-hard-way
 SOURCE=book
-WEBSITE=WHERE_YOUR_SITE_GOES
+WEBSITE=learnmongodbthehardway.com
 
 book:
 	dexy

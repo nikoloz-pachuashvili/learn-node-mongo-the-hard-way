@@ -1,53 +1,59 @@
 {% import "macros/ork.jinja" as ork with context %}
+=====================================
 Exercise 19: Evolving A Simple Schema
 =====================================
 
-Let's put together some of the stuff we have covered including inserts, updates with atomic updates and removes to create a little book lending library application. We are going to focus on only the actual code around the book library itself in this chapter and then in the next chapter provide a very simple rest api to out library application so we can integrate it into the next ``facebook`` of library lending called ``bookface``.
+Let's put together some of the stuff we have covered including inserts, updates with atomic updates and removes to create a little book lending library application. We are going to focus on only the actual code around the book library itself in this chapter and then in the next chapter provide a very simple rest ``API`` to out library application so we can integrate it into the next ``facebook`` of library lending called ``bookface``.
 
 Let's fact model our library model concepts.
 
 Facts
-----------
+=====
 
 Book
-^^^^
-- A Book has the title "Fall of the Roman Empire"
-- The Book "Fall of the Roman Empire" has the unique id 1
-- The Book "Fall of the Roman Empire" has a 1973 Edition
-- The Book "Fall of the Roman Empire" was published by "T Books" in 1973
-- The Book "Fall of the Roman Empire" is identified by the ISBN number "978-1853260087"
-- The Book "Fall of the Roman Empire" was written by the Author "James W Kirk"
-- The Book "Fall of the Roman Empire" has the summary "The road to the fall of the Roman Empire, a comprehensive history of the greatest western empire's decline"
-- The 1973 Edition of "Fall of the Roman Empire" was loaned by the User "Peter Griffin" on the 19th of June 1976.
-- The 1973 Edition of "Fall of the Roman Empire" that was loaned by the User "Peter Griffin" on the 1th of June 1986 should be returned on the 15th of June 1986.
+----
+
+- A Book has the title ``Fall of the Roman Empire``
+- The Book ``Fall of the Roman Empire`` has the unique id 1
+- The Book ``Fall of the Roman Empire`` has a 1973 Edition
+- The Book ``Fall of the Roman Empire`` was published by ``T Books`` in 1973
+- The Book ``Fall of the Roman Empire`` is identified by the ISBN number ``978-1853260087``
+- The Book ``Fall of the Roman Empire`` was written by the Author ``James W Kirk``
+- The Book ``Fall of the Roman Empire`` has the summary ``The road to the fall of the Roman Empire``, a comprehensive history of the greatest western empire's decline"
+- The 1973 Edition of ``Fall of the Roman Empire`` was loaned by the User ``Peter Griffin`` on the 19th of June 1976.
+- The 1973 Edition of ``Fall of the Roman Empire`` that was loaned by the User ``Peter Griffin`` on the 1th of June 1986 should be returned on the 15th of June 1986.
 
 Edition
-^^^^^^^
-- The Edition of "Fall of the Roman Empire" is Published by "T Books"
-- The Edition of "Fall of the Roman Empire" was Published in 1973
-- The Library has 4 copies of the 1973 Edition of the "Fall of The Roman Empire"
+-------
+
+- The Edition of ``Fall of the Roman Empire`` is Published by ``T Books``
+- The Edition of ``Fall of the Roman Empire`` was Published in 1973
+- The Library has 4 copies of the 1973 Edition of the ``Fall of the Roman Empire``
 
 Author
-^^^^^^
-- The Author "James W Kirk" wrote the book "Fall of the Roman Empire"
-- The Author "James W Kirk" wrote the book "The Rise of the Roman Empire"
+------
+
+- The Author ``James W Kirk`` wrote the book ``Fall of the Roman Empire``
+- The Author ``James W Kirk`` wrote the book "The Rise of the Roman Empire"
 
 Publisher
-^^^^^^^^^
-- The Publisher "T Books" published the 1973 Edition of the Book "Fall of the Roman Empire"
-- The Publisher "T Books" has published the 1967 Edition of the Book "Wizard of Oz"
-- The Publisher is names "T Books"
+---------
+
+- The Publisher ``T Books`` published the 1973 Edition of the Book ``Fall of the Roman Empire``
+- The Publisher ``T Books`` has published the 1967 Edition of the Book ``Wizard of Oz``
+- The Publisher is names ``T Books``
 
 User
-^^^^
-- The User "Peter Griffin" loaned the Book "Fall of the Roman Empire" on the 1st of June 1986.
-- The User "Peter Griffin" has to return the Book "Fall of the Roman Empire" on the 15th of June 1986.
-- A User is named "Peter Griffin"
+----
+
+- The User ``Peter Griffin`` loaned the Book ``Fall of the Roman Empire`` on the 1st of June 1986.
+- The User ``Peter Griffin`` has to return the Book ``Fall of the Roman Empire`` on the 15th of June 1986.
+- A User is named ``Peter Griffin``
 
 Awesome we have a lot of facts to model around. Let's try to organize them in documents.
 
 Document Representation
------------------------
+=======================
 
 We've identified 4 different entities that we can potentially model as documents. Let's start by roughly sketch them out.
 
@@ -177,7 +183,7 @@ Let's Have a look at the central concept in our library, namely the ``Book``. Le
 As you can see the schema for the ``Book`` is quite a bit more complex than the other concepts in the database. Let's look at the some of the values and what they mean.
 
 ========================== ==========================================================
-Field
+Field                      Description
 ========================== ==========================================================
 origin_id                  This id is shared by all editions of a specific book
 publisher                  Embedded document with all the publisher information for easy access

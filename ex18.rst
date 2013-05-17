@@ -1,4 +1,5 @@
 {% import "macros/ork.jinja" as ork with context %}
+============================================
 Exercise 18: The Importance of Schema Design
 ============================================
 
@@ -8,56 +9,41 @@ One of the main goals of Relational Databases is to avoid duplication of informa
 
 Let's write down some facts about the book (I studied at Swinburne in Melbourne the homestead of ORM, object relational modeling).
 
+Facts
+=====
+
 Book Facts
-^^^^^^^^^^
-- A book has a title of 'Moby Dick'
+----------
+
+- A book has a title of ``Moby Dick``
 - A book had a an unique ISBN number
 - A book has a published data
 - A book has a publisher
 - A book was written by one or more authors
 
 Author Facts
-^^^^^^^^^^^^
+------------
+
 - An author has a name
 - An author has written one or more books
 
 Publisher Facts
-^^^^^^^^^^^^^^^
+---------------
+
 - A publisher has a name
-- A publisher has published one mor more books
+- A publisher has published one or more books
 
 Entity Relational Modeling
---------------------------
+==========================
 
 So what would this look like if using an ``Entity Relational Modeling Diagram``. Let's have a look at what a normalized data model for this could look like.
 
-.. graphviz::
-
-  graph ER {
-    node [shape=box]; book; publisher; author;
-    node [shape=ellipse]; {node [label="title"] title0 }
-      isbn;
-      published_date;
-      {node [label="name"] name0, name1 }
-    node [shape=diamond,style=filled,color=lightgrey]; "book_author", "book_publisher";
-    title0 -- book;
-    isbn -- book;
-    published_date -- book;
-    publisher -- name0;
-    author -- name1;
-    book -- "book_author" [label="m", len=1.00];
-    "book_author" -- author [label="n", len=1.00];
-    book -- "book_publisher" [label="n", len=1.00];
-    "book_publisher" -- publisher [label="1", len=1.00];
-
-    label = "\n\nEntity Relation Diagram\n";
-    fontsize=20;
-  }
+// MISSING DOT DIAGRAM
 
 Let's translate this into a set of tables we could use in a relational database. First up are the basic entity tables for ``book``, ``publisher`` and ``author``.
 
 Book Table
-^^^^^^^^^^
+----------
 
 ======================= ==================================
 Field                   Type
@@ -72,7 +58,7 @@ Publisher_id            ``Foreign Key Id`` to table Publishers
 Since there is only a single ``publisher`` we can include a reference to the publisher entity directly in the ``book`` table.
 
 Publisher Table
-^^^^^^^^^^^^^^^
+---------------
 
 ======================= ==================================
 Field                   Type
@@ -82,7 +68,7 @@ Name                    varchar (255)
 ======================= ==================================
 
 Author Table
-^^^^^^^^^^^^
+------------
 
 ======================= ==================================
 Field                   Type
@@ -95,8 +81,8 @@ Next up we need to define the relationships between the entities. Luckily for us
 
 On the other hand an ``author`` can have written many books and a book can have more than one ``author``. We need to introduce a table to model this relation. This is called a ``join table``. This table well show the relationships between individual books and authors.
 
-AuthorBook table
-^^^^^^^^^^^^^^^^
+AuthorBook Table
+----------------
 
 ======================= ==================================
 Field                   Type
@@ -120,7 +106,7 @@ It gets worse when trying to describe tree like structures like objects as a sin
 Thus one of the more important aspects of relational data modeling is to do better modeling up front to avoid the cost of mutating the schema later. It's harder to evolve the schema more naturally with the application itself. 
 
 Document Modeling
------------------
+=================
 
 So why are document databases being em-brassed by developers. It's fairly simple. The mapping between an OO language and documents are much closer than between OO languages and relational models. Another aspect is the dynamic schema concept meaning that documents are not set in stone and can evolve without having to modify the underlying Schema definition.
 
@@ -131,17 +117,17 @@ Let's have a look at how we could model the Book class and it's relationships in
 How could this look as a document? Well let's create a JSON (JavaScript Object Notation) document to show a possible schema design. The first document represents a book, the second one an author and the third one a publisher.
 
 Book
-^^^^
+----
 
 {{ ork.code('code/ex18/ex3.json|pyg') }}
 
 Author
-^^^^^^
+------
 
 {{ ork.code('code/ex18/ex4.json|pyg') }}
 
 Publisher
-^^^^^^^^^
+---------
 
 {{ ork.code('code/ex18/ex5.json|pyg') }}
 
@@ -157,10 +143,7 @@ Now let's see how that could be reflected in a the document for the ``Book``.
 
 As you can see the mapping between the OO class and the data stored in the database is close to 1:1. In a relational database this would require an additional ``Review`` table and a ``BookReviews`` join table requiring additional logic to map back and forth between the OO class and the data model.
 
-Things Of Note
---------------
+Things To Note
+==============
 
 Our world is made up of data object that change structure over time. Document databases have become more and more popular as they embrace the concept of evolving data structures better than traditional relational databases and map better to the way computer programming languages model data. In later exercises we will go ahead and build our very own simple ODM (object document mapping) library to help us make the mapping more simple and get a feel on how to map data back and forth. We will also briefly introduce the Mongoose ODM as more full featured version of our simple attempt at abstraction. But first things first. We are going to explore different schema designs and the pros and cons of each.
-
-
-

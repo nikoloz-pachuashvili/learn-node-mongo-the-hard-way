@@ -20,6 +20,7 @@ html-code:
     - code/*.py|pyg|h
     - code/*.py|py
     - code/*.txt
+    - code/*.dot
 
 latex-code:
     - code/*.sh-session|pyg|l
@@ -31,6 +32,7 @@ latex-code:
     - code/*.py|pyg|l
     - code/*.py|py
     - code/*.txt
+    - code/*.dot
 
 # png-code:
 #     - code/*.sh-session|pyg|pn:
