@@ -4,9 +4,7 @@ Exercise 6: Databases and Collections
 
 MongoDB has is build around 3 main concepts. One or more ``db's`` that contain one or more ``collections`` that contain one or more ``documents``. So how do we get hold of a ``collection``? Time for some code entry.
 
-.. literalinclude:: ex/ex9.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex6/ex1.js|pyg') }}
 
 The example shows how to use the ``MongoClient.connect`` method to fetch a connection to a database directly. The ``connect`` method actually returns a database object. If we want to use other databases we can call the ``.db()`` method on the ``db`` object returned by the ``MongoClient.connect`` method. Notice that we don't need a new callback, this is because the ``.db()`` method does not open a new connection but reuses the existing connections that was created during the ``MongoClient.connect`` call.
 
@@ -25,9 +23,7 @@ This might sound like a lot of limitiations but the FIFO property and the semant
 
 So how do we create a ``capped collection`` instead of a ``standard`` collection ? Let's explore some code, typing it up in your editor.
 
-.. literalinclude:: ex/ex10.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex6/ex2.js|pyg') }}
 
 Notice the ``db.createCollection()`` method we are using. This is a method specifically made to allow us to create collections that are not ``standard`` collections. In this code example we are creating a ``capped collection`` with a size of ``100000`` bytes and holding a maximum of ``100`` documents before it starts overwritting them. The options we can pass in to the ``db.createCollection`` for a capped collection are.
 
@@ -40,13 +36,12 @@ Time to live collections (TTL)
 
 From MongoDB 2.2 onwards there is a new type of collection called a ``TTL`` collection. It's a bit of a misdemeaner to call it a type of collections as it's actually a ``standard`` collection with a special type to live ``index`` on a date fields that automatically removes documents that are older than the time specified for the ``TTL index``. It's a very useful when want only to store data for a specified time period. Say we only want to keep 48 hours of log data in a collection. With ``TTL`` you can set the time of expiry to be 48 hours and documents will be removed when they are older than 48 hours. Code is a thousand words so fire up your editor and enter the code below.
 
-.. literalinclude:: ex/ex11.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex6/ex3.js|pyg') }}
 
 Notice the ``collection.ensureIndex()`` method. We will go deeper into how indexes work and how the Node.js driver can create them in a later exercise. The point to notice here is that the ``TTL`` collection needs an index on a data field to work correctly and that the ``expireAfterSeconds`` parameter is in seconds.
 
 .. NOTE::
+
     One particular note to be made about ``TTL`` collections is that the expiry time is not a hard expiry time. What's meant by hard. Well it means that even if a document is exactly 48 hours old it might not be removed at exactly 48 hours but some time after that when MongoDB has free resources to remove the document. Also due to the fact that ``TTL`` collections need to remove documents from a collection ``TTL`` does not work with ``capped collections`` so keep that in mind.
 
 

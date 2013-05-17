@@ -54,7 +54,6 @@ We've identified 4 different entities that we can potentially model as documents
 Let's consider the ``User`` entity described above. We know the user has a ``name`` and can ``loan`` books for a defined period of time. Let's model the data and see how we can interact with the model.
 
 .. code-block:: json
-    :linenos:
     
     // User document
     {
@@ -76,7 +75,6 @@ We added an embedded array of documents called ``loaned_books`` that contain doc
 1. Add a new loan to the user document
   
 .. code-block:: javascript
-    :linenos:
 
     db.collection('users').update(
         {_id: 1}
@@ -93,7 +91,6 @@ We added an embedded array of documents called ``loaned_books`` that contain doc
 2. Remove a book from the user and return it to the library
 
 .. code-block:: javascript
-    :linenos:
 
     db.collection('users').update(
         {_id: 1}
@@ -104,7 +101,6 @@ We added an embedded array of documents called ``loaned_books`` that contain doc
 3. Extend a loan period (change the due date)
 
 .. code-block:: javascript
-    :linenos:
 
     db.collection('users').update(
         {_id: 1, "loaned_on.id": 2}
@@ -117,7 +113,6 @@ We added an embedded array of documents called ``loaned_books`` that contain doc
 Let's look at a possible Author document.
 
 .. code-block:: json
-    :linenos:
 
     // Author document
     {
@@ -130,7 +125,6 @@ As you can see we don't include an array of authored ``Book`` id's because we wi
 Similarly a publisher is represented as a separate document. 
 
 .. code-block:: json
-    :linenos:
 
     // Publisher document
     {
@@ -143,7 +137,6 @@ As you can see we don't include an array of published ``Book`` id's because we w
 Let's Have a look at the central concept in our library, namely the ``Book``. Let's take a look at the document.
 
 .. code-block:: json
-    :linenos:
 
     // Book document
     {
@@ -197,7 +190,6 @@ So what kind of operation could we do on this document.
 1. Locate a ``Fall of the Roman Empire`` book that is not currently loaned out
 
 .. code-block:: javascript
-    :linenos:
 
     db.collection('books').findOne({
         title: /^Fall of the Roman/
@@ -207,7 +199,6 @@ So what kind of operation could we do on this document.
 2. Locate all the books for ``Fall of the Roman Empire currently out for loan.
 
 .. code-block:: javascript
-    :linenos:
 
     db.collection('books').findOne({
         title: /^Fall of the Roman/
@@ -217,7 +208,6 @@ So what kind of operation could we do on this document.
 3. Loan one of the ``Fall of the Roman Empire`` books out
 
 .. code-block:: javascript
-    :linenos:
 
     db.collection('books').update({
         _id: 1
@@ -238,7 +228,6 @@ The first thing to notice is that the ``update selector`` contains not only the 
 4. Return the ``Fall of the Roman Empire`` book to the library
 
 .. code-block:: javascript
-    :linenos:
 
     db.collection('books').update({
         _id: 1

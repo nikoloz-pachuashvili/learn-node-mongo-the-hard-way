@@ -4,14 +4,11 @@ Exercise 16: Basic Indexes in MongoDB
 
 In this exercise we will focus on the basics of creating indexes for MongoDB, using them and understanding how our queries use indexes. To kick off let's insert some documents into a database and create an index on the field salary.
 
-.. literalinclude:: ex/ex16/ex1.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex16/ex1.js|pyg') }}
 
 Let's have a look at the new collection method we are using called ``ensureIndex``. The call looks like.
 
 .. code-block:: javascript
-    :linenos:
 
     collection.ensureIndex({salary:1}, function(err, index_name) {
     }
@@ -21,7 +18,6 @@ The ``ensureIndex`` method will only add the index if there is not an index alre
 The meat of the story is the ``{salary:1}`` index specifier. This tells MongoDB to build a ``BTree index`` over the field ``salary`` in all documents present in the collection. If you remember from the introduction on indexes this will create a tree structure allowing us to efficiently query the data. The next line is the actual query.
 
 .. code-block:: javascript
-    :linenos:
 
     collection.find({salary:7000}).toArray(function(err, docs) {
     }
@@ -29,7 +25,6 @@ The meat of the story is the ``{salary:1}`` index specifier. This tells MongoDB 
 This will look for any documents where the ``salary is equal to 7000`` and the output after running the example is (_id will vary). 
 
 .. code-block:: console
-    :linenos:
 
     connected to database
     added salary documents
@@ -41,14 +36,11 @@ This will look for any documents where the ``salary is equal to 7000`` and the o
 
 But how can we know if a query is using an index ?. Actually you can do this both from the driver as well as the ``mongo shell``. To be fair it's probably better to do it from the shell but let's cover what that would look like using the driver. The code below ``requires`` that the first example has been run first to populate the collection and create the index. Notice that we use a option for the ``find`` method called ``explain``. This tells the server to return the ``query plan`` or the way it searched for data instead of the actual data for the query.
 
-.. literalinclude:: ex/ex16/ex2.js
-  :language: javascript
-  :linenos:
+{{ ork.code('code/ex16/ex2.js|pyg') }}
 
 After running the example you'll see the following
 
 .. code-block:: console
-    :linenos:
 
     connected to database
     documents
@@ -72,7 +64,6 @@ After running the example you'll see the following
 This can be done more simply from the ``mongo`` shell executing the following commands.
 
 .. code-block:: console
-    :linenos:
 
     mongo
     MongoDB shell version: 2.4.3
@@ -159,7 +150,6 @@ oldPlan                 ...                  Contains the last query plan used f
 As you can see it's quite a lot of information. The easiest way to understand how to read it is to contrast the information above with a query that does not use an index.
 
 .. code-block:: console
-    :linenos:
 
     mongo
     MongoDB shell version: 2.4.3
@@ -225,4 +215,5 @@ Notice how the ``cursor`` field says ``BasicCursor`` instead off ``BtreeCursor``
 Imagine that there was ``hundreds of thousands`` of documents in the collection instead of just 5. A query looking up a name would require each query to scan through all of the documents to locate matching documents. This would very quickly become unsustainable as the slowness of the query would be compounded by many of them happening in parallel. Even worse since MongoDB would have to load every document into it could cause excessive swapping out of memory to disk (moving documents out of RAM to make space for the ones we need to scan) making the queries even slower and limiting the performance of our application. This is why we need to make sure we always use indexes and even more so if the collection of documents is very large. Cool that covers the basics of understanding how we can create a simple index and how we can investigate if a query is using it correctly or not. Next exercise we will build a ton of different indexes and see how they work and perform.
 
 .. NOTE::
+
     In development I tend to use an option for ``mongod`` that allows me to catch queries that don't use an index. When you start up the ``mongod`` server add the option ``--notablescan`` to the ``mongod`` command line. If you now attempt to run a query that does not use an index MongoDb will throw an error ``{"$err" : "table scans not allowed:test.salaries", "code" : 10111 }``

@@ -34,9 +34,7 @@ Double      A 64 bit float value (only use this if you have a whole number that 
 
 So how do we express a Document with all these special types in Node.js. Well fire up the text editor and let's get cracking on the code below.
 
-.. literalinclude:: ex/ex8.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex5/ex1.js|pyg') }}
 
 The ``serialize`` function is not a function you'll usually use in your programs but allows us to verify that the document is a valid ``BSON`` document by serializing it to it's binary representation. 
 
@@ -57,4 +55,5 @@ The last value ``_id`` is a special type in MongoDB that is a 12 bit unique iden
 So as you can see we can store pure ``JSON`` objects but also more complex types that go beyond what Javascript supports natively. This matching makes MongoDB a great database for Node.js. As we will see in future exercises the match between MongoDB and Node.js can be leveraged to do some very interesting and unique things.
 
 .. NOTE::
+
     Much of the power of MongoDB is locked in the design of your schema, how you design your data will impact the way you read and write the data and also the performance of you application. We will go more indepth on schema design in future exercises and look at benefits and tradeoffs associated with specific solutions.

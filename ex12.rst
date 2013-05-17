@@ -29,14 +29,11 @@ new               Will return the modified document (if false will return the or
 
 Let's start with the simplest example. We will insert four documents into a collection we call work and then retrieve the highest priority document where work has not been started.
 
-.. literalinclude:: ex/ex32.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex12/ex1.js|pyg') }}
 
 Execute the code and you should see the following results.
 
 .. code-block:: console
-    :linenos:
 
     connected to database
     changed document
@@ -73,7 +70,6 @@ Execute the code and you should see the following results.
 Let's look at the code we just entered, more specifically the line.
 
 .. code-block:: console
-    :linenos:
 
       collection.findAndModify(
           {started:false}
@@ -97,14 +93,11 @@ From the breakdown we can see that we will modify the document with the highest 
 
 Now let's assume we've finished performing the work and need to remove the document from the list of work (maybe to insert into a history collection of work done). Let's modify the code a little bit to do this. Notice that when using the ``remove`` option we are not able to modify the document so this has to happen be done in code.
 
-.. literalinclude:: ex/ex33.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex12/ex2.js|pyg') }}
 
 The results should look like this.
 
 .. code-block:: console
-    :linenos:
 
     connected to database
     changed document
@@ -165,14 +158,11 @@ For the remove option of ``findAndModify`` you can use a special version of it o
 
 You might have noticed that there is an ``upsert`` option for the ``findAndModify`` command. This works exactly as the ``upsert`` for the ``update`` command but of course let's you return the document. Let's take a look at a simple example using it.
 
-.. literalinclude:: ex/ex34.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex12/ex3.js|pyg') }}
 
 You should see the following when executing the code.
 
 .. code-block:: console
-    :linenos:
 
     connected to database
     added document
@@ -187,6 +177,7 @@ You should see the following when executing the code.
 This pretty much covers the ``findAndModify`` and ``findAndRemove`` commands.
 
 .. NOTE::
+
     It might be tempting to use ``findAndModify`` everywhere you would typically use an update. You should avoid this temptation and use it only when appropriate as it takes out a write lock for the duration of the operation potentially slowing down all the other write operations in the affected database. Most of the time you might discover that you do not in fact need the returned the document and that the operation can be better described as a query and update operation. Use ``findAndModify`` when you have to ensure that only a single operation can modify the document in question. The example above with the work queue is a good candidate for the usage of ``findAndModify`` and in later exercises we will look at some more concrete examples that are good fits.
 
 

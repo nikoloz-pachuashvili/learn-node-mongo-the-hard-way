@@ -79,7 +79,6 @@ Compound indexes
 Besides support a single value index MongoDB also supports what's called a ``compound  index``. This type of index is made up of multiple values. Let's take an example of documents that look like this.
 
 .. code-block:: javascript
-    :linenos:
 
     {
       pid: 1,

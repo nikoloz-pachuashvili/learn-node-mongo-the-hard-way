@@ -107,9 +107,7 @@ Author Id               ``Foreign Key Id`` to table Author
 
 Awesome we have an initial model for how to store a book. Now let's use this in our fancy OO language. Let's define a set of classes that allows us to represent a book, an author and a publisher.
 
-.. literalinclude:: ex/ex17/ex1.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex18/ex1.js|pyg') }}
 
 One thing is clear mapping one of the objects to the underlying data store requires a set of co-ordinated inserts, queries and updates as the objects are very inter-dependent. F.ex for the ``author`` object each ``book`` must be stored in the ``Book`` table before we can safely write to the ``AuthorBook`` table.
 
@@ -128,46 +126,34 @@ So why are document databases being em-brassed by developers. It's fairly simple
 
 Let's have a look at how we could model the Book class and it's relationships in a document database. Remember the definition of the Book class.
 
-.. literalinclude:: ex/ex17/ex2.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex18/ex2.js|pyg') }}
 
 How could this look as a document? Well let's create a JSON (JavaScript Object Notation) document to show a possible schema design. The first document represents a book, the second one an author and the third one a publisher.
 
 Book
 ^^^^
 
-.. literalinclude:: ex/ex17/ex3.json
-    :language: json
-    :linenos:
+{{ ork.code('code/ex18/ex3.json|pyg') }}
 
 Author
 ^^^^^^
 
-.. literalinclude:: ex/ex17/ex4.json
-    :language: json
-    :linenos:
+{{ ork.code('code/ex18/ex4.json|pyg') }}
 
 Publisher
 ^^^^^^^^^
 
-.. literalinclude:: ex/ex17/ex5.json
-    :language: json
-    :linenos:
+{{ ork.code('code/ex18/ex5.json|pyg') }}
 
 Notice somethings? The data and context of the data is bundled together in the document making a document self descriptive. Also we have nested documents in the ``Book`` document for the ``authors`` and the ``publisher``. This matches very closely to how the actual ``Book`` classes internal ``fields`` are laid out. The level off abstraction between the model and the data in the database is lower.
 
 This is especially evident if we decide to introduce a new concept like a review. Let's add the review concept to the ``Book`` class.
 
-.. literalinclude:: ex/ex17/ex6.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex18/ex6.js|pyg') }}
 
 Now let's see how that could be reflected in a the document for the ``Book``.
 
-.. literalinclude:: ex/ex17/ex7.json
-    :language: json
-    :linenos:
+{{ ork.code('code/ex18/ex7.json|pyg') }}
 
 As you can see the mapping between the OO class and the data stored in the database is close to 1:1. In a relational database this would require an additional ``Review`` table and a ``BookReviews`` join table requiring additional logic to map back and forth between the OO class and the data model.
 

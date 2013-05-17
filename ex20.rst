@@ -8,7 +8,7 @@ We are of course ignoring any sort of concept of user security sessions and such
 
 .. NOTE::
 
-What's a ``REST API`` you might ask. ``HTTP`` contains several verbs that make up what we call ``CRUD`` operations. These verbs are ``GET``, ``POST``, ``PUT`` and ``DELETE``. Think off them as basic verbs of modifying a document. So ``GET`` would be equivalent to a ``MongoDB find`` operation, ``POST`` would be an ``insert``, ``PUT`` an ``update`` and ``DELETE`` a remove. Bare with us as we will cover them in more detail as we implement our ``API``.
+  What's a ``REST API`` you might ask. ``HTTP`` contains several verbs that make up what we call ``CRUD`` operations. These verbs are ``GET``, ``POST``, ``PUT`` and ``DELETE``. Think off them as basic verbs of modifying a document. So ``GET`` would be equivalent to a ``MongoDB find`` operation, ``POST`` would be an ``insert``, ``PUT`` an ``update`` and ``DELETE`` a remove. Bare with us as we will cover them in more detail as we implement our ``API``.
 
 It's alive
 ----------
@@ -17,14 +17,11 @@ Let's get the code up and running and let's print the most useless but also the 
 
 Fire up the editor, open the file server.js and get cracking.
 
-.. literalinclude:: ex/ex20/ex1.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex20/ex1.js|pyg') }}
 
 The code will fire up an ``HTTP`` server and will listen to the ``9090`` socket port. Let's validate that the server is up and running. You can boot up the browser and point it to ``http://localhost:9090`` and you should see a web page that says ``Hello world!``. We are going to use a tool that comes with unixes called ``curl`` going forward for simplicities sake. But any ``url`` used with curl can be used in the browser aswell.
 
 .. code-block:: console
-    :linenos:
 
     curl http://localhost:9090
     hello world!
@@ -37,20 +34,16 @@ We've got power
 It's time to add some ``MongoDB`` to our little app. For simplicities sake we are going to just do a global ``MongoDB`` ``NPM`` install, later we will package up the code using a proper ``package.json`` file. Let's execute the following on the console.
 
 .. code-block:: console
-    :linenos:
 
     npm install -g mongodb
 
 Let's modify the code slightly so we boot up our HTTP server and also connect to our ``MongoDB`` database.
 
-.. literalinclude:: ex/ex20/ex2.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex20/ex2.js|pyg') }}
 
 Booting up the application we should see
 
 .. code-block:: console
-    :linenos:
 
     node server.js
     connected to mongodb
@@ -85,14 +78,11 @@ GET     /loan/overdue/:days                 Get a list of all overdue books in ?
 
 Let's get cracking on adding the initial book API support. The first step is to write a simple router for our application. Let's write it to support the initial book URL's. Fire up the editor and let's get cracking.
 
-.. literalinclude:: ex/ex20/ex3.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex20/ex3.js|pyg') }}
 
 So what's the point of the router. It simplifies our application by letting us use a string to match a ``URL`` pattern and ``route`` the request to the right function. The magic is in the ``compile`` function. What the function does is to rewrite a string like ``/book/:id`` to a regular expression that matches on URL's like ``/book/1``. After the regular expression is created it's stored with the available parameters. in an object looking like this.
 
 .. code-block:: javascript
-    :linenos:
 
     {
       route: {
@@ -109,7 +99,6 @@ So what's the point of the router. It simplifies our application by letting us u
 Each time a new HTTP request happens the incoming ``URL`` is decoded using the ``route`` method and if it matches a registered ``route`` any ``params`` are extracted and added to the ``request`` object under the ``params`` field. So in other words if we register the following method.
 
 .. code-block:: javascript
-    :linenos:
 
     var getBook = function(req, res) { res.end('getBook'); }
 
@@ -118,7 +107,6 @@ Each time a new HTTP request happens the incoming ``URL`` is decoded using the `
 The method ``getBook`` will receive a ``request`` object that will contain the ``params`` object containing ``id`` parameter. Let's say the we fetch ``http://localhost:9090/book/1``. How can we get to the ``id`` variable?.
 
 .. code-block:: javascript
-    :linenos:
 
     var getBook = function(req, res) { 
       var id = req.params.id;
@@ -129,14 +117,11 @@ The method ``getBook`` will receive a ``request`` object that will contain the `
 
 As you can see we have set up all the routes we mentioned above. So let's get started implementing them. Let's start with adding the author and publisher as books are depended on these entities.
 
-.. literalinclude:: ex/ex20/ex4.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex20/ex4.js|pyg') }}
 
 Let's try out to create a new book, fetch it and remove it. Notice that the ``_id`` field will vary for you so make sure to modify the curl commands to use the correct id.
 
 .. code-block:: console
-    :linenos:
 
     curl -X POST -d "{\"name\":\"James Kirk\"}" http://localhost:9090/author
     {"name":"James Kirk","_id":"51921ef8b67cc57333000001"}
@@ -150,7 +135,6 @@ Let's try out to create a new book, fetch it and remove it. Notice that the ``_i
 Awesome we now have a couple of CRUD operations that we can use to add an author, fetch an existing author by id and delete an author by id. So let's look at the methods we have added starting with the ``createAuthor`` method.
 
 .. code-block:: javascript
-    :linenos:
 
     // Methods for the author
     // POST /author
@@ -172,7 +156,6 @@ Awesome we now have a couple of CRUD operations that we can use to add an author
 Notice the two helper methods called ``postJSONHelper`` and ``writeError``. Let's stop a moment and take a look at the code for those two methods.
 
 .. code-block:: javascript
-    :linenos:
 
     var writeError = function(res, code, message) {
       res.writeHead(code, message, {'content-type': 'text/plain'});
@@ -219,7 +202,6 @@ Returning to the ``createAuthor`` method we see that if we have a successful ins
 Let's look at the ``getAuthor`` method next.
 
 .. code-block:: javascript
-    :linenos:
 
     // GET /author/:id
     var getAuthor = function(req, res) { 
@@ -238,7 +220,6 @@ We then use the ``collection.findOne`` method to return the document or if none 
 Finally let's have a look at how we allow for removing authors.
 
 .. code-block:: javascript
-    :linenos:
 
     // DELETE /author/:id
     var deleteAuthor = function(req, res) { 
@@ -262,7 +243,6 @@ Just as for ``getAuthor`` we convert the ``id`` value to a proper ``ObjectID`` a
 So let's change the ``deleteAuthor`` method to ensure we can only delete ``Authors`` that do not have books associated with them yet.
 
 .. code-block:: javascript
-    :linenos
 
     // DELETE /author/:id
     var deleteAuthor = function(req, res) { 

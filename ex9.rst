@@ -6,14 +6,11 @@ In the previous exercises we learned how to insert documents into MongoDB and wh
 
 Lets start with a simple insert and full document update and explain why this in general is a bad idea. Fire up the editor and type in the following code.
 
-.. literalinclude:: ex/ex22.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex9/ex1.js|pyg') }}
 
 We first insert a document with the values ``{_id: 1, a:1}`` then after it inserted we do an update statement
 
 .. code-block:: javascript
-    :linenos:
 
     collection.update({_id:1}, {_id:1, b:1}, function(err, result) {
 
@@ -75,9 +72,7 @@ $set/$unset Operators
 
 Let's have a look at the ``$set``. For this exercise we will also use a method called ``collection.findOne()`` to retrieve the document and allow us to print it out to see the changes instead of using the ``mongo`` console. Also notice that we are removing all the documents from the collection before starting using the ``collection.remove()`` method. Fire up the editor and enter the code below.
 
-.. literalinclude:: ex/ex23.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex9/ex3.js|pyg') }}
 
 Run the code in the console and you should see the following ouput
 
@@ -94,9 +89,7 @@ Once the update operation has finished the callback happens and returns the resu
 
 Let's move on and look at $unset. Enter the following code in your editor and run it.
 
-.. literalinclude:: ex/ex24.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex9/ex3.js|pyg') }}
 
 Your console output should look something like.
 
@@ -114,9 +107,7 @@ $inc Operator
 
 Let's move on to the ``$inc`` operator that lets us manipulate a numeric value. Fire up your editor and enter the code.
 
-.. literalinclude:: ex/ex25.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex9/ex4.js|pyg') }}
 
 Execute the code and your output should look something like.
 
@@ -157,9 +148,7 @@ Sweet let's touch on the last field operator before we show how we can apply mul
 
 But they take up quite a bit of memory space. So say you want to save space and want to pack all the ``8`` flags into a single field. That's where bitwise operators come in (more information on bit fields at http://en.wikipedia.org/wiki/Bit_field). Let's fire up the editor and enter the code below. Don't worry if bitwise operations are a bit difficult to understand, consider it priming you brain with an idea you can exploit at some later point in the future.
 
-.. literalinclude:: ex/ex26.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex9/ex5.js|pyg') }}
 
 You should see the following output
 
@@ -216,9 +205,7 @@ $isolated or how I came to love the bomb
 
 Let's start right off the bat in the editor, fire it up and enter the code below.
 
-.. literalinclude:: ex/ex27.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex9/ex6.js|pyg') }}
 
 Your output should look like.
 
@@ -260,4 +247,5 @@ To avoid this in the example above we use the ``$isolated`` operator as part of 
 So as we can see ``$isolated`` can be quite useful. With this we are ready to take the tackle the next step of dealing with arrays when performing updates.
 
 .. NOTE::
+
     You might be tempted to always use ``$isolated`` but you should not fall into this temptation. Only use it where appropriate as you are losing out on the benefit of concurrent writes to MongoDB forcing all updates to be serial. But keep it in mind when doing multiple field updates in a document if you are unsure something else could be changing the field while your application is executing a complex update.

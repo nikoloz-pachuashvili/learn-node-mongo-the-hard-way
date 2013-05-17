@@ -4,14 +4,11 @@ Exercise 11: Final Update
 
 The last two elements we are going to touch when it comes to the ``update`` operation is the ``upsert`` and the ``multi`` option. Let's start with a simple example to illustrate the usage of the ``upsert`` option.
 
-.. literalinclude:: ex/ex35.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex11/ex1.js|pyg') }}
 
 The results should look like this.
 
 .. code-block:: console
-    :linenos:
 
     connected to database
     added document
@@ -35,14 +32,11 @@ Multi
 
 As you might have discovered by now the ``update`` command updates a single document at the time. But what if we want do update all documents matching a query. This is where the ``multi`` command comes in. Let's have a look at an example.
 
-.. literalinclude:: ex/ex36.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex11/ex2.js|pyg') }}
 
 The results should look like this.
 
 .. code-block:: console
-    :linenos:
 
     connected to database
     added document
@@ -55,7 +49,6 @@ The results should look like this.
 Our ``update`` statement will select all the documents that match the expression ``{user:1, read:false}``.
 
 .. code-block:: javascript
-    :linenos:
 
     [{
         _id: 1
@@ -70,6 +63,7 @@ Our ``update`` statement will select all the documents that match the expression
 And will then set the ``read`` field for both documents to ``true``. This covers the last two options of the ``update`` command. In the next exercise we will introduce a way to modify and retrieve a document in one operation called ``findAndModify``.
 
 .. NOTE::
+
     You might be tempted to use ``update`` with ``upsert`` set to true instead of ``insert``. This might have a performance impact as you collection grows as the database needs to perform a query and an update operation instead of just an insert operation.
 
 

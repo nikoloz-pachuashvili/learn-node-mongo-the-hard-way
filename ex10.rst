@@ -9,14 +9,11 @@ $push Operator
 
 The ``$push`` operator lets you add a document to the end of an array inside a ``MongoDB`` document. If the array does not exist it will create the array and then add the document to the newly created array. Let's put some code in showing the usage of the ``$push`` operator.
 
-.. literalinclude:: ex/ex28.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex10/ex1.js|pyg') }}
 
 The output from running the script with ``node`` should look like.
 
 .. code-block:: console
-    :linenos:
 
     connected to database
     { _id: 2, array: [ 1 ], value: 1 }
@@ -24,35 +21,30 @@ The output from running the script with ``node`` should look like.
 If we look at the code we you'll notice that the ``update`` statement looks like.
 
 .. code-block:: javascript
-    :linenos:
 
     {$push: {array: 1}}
 
 The way the ``$push`` operator works is that it will attempt to locate the field named ``array`` in the document with ``_id`` equal to ``2``. Since there is no field named ``array`` in the document it will create a new field ``array`` that is an empty array and then will add the value ``1`` to the array. The value added to the array can be of any type. It's thus possible to do things like.
 
 .. code-block:: javascript
-    :linenos:
 
     {$push: {array: [1, 2, 3]}}
 
 that will return a document looking like this.
 
 .. code-block:: javascript
-    :linenos:
 
     { "_id" : 2, "array" : [ [ 1, 2, 3, 4 ] ] }
 
 Or even adding a document to the array.
 
 .. code-block:: javascript
-    :linenos:
 
     {$push: {array: {a: 1}}}
 
 that will return a document looking like this.
 
 .. code-block:: javascript
-    :linenos:
 
     { "_id" : 2, "array" : [ {a: 1} ] }
 
@@ -63,14 +55,11 @@ $pushAll Operator
 
 Let's consider a document that represents a meeting. The first part of the meeting might be a simple one line title outlining the reason for the meeting and it might also have some sort of description as well as a start time and end time. We also have an array of users that we want to add as participants to the meeting in question. Let's enter the code.
 
-.. literalinclude:: ex/ex29.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex10/ex2.js|pyg') }}
 
 the output should look like this.
 
 .. code-block:: console
-    :linenos:
 
     connected to database
     { _id: 1,
@@ -89,14 +78,11 @@ $pull Operator
 
 Let's imagine that ``April`` no longer can attend the meeting. How do we remove her from the list ? Let's fire up our editor and enter some code and then have a look at how it works.
 
-.. literalinclude:: ex/ex30.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex10/ex3.js|pyg') }}
 
 the output should look like this.
 
 .. code-block:: console
-    :linenos:
 
     { _id: 1,
       description: 'We need to buy the ACME widget and need budget approval',
@@ -108,7 +94,6 @@ the output should look like this.
 The ``$pull`` operator removes all instances of a value from an existing array. Given the update statement.
 
 .. code-block:: javascript
-    :linenos:
 
     collection.update({_id: meeting._id}, {$pull: { participants: {name: 'April'}}} ....
 
@@ -124,35 +109,30 @@ The ``$pop`` operator let's you remove the first or the last document from an ar
 Give a document that looks like this.
 
 .. code-block:: javascript
-    :linenos:
 
     {_id: 1, a: 1, b: [1, 2, 3]}
 
 the update statement
 
 .. code-block:: javascript
-    :linenos:
 
     collection.update({_id: 1}, {$pop: { b: 1}} ....    
 
 would remove the element ``3`` from the array in field ``b``. leaving you with a document looking like this.
 
 .. code-block:: javascript
-    :linenos:
 
     {_id: 1, a: 1, b: [1, 2]}
 
 similarly the statement.
 
 .. code-block:: javascript
-    :linenos:
 
     collection.update({_id: 1}, {$pop: { b: -1}} ....    
 
 would remove the element ``1`` from the array in field ``b``, leaving you with a document looking like this.
 
 .. code-block:: javascript
-    :linenos:
 
     {_id: 1, a: 1, b: [2, 3]}
 
@@ -163,14 +143,11 @@ $addToSet Operator
 
 The ``$addToSet`` only adds a value to an array if the value does not already exist. Let's see how we can use this in practice. Remember the meeting. Well let's use ``$addToSet`` and attempt to add a duplicate document. Open up your editor and type in.
 
-.. literalinclude:: ex/ex31.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex10/ex4.js|pyg') }}
 
 Your output should look like the following.
 
 .. code-block:: console
-    :linenos:
 
     connected to database
     { _id: 1,
@@ -190,7 +167,6 @@ Updating a document in an array
 If we know the where in the array a particular document is we can specify to update that particular document. Let's take our sample meetings document.
 
 .. code-block:: javascript
-    :linenos:
 
     { _id: 1,
       description: 'We need to buy the ACME widget and need budget approval',
@@ -204,7 +180,6 @@ If we know the where in the array a particular document is we can specify to upd
 Say we want to add a contact number for ``April`` to the document. Since we know it's the first document we can address it as element ``0`` in the array (more information about it's why ``0`` and not ``1`` at http://en.wikipedia.org/wiki/Zero-based_numbering). Let's write the update statement to add the phone number.
 
 .. code-block:: javascript
-    :linenos:
 
     collection.update({_id:1}, {$set: {'participants.0.phone': '333-444-5555'}}, function(err, result) {
     });
@@ -212,7 +187,6 @@ Say we want to add a contact number for ``April`` to the document. Since we know
 After the update the document will look like.
 
 .. code-block:: javascript
-    :linenos:
 
     { _id: 1,
       description: 'We need to buy the ACME widget and need budget approval',
@@ -228,7 +202,6 @@ Notice ``'participants.0.phone'`` this tells ``MongoDB`` that the field ``partic
 That's great but what if we don't know the location of the document in the array ``participants``. How do we select the right document to update. Luckily for us we have a operator called the positional operator available to do this. The positional operator is the ``$`` sign. Let's show it with an update example. Let's add a phone number to ``John`` using the positional operator.
 
 .. code-block:: javascript
-    :linenos:
 
     collection.update({_id:1, participants.name:'John'}, {$set: {'participants.$.phone': '111-222-3333'}}
       , function(err, result) {
@@ -237,7 +210,6 @@ That's great but what if we don't know the location of the document in the array
 After the update the document will look like.
 
 .. code-block:: javascript
-    :linenos:
 
     { _id: 1,
       description: 'We need to buy the ACME widget and need budget approval',
@@ -250,9 +222,9 @@ After the update the document will look like.
 
 Notice the two main differences. The first part is the query which looks like ``{_id:1, participants.name:'John'}``. This will locate the document where ``_id`` is ``1`` and it contains a participant document where the ``name`` field equals to ``John``.
 
-The update part  ``{$set: {'participants.$.phone': '111-222-3333'}}`` contains the ``$`` which tells ``MongoDB`` to locate the first participant who's ``name`` field equals ``John`` and update ``$set`` the value of the field ``phone`` in that document to ``111-222-3333`.
+The update part  ``{'$set': {'participants.$.phone': '111-222-3333'}}`` contains the ``$`` which tells ``MongoDB`` to locate the first participant who's ``name`` field equals ``John`` and update ``$set`` the value of the field ``phone`` in that document to ``111-222-3333``.
 
-There is a couple of limitations to the ``$`` operator. The first is that it will only change the ``first`` matching document so if you use a ``query`` that is picking a document in an array by a ``field`` that is not unique it will only update the first match. So it's important to make sure you are using a field in the documents for your query uniquely identifies it. There are some other limitations for the command that you can read more about at http://docs.mongodb.org/manual/reference/operator/positional/#_S_.
+There are a couple of limitations to the ``$`` operator. The first is that it will only change the ``first`` matching document so if you use a ``query`` that is picking a document in an array by a ``field`` that is not unique it will only update the first match. So it's important to make sure you are using a field in the documents for your query uniquely identifies it. There are some other limitations for the command that you can read more about at http://docs.mongodb.org/manual/reference/operator/positional/#_S_.
 
 One $push To Rule Them All
 --------------------------
@@ -262,14 +234,12 @@ One $push To Rule Them All
 Say we have a document that looks like this.
 
 .. code-block:: javascript
-    :linenos:
 
     { _id: 1, a: [1, 2, 3, 4, 5] }
 
 Let's add 2 more elements but we want to keep the size fixed to a max of 5 elements.
 
 .. code-block:: javascript
-    :linenos:
 
     collection.update({_id:1}, {$push: { a: { $each: [6, 7], $slice: -5}}}, function(err, result) {
     });
@@ -277,21 +247,18 @@ Let's add 2 more elements but we want to keep the size fixed to a max of 5 eleme
 The results from the update.
 
 .. code-block:: javascript
-    :linenos:
 
     { _id: 1, a: [3, 4, 5, 6, 7] }
 
 Let's pick apart the update statement.
 
 .. code-block:: javascript
-    :linenos:
 
     {$push: { a: { $each: [6, 7], $slice: -5}}}
 
 The ``$each`` parameter of the ``$push`` operator takes an array of values or objects and replaces the ``$pushAll`` operation. so the operation ``{$push: { a: { $each: [6, 7]}}}`` is equivalent to ``{$pushAll: {a : [6, 7]}}``. The second parameter is ``$slice``. ``$slice`` takes a value that is ``0`` or less and trims the number of elements in the array from right to left. In other words the following happens.
 
 .. code-block:: console
-    :linenos:
 
     [1, 2, 3, 4, 5]
     [1, 2, 3, 4, 5, 6, 7]
@@ -300,14 +267,12 @@ The ``$each`` parameter of the ``$push`` operator takes an array of values or ob
 Between the second and third step the ``$push`` operator takes the last five elements and removes the rest. This makes it possible to ``enforce`` a fixed size array field in a document. The last parameter we will show is the ``$sort`` parameter. Let's write up an example. Take a document like.
 
 .. code-block:: javascript
-    :linenos:
 
     { _id: 1, a: [{pri:4}, {pri:1}, {pri:2}, {pri:4}, {pri:3}] }
 
 Now let's add some new objects to our fixed size array and sort them in ``descending`` order with the highest priority object first.
 
 .. code-block:: javascript
-    :linenos:
 
     collection.update({_id:1}, {$push: { a: { $each: [ {pri:2}, {pri:1}], $slice: -5, $sort: {pri:-1}}}}
       , function(err, result) {
@@ -317,7 +282,6 @@ Now let's add some new objects to our fixed size array and sort them in ``descen
 The results from the update.
 
 .. code-block:: javascript
-    :linenos:
 
     { _id: 1, a: [{pri:3}, {pri:2}, {pri:2}, {pri:1}, {pri:1}] }
 

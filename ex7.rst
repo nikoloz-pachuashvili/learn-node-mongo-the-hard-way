@@ -4,9 +4,7 @@ Exercise 7: Inserting documents
 
 The first and most important feature of a database is to be able to store data in it. Let's get cracking on inserting documents into MongoDB. There are 3 main things you need to know about inserting documents in MongoDB using the Node.js driver. These are single inserts, bulk inserts and write concerns. Before hitting the details let's do a single document insert to get us moving and explain the basic concept. Fire up your text editor and enter the following code.
 
-.. literalinclude:: ex/ex12.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex7/ex1.js|pyg') }}
 
 Let's digest the code example. The first thing we notice after connecting to the database is that we create a document containing ``'hello': 'world'``. After that we grab the collection ``mydocuments`` and we call the method on the collection called ``.insert()``. The first parameter is the document we wish to store and the second is an object with the parameter ``w`` set to 0. Notice that we have not provided any callback function. We will touch on the concept of ``write concerns`` a bit down the line. Sufficient for now is to know that if we set ``w:0`` we are not asking MongoDB to acknowledge that the write was correctly recieved by the database server. Rather it's a ``fire and forget`` write of the document to MongoDB.
 
@@ -29,9 +27,7 @@ Notice that our document is correctly stored in our ``test`` database. But also 
 
 But you can also override the ``_id`` field yourself and set it to application generated id. This might be useful if you are generating your own globally unique numbers for example. Let's do this and also see what happens if we try to insert the same document with the same id twice. Enter the following code in your editor.
 
-.. literalinclude:: ex/ex13.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex7/ex2.js|pyg') }}
 
 When you run this you should see the following output
 
@@ -65,9 +61,7 @@ Bulk Inserts
 
 So this is quite good, we can easily insert a document. So what if we want to insert 100 documents. The first thought might be something like the code below. Enter it an run it.
 
-.. literalinclude:: ex/ex14.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex7/ex3.js|pyg') }}
 
 Let's check that the documents made it to the database. Notice that we changed the name of the collection.
 
@@ -109,9 +103,7 @@ Let's check that the documents made it to the database. Notice that we changed t
 
 As you can see we have inserted 100 documents into the database as expected. But surely there must be a better way to bulk insert documents than issuing 100 seperate insert commands. Luckily there is. MongoDB support bulk inserts. In fact the bulk insert command sent to the server is a single message. There is a limit on how much data you can send in a single bulk insert. For now the drivers enforce a 16MB limit. With this information let's rewrite the example to do the insert as a bulk insert.
 
-.. literalinclude:: ex/ex15.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex7/ex4.js|pyg') }}
 
 Before running the code let's cleanup the collection to ensure we don't have any existing documents in the collection. Fire up the console and do the following to remove all the documents.
 
@@ -175,11 +167,11 @@ Awesome not hard right. Well what happens if there is a document with an error i
     connected to database
     failed to perform bulk insert due to multiple documents havin the same _id field
 
-.. literalinclude:: ex/ex16.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex7/ex5.js|pyg') }}
 
 Ok we got an error from MongoDB but what happened in the database. Did it finish inserting the documents or did it stop. Let's have a look in the db.
+
+.. code-block:: console
 
     ~ $ mongo
     MongoDB shell version: 2.2
@@ -196,11 +188,11 @@ Ok we got an error from MongoDB but what happened in the database. Did it finish
 
 As we can see MongoDB kept accepting the documents until we hit the document with the duplicate ``_id`` value and then stopped and returned an error. But what if we want to make the inserts continue even if there is an error. Well it's also possible. Clear out the db, enter the code below and run it.
 
-.. literalinclude:: ex/ex17.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex7/ex6.js|pyg') }}
 
 Notice that we get the same ouput as the following example but let's have a look at what's in MongoDB now.
+
+.. code-block:: console
 
     ~ $ mongo
     MongoDB shell version: 2.2
@@ -218,9 +210,7 @@ Notice that we get the same ouput as the following example but let's have a look
 
 As we can see MongoDB did not stop inserting on the error but kept going inserting all the valid documents it could find. However one problem is that MongoDB is not currently able to tell us what specific document failed to insert so we need to programatically in our code. Let's see how we can identify what documents had the same ``_id`` variable below. Clean out the collection, then enter and run the code below.
 
-.. literalinclude:: ex/ex18.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex7/ex7.js|pyg') }}
 
 This code is a bit complicated but the basic explanation is that after we try to do the bulk insert and it fails we retrieve all documents which has a ``_id`` value equal to the documents we were trying to insert. We then create a hashmap of the ``_id`` where each value is set to true. Iterating through our original documents if we find it in the hashmap we set the hashmap value to false indicating it's been seen by the application. Any other document in the ``documents`` array will then trigger the condition ``!docHash[documents[i]._id]`` that will save the index in the ``documents`` array to the ``docsNotFound`` array. The ``docsNotFound`` array will contain all the indexes of the documents that failed to insert during the bulk insert.
 

@@ -43,9 +43,7 @@ As we can see the ``getLastError`` returns the last command status for our conne
 
 So let's play with the write concerns in a bit of code. Get your editor and start typing.
 
-.. literalinclude:: ex/ex19.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex8/ex1.js|pyg') }}
 
 When I run it on my local machine the output looks something like.
 
@@ -73,9 +71,7 @@ So one of the traps you can fall into is that you decide to do all the inserts u
 
 Luckily there is a way to control the flow of the inserts and the clue lies in ``getLastError``. Let's type in the example below and have a look at how the flow control works.
 
-.. literalinclude:: ex/ex20.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex8/ex2.js|pyg') }}
 
 The first part of the code after the ``MongoClient.connect`` is to generate an array of documents (in this case ``100005`` documents). After creating the documents we calculate the number of batches needed when the batchsize is ``1000``. And after getting the right number of batches we use the ``modulo operator %`` in the statement ``var leftOverDocuments = numberOfDocuments % batchSize;`` to determine how many documents are left outside the batches. In this case the number of batches are ``100`` and the left over number of documents ``5``
 
@@ -88,9 +84,7 @@ Setting Default Write Concern
 
 The Node.js driver lets you set the default write concern at different levels. ``MongoClient`` already comes with the default write concern set to ``w:1`` but your application can set it at the ``Db``, ``Collection`` or individual operation. Let's enter some example code showing how to set it at different levels.
 
-.. literalinclude:: ex/ex21.js
-    :language: javascript
-    :linenos:
+{{ ork.code('code/ex8/ex3.js|pyg') }}
 
 When you run the script the output should look something like this.
 
@@ -105,6 +99,7 @@ Let's dissect the code and look at how it works. The first insert is the ``colle
 As we can see write concerns can be specified at the ``Db``, ``Collection`` and the individual operation level and if not set the individual operation inherits from the ``Collection`` settings while the ``Collection`` inherits the write concern from the ``Db`` if not set.
 
 .. NOTE::
+
     ``Replicasets`` and write concerns will be covered in later exercises. One of the things to keep in mind about write concerns is that the cost of higher guarantees of durability comes with an insert performance cost. So think carefully if you need your documents to be replicated across multiple ``secondaries`` or if you are good enough with them being ackowledged as written to the memory of the ``primary`` server. A typical mistake is to be to paranoid about losing data and setting the highest possible durability you can do and getting very bad insert performance as a consequence.
 
 

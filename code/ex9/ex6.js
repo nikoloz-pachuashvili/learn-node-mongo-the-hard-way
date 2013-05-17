@@ -17,7 +17,7 @@ MongoClient.connect("mongodb://localhost:27017/test", function(err, db) {
         console.log("write concern on collection caught duplicate key error");      
       }
 
-      collection.update({_id: 2, $atomic: 1}
+      collection.update({_id: 2, $isolated: 1}
         , {$set: {value2: 'hello'}, $inc: {value: -5}}, function(err, result, full_result) {
   
           collection.findOne({_id: 2}, function(err, doc) {
