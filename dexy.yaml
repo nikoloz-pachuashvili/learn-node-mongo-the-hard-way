@@ -6,6 +6,7 @@ assets:
     - .jpg
     - .gif
     - .jinja
+    - .dot|dot
 
 tex-assets:
     - .tex
