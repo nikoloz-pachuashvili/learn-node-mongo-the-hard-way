@@ -38,7 +38,8 @@ Entity Relational Modeling
 
 So what would this look like if using an ``Entity Relational Modeling Diagram``. Let's have a look at what a normalized data model for this could look like.
 
-// MISSING DOT DIAGRAM
+
+.. image:: code/ex18/ex8.jpg
 
 Let's translate this into a set of tables we could use in a relational database. First up are the basic entity tables for ``book``, ``publisher`` and ``author``.
 
