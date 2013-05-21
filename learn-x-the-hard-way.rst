@@ -30,6 +30,7 @@ Table Of Contents
 {% include "ex16.rst" %}
 {% include "ex17.rst" %}
 {% include "ex18.rst" %}
+{% include "ex19.rst" %}
 {% include "ex20.rst" %}
 {% include "tic1.rst" %}
 {% include "tic2.rst" %}

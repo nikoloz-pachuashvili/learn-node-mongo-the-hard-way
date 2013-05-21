@@ -1,5 +1,4 @@
 {% import "macros/ork.jinja" as ork with context %}
-=====================================
 Exercise 19: Evolving A Simple Schema
 =====================================
 
@@ -8,10 +7,10 @@ Let's put together some of the stuff we have covered including inserts, updates 
 Let's fact model our library model concepts.
 
 Facts
-=====
+-----
 
 Book
-----
+~~~~
 
 - A Book has the title ``Fall of the Roman Empire``
 - The Book ``Fall of the Roman Empire`` has the unique id 1
@@ -24,27 +23,27 @@ Book
 - The 1973 Edition of ``Fall of the Roman Empire`` that was loaned by the User ``Peter Griffin`` on the 1th of June 1986 should be returned on the 15th of June 1986.
 
 Edition
--------
+~~~~~~~
 
 - The Edition of ``Fall of the Roman Empire`` is Published by ``T Books``
 - The Edition of ``Fall of the Roman Empire`` was Published in 1973
 - The Library has 4 copies of the 1973 Edition of the ``Fall of the Roman Empire``
 
 Author
-------
+~~~~~~
 
 - The Author ``James W Kirk`` wrote the book ``Fall of the Roman Empire``
 - The Author ``James W Kirk`` wrote the book "The Rise of the Roman Empire"
 
 Publisher
----------
+~~~~~~~~~
 
 - The Publisher ``T Books`` published the 1973 Edition of the Book ``Fall of the Roman Empire``
 - The Publisher ``T Books`` has published the 1967 Edition of the Book ``Wizard of Oz``
 - The Publisher is names ``T Books``
 
 User
-----
+~~~~
 
 - The User ``Peter Griffin`` loaned the Book ``Fall of the Roman Empire`` on the 1st of June 1986.
 - The User ``Peter Griffin`` has to return the Book ``Fall of the Roman Empire`` on the 15th of June 1986.
@@ -53,7 +52,7 @@ User
 Awesome we have a lot of facts to model around. Let's try to organize them in documents.
 
 Document Representation
-=======================
+-----------------------
 
 We've identified 4 different entities that we can potentially model as documents. Let's start by roughly sketch them out.
 

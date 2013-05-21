@@ -6,7 +6,8 @@ assets:
     - .jpg
     - .gif
     - .jinja
-    - .dot|dot
+    - .dot|dot:
+        - output: True
 
 tex-assets:
     - .tex
