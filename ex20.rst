@@ -57,17 +57,22 @@ Method Url                                  Description
 POST    /book                               Add a new book to the library
 GET     /book/:id                           Get a specific book by id
 REMOVE  /book/:id                           Remove a specific book by id
+PUT     /book/:id/publisher/:publisher_id   Associate a publisher with this book
 GET     /book/search?query=?                Search for books by title
 GET     /author/search?query=?              Search for author
 GET     /author/:id                         Get an author
 POST    /author                             Add a new author
 DELETE  /author/:id                         Remove an existing author
+PUT     /book/:id/author/:author_id         Associate an author with this book
 GET     /author/:id/books                   Get books by author
-GET     /publisher/search?query=?           Search for author
+GET     /publisher/search?query=?           Search for publisher
 GET     /publisher/:id/books                Get the books by publisher
 GET     /publisher/:id                      Get a publisher
 POST    /publisher                          Add a new publisher
 DELETE  /publisher/:id                      Remove an existing publisher
+POST    /user                               Add a user to the library
+GET     /user/:id                           Get a user off the library
+REMOVE  /user/:id                           Remove a user from the library
 GET     /user/:id/loans                     Get all the books loaned by a specific user
 POST    /user/:id/loan                      Borrow a book
 DELETE  /user/:id/loan                      Return a book
@@ -266,3 +271,252 @@ So let's change the ``deleteAuthor`` method to ensure we can only delete ``Autho
     }
 
 The main difference is that we ``count`` the number of books that have the author with the passed in ``id``. If the ``count`` is larger than ``0`` it means we cannot delete the ``Author`` as it would break the data integrity.
+
+Next up is the publisher ``CRUD`` methods ``createPublisher``, ``getPublisher`` and ``deletePublisher``. These methods are very similar to the get authors. Let's start with the ``createPublisher`` method.
+
+.. code-block:: javascript
+
+  // POST /publisher
+  var createPublisher = function(req, res) {
+    postJSONHelper(req, function(err, object) {
+      if(err) 
+        return writeError(res, 406, 'Illegal JSON');
+
+      // Insert the user
+      dbInstance.collection('publishers').insert(object, function(err, doc) {
+        if(err) 
+          return writeError(res, 500, 'Failed to insert document');
+
+        res.end(JSON.stringify(doc[0]));
+      });
+    });
+  }
+
+The only main difference here is changing the collection we are using to the publisher one. Similarly the ``getPublisher`` method looks a lot like the ``getAuthor`` method.
+
+.. code-block:: javascript
+
+  // GET /publisher/:id
+  var getPublisher = function(req, res) {
+    dbInstance.collection('publishers').findOne({_id: new ObjectID(req.params.id)}, function(err, doc) {
+      if(err || doc == null) 
+        return writeError(res, 404, 'Failed to retrieve document from database for id ' + req.params.id);
+     
+      res.end(JSON.stringify(doc));
+    });
+  }
+
+The only main difference being that we are retrieving the documents from the ``publishers`` collection not the ``authors`` collection. Just as in the ``deleteAuthors`` method the ``deletePublisher`` method needs to enforce that we are not actually deleting a publisher that has books associated with it.
+
+.. code-block:: javascript
+
+  // DELETE /publisher/:id
+  var deletePublisher  = function(req, res) {
+    dbInstance.collection('books').count({"publisher_id": new ObjectID(req.params.id)}, function(err, count) {
+      if(err) 
+        return writeError(res, 500, 'Failed to delete document from database for id ' + req.params.id);
+
+      if(count > 0)
+        return writeError(res, 406, 'Publisher with ' + req.params.id + " cannot be deleted as it's associated with existing books");
+
+      dbInstance.collection('publishers').remove({_id: new ObjectID(req.params.id)}, function(err, deleted) {
+        if(err) 
+          return writeError(res, 500, 'Failed to delete document from database for id ' + req.params.id);
+        
+        if(deleted == 0)
+          return writeError(res, 404, 'No document with id ' + req.params.id + ' found in database');
+
+        res.end(JSON.stringify({_id: req.params.id}));
+      });
+    });
+  }
+
+Let's make sure the methods correctly by testing it from the command line using curl. ``Note`` that the id returned will vary on your system so make sure you change ``51921ef8b67cc57333000001`` where appropriate to your own id.
+
+.. code-block:: console
+
+    curl -X POST -d "{\"name\":\"T Books\"}" http://localhost:9090/publisher
+    {"name":"T Books","_id":"51921ef8b67cc57333000001"}
+
+    curl -X GET http://localhost:9090/publisher/51921ef8b67cc57333000001
+    {"name":"T Books","_id":"51921ef8b67cc57333000001"}
+
+    curl -X DELETE http://localhost:9090/publisher/51921ef8b67cc57333000001
+    {"_id":"51921ef8b67cc57333000001"}
+
+Awesome we only have two more sets of CRUD operations to implement, namely the ``User`` and ``Book`` related ``CRUD`` operations before we move on in the next chapter to the more advanced REST API method of managing the books.
+
+Let's do the user ones first. They consist off the ``createUser``, ``getUser`` and ``deleteUser`` methods and are very similar to the previous ``Author`` and ``Publisher`` methods. Let's look at them in turn starting with the ``createUser`` method.
+
+.. code-block:: javascript
+
+  // POST /user
+  var createUser = function(req, res) {
+    postJSONHelper(req, function(err, object) {
+      if(err) 
+        return writeError(res, 406, 'Illegal JSON');
+
+      // Insert the user
+      dbInstance.collection('users').insert(object, function(err, doc) {
+        if(err) 
+          return writeError(res, 500, 'Failed to insert document');
+
+        res.end(JSON.stringify(doc[0]));
+      });
+    });
+  }
+
+Just as in ``getAuthor`` and ``getPublisher`` the ``getUser`` method is very simple and just return the document from the collection if it finds it.
+
+.. code-block:: javascript
+
+  // GET /user/:id
+  var getUser = function(req, res) {
+    dbInstance.collection('users').findOne({_id: new ObjectID(req.params.id)}, function(err, doc) {
+      if(err || doc == null) 
+        return writeError(res, 404, 'Failed to retrieve document from database for id ' + req.params.id);
+     
+      res.end(JSON.stringify(doc));
+    });
+  }
+
+The main difference in the ``deleteUser`` method vs ``deleteAuthor`` or ``deletePublisher`` is that we can only remove a user if he has no outstanding books in the system. To ensure that we do a count of books in the library where the book is registered as loaned_out to the user with the ``id`` we wish to delete. If there are any books outstanding the ``API`` will fail and report that the user still has books out for loan.
+
+.. code-block:: javascript
+
+  // DELETE /user/:id
+  var deleteUser  = function(req, res) {
+    dbInstance.collection('books').count({"loaned_out_to.user_id": new ObjectID(req.params.id)}, function(err, count) {
+      if(err) 
+        return writeError(res, 500, 'Failed to delete document from database for id ' + req.params.id);
+
+      if(count > 0)
+        return writeError(res, 406, 'User with ' + req.params.id + " cannot be deleted as it's associated with existing books");
+
+      dbInstance.collection('users').remove({_id: new ObjectID(req.params.id)}, function(err, deleted) {
+        if(err) 
+          return writeError(res, 500, 'Failed to delete document from database for id ' + req.params.id);
+        
+        if(deleted == 0)
+          return writeError(res, 404, 'No document with id ' + req.params.id + ' found in database');
+
+        res.end(JSON.stringify({_id: req.params.id}));
+      });
+    });
+  }
+
+As before let's verify that the ``API`` work correctly by using ``curl``.
+
+.. code-block:: console
+
+    curl -X POST -d "{\"name\":\"James Bond\"}" http://localhost:9090/user
+    {"name":"James Bond","_id":"51921ef8b67cc57333000001"}
+
+    curl -X GET http://localhost:9090/user/51921ef8b67cc57333000001
+    {"name":"James Bond","_id":"51921ef8b67cc57333000001"}
+
+    curl -X DELETE http://localhost:9090/user/51921ef8b67cc57333000001
+    {"_id":"51921ef8b67cc57333000001"}
+
+We are nearly done. Let's look at the final ``Book`` ``CRUD`` operations ``createBook``, ``getBook`` and ``deleteBook``. If you've noticed there is a pattern to the CRUD operations and they look very similar with the exception being the ``deleteXXX`` methods. Let's take a quick look at the ``createBook`` method.
+
+.. code-block:: javascript
+
+  // POST /book
+  var createBook = function(req, res) {
+    postJSONHelper(req, function(err, object) {
+      if(err) 
+        return writeError(res, 406, 'Illegal JSON');
+
+      // Insert the user
+      dbInstance.collection('books').insert(object, function(err, doc) {
+        if(err) 
+          return writeError(res, 500, 'Failed to insert document');
+
+        res.end(JSON.stringify(doc[0]));
+      });
+    });
+  }
+
+Looks very similar to the previous ``createXXX`` methods for ``Author``, ``Publisher`` and ``User``. Let's look at the ``getBook`` method.
+
+.. code-block:: javascript
+
+  // GET /book/:id
+  var getBook = function(req, res) {
+    dbInstance.collection('books').findOne({_id: new ObjectID(req.params.id)}, function(err, doc) {
+      if(err || doc == null) 
+        return writeError(res, 404, 'Failed to retrieve document from database for id ' + req.params.id);
+     
+      res.end(JSON.stringify(doc));
+    });
+  }
+
+Again very similar to the previous ``getXXX`` methods. How about the ``deleteBook`` method ?
+
+.. code-block:: javascript
+
+  // DELETE /book/:id
+  var deleteBook  = function(req, res) {
+    dbInstance.collection('books').findOne({_id: new ObjectID(req.params.id)}, function(err, book) {
+      if(err) 
+        return writeError(res, 500, 'Failed to delete document from database for id ' + req.params.id);
+
+      if(!book)
+        return writeError(res, 406, 'Book with ' + req.params.id + " was not found");
+
+      if(book.loaned_out_to && book.loaned_out_to.length > 0)
+        return writeError(res, 500, 'Book with ' + req.params.id + " was not deleted as copies are currently loaned out");
+
+      dbInstance.collection('books').remove({_id: new ObjectID(req.params.id)}, function(err, deleted) {
+        if(err) 
+          return writeError(res, 500, 'Failed to delete document from database for id ' + req.params.id);
+        
+        if(deleted == 0)
+          return writeError(res, 404, 'No document with id ' + req.params.id + ' found in database');
+
+        res.end(JSON.stringify({_id: req.params.id}));
+      });
+    });
+  }
+
+As we can see the main difference here is that we don't let the book be deleted if there are any copies out for loan. This is ensured by checking the ``loaned_out_to`` array on the returned ``Book``. If it's empty we can go ahead and delete the ``Book`` as nobody is in possession of it. Notice that we are not checking the ``Authors`` or ``Publishers`` collections as they do not store any information directly associated with the ``Book`` so removing a Book does not cause ``Authors`` and ``Pulishers`` to link to non-existing books.
+
+Let's verify the correct behavior off the ``API`` by using ``Curl`` again to test the ``REST`` endpoints.
+
+.. code-block:: console
+
+    curl -X POST -d "{\"name\":\"Wizard of Oz\"}" http://localhost:9090/book
+    {"name":"Wizard of Oz","_id":"51921ef8b67cc57333000001"}
+
+    curl -X GET http://localhost:9090/book/51921ef8b67cc57333000001
+    {"name":"Wizard of Oz","_id":"51921ef8b67cc57333000001"}
+
+    curl -X DELETE http://localhost:9090/book/51921ef8b67cc57333000001
+    {"_id":"51921ef8b67cc57333000001"}
+
+We are now ready to move forward and add the remaining methods for our library API.
+
+=========================================== ==========================================
+Method Url                                  Description
+=========================================== ==========================================
+PUT     /book/:id/publisher/:publisher_id   Associate a publisher with this book
+PUT     /book/:id/author/:author_id         Associate an author with this book
+GET     /book/search?query=?                Search for books by title
+GET     /author/search?query=?              Search for author
+GET     /author/:id/books                   Get books by author
+GET     /publisher/search?query=?           Search for publisher
+GET     /publisher/:id/books                Get the books by publisher
+GET     /user/:id/loans                     Get all the books loaned by a specific user
+POST    /user/:id/loan                      Borrow a book
+DELETE  /user/:id/loan                      Return a book
+PUT     /user/:id/loan                      Extend a loan period / modify a loan period
+GET     /loan/overdue                       Get a list of all overdue books
+GET     /loan/overdue/:days                 Get a list of all overdue books in ?days days
+=========================================== ==========================================
+
+So let's move on and finish up our API.
+
+.. NOTE::
+
+  You might have noticed that we are not doing any validation on the documents as in checking if they have the minimum number of expected fields. We will touch on this briefly later but have chosen not to include it yet as it would complicate our example more than necessary.

@@ -1,0 +1,206 @@
+{% import "macros/ork.jinja" as ork with context %}
+Exercise 21: Let's Loan Out Some Books
+======================================
+
+In the last Exercise we looked at how to establish the basic ``routing`` infrastructure in our application as well as looking at writing the ``CRUD`` operations for the ``Author``, ``Publisher``, ``User`` and ``Book`` entities for our ``REST`` ``API``. It's now time to actually add the business functionality to our ``API`` that lets a user borrow some books as well as to look for a specific book. Let's look at the remaining ``API`` calls.
+
+=========================================== ==========================================
+Method Url                                  Description
+=========================================== ==========================================
+PUT     /book/:id/publisher/:publisher_id   Associate a publisher with this book
+PUT     /book/:id/author/:author_id         Associate an author with this book
+GET     /author/:id/books                   Get books by author
+GET     /publisher/:id/books                Get the books by publisher
+GET     /book/search?query=?                Search for books by title
+GET     /author/search?query=?              Search for author
+GET     /publisher/search?query=?           Search for publisher
+GET     /user/:id/loans                     Get all the books loaned by a specific user
+POST    /user/:id/loan                      Borrow a book
+DELETE  /user/:id/loan                      Return a book
+PUT     /user/:id/loan                      Extend a loan period / modify a loan period
+GET     /loan/overdue                       Get a list of all overdue books
+GET     /loan/overdue/:days                 Get a list of all overdue books in ?days days
+=========================================== ==========================================
+
+The two first API calls we need to implement is the ability to ``associate`` a ``Publisher`` or ``Author`` to a specific book. Let's take a look at the method ``associatePublisher`` first.
+
+.. code-block:: javascript
+
+  // PUT /book/:id/publisher/:publisher_id
+  var associatePublisher = function(req, res) {
+    dbInstance.collection('books').findOne({_id: new ObjectID(req.params.id)}, function(err, book) {
+      if(err)
+        return writeError(res, 500, 'Failed to retrieve book with id ' + req.params.id);
+
+      if(!book)
+        return writeError(res, 406, 'Book with ' + req.params.id + " was not found");
+
+      dbInstance.collection('publishers').findOne({_id: new ObjectID(req.params.publisher_id)}, function(err, publisher) {
+        if(err)
+          return writeError(res, 500, 'Failed to retrieve publisher with id ' + req.params.publisher_id);
+
+        if(!publisher)
+          return writeError(res, 406, 'Publisher with ' + req.params.publisher_id + " was not found");
+
+        dbInstance.collection('books').update({_id: new ObjectID(req.params.id)}
+            , {$set: {"publisher.publisher_id": new ObjectID(req.params.publisher_id)}}, function(err, updated) {
+
+          if(err)
+            return writeError(res, 500, 'Failed to update publisher for book with id ' + req.params.id);
+
+          res.end(JSON.stringify({_id: req.params.id}));
+        });
+      });
+    });
+  }
+
+Notice a couple of things. First off all we verify that both the indicated ``Book`` and ``Publisher`` exists in the system. Once we established that we update the field ``publisher.publisher_id`` to set it with the value of the associated ``Publisher``. Notice that we are not adding the other specifics of the ``Published`` edition of the ``Book``. We are assuming this was stored as part of the actual original storing of the ``Book`` information. What we are ensuring is that this ``Book`` is now correctly associated with a ``Publisher`` entity in our system. If the field ``publisher.publisher_id`` does not exist it will automatically be created and added to the document by ``MongoDB``. Now let's look at how the ``associateAuthor`` method works in comparison considering a book can have ``one`` or ``more`` authors associated with it.
+
+.. code-block:: javascript
+
+  // PUT /book/:id/author/:publisher_id
+  var associateAuthor = function(req, res) {  
+    dbInstance.collection('books').findOne({_id: new ObjectID(req.params.id)}, function(err, book) {
+      if(err)
+        return writeError(res, 500, 'Failed to retrieve book with id ' + req.params.id);
+
+      if(!book)
+        return writeError(res, 406, 'Book with ' + req.params.id + " was not found");
+
+      dbInstance.collection('authors').findOne({_id: new ObjectID(req.params.author_id)}, function(err, author) {
+        if(err)
+          return writeError(res, 500, 'Failed to retrieve publisher with id ' + req.params.author_id);
+
+        if(!author)
+          return writeError(res, 406, 'Author with ' + req.params.author_id + " was not found");
+
+        var author = {
+            id: new ObjectID(req.params.author_id)
+          , name: author.name
+        }
+
+        dbInstance.collection('books').update({_id: new ObjectID(req.params.id)}
+            , {$addToSet: {"authors": author}}, function(err, updated) {
+
+          if(err)
+            return writeError(res, 500, 'Failed to update publisher for book with id ' + req.params.id);
+
+          if(updated == 0) 
+            return writeError(res, 500, 'Author already associated with the book with id ' + req.params.id);
+
+          res.end(JSON.stringify({_id: req.params.id}));
+        });
+      });
+    });
+  }
+
+It looks very similar to the previous ``associatePublisher`` method but with one important difference. As we have an array of ``authors`` for a book we want to ensure that we do not have duplicate ``Author`` entries. Luckily ``MongoDB`` provides an ``update`` operated called ``$addToSet``. Let's go look at what the operator does briefly.
+
+
+.. NOTE::
+
+  The ``$addToSet`` only adds a value to an array if the value does not already exist. Let's see how we can use this in practice. Remember the meeting. Well let's use ``$addToSet`` and attempt to add a duplicate document. Open up your editor and type in.
+
+  {{ ork.code('code/ex10/ex4.js|pyg') }}
+
+  Your output should look like the following.
+
+  .. code-block:: console
+
+      connected to database
+      { _id: 1,
+        description: 'We need to buy the ACME widget and need budget approval',
+        endTime: Wed Jan 23 2013 15:35:03 GMT+0100 (CET),
+        participants:
+         [ { name: 'April', email: 'april@inc.com' },
+           { name: 'John', email: 'john@inc.com' } ],
+        startTime: Wed Jan 23 2013 15:35:03 GMT+0100 (CET),
+        title: 'Let\'s buy a widget' }
+
+  As you can see there was no duplicate entries of the user ``April`` in the participants field when using ``$addToSet``. But what if we want to modify a document inside an array, not remove it from the array but set a value on it. Luckily there are a couple of ways we can go about doing this.
+
+This is perfect for our method. We create a new embedded document.
+
+.. code-block:: javascript
+
+    var author = {
+        id: new ObjectID(req.params.author_id)
+      , name: author.name
+    }
+
+and then perform an update using ``{$addToSet: {"authors": author}}``. As we read about the ``$addToSet`` operator the new ``author`` document will only be added to the ``authors`` array if it does not already exists thus neatly avoiding duplicated entries.
+
+Now let's test our new methods using ``Curl`` from the command line.
+
+.. code-block:: console
+
+    curl -X POST -d "{\"name\":\"L. Frank Baum\"}" http://localhost:9090/author
+    {"name":"L. Frank Baum","_id":"51921ef8b67cc57333000001"}
+
+    curl -X POST -d "{\"name\":\"Penguin Books\"}" http://localhost:9090/publisher
+    {"name":"Penguin Books","_id":"51921ef8b67cc57333000002"}
+
+    curl -X POST -d "{\"name\":\"Wizard of Oz\"}" http://localhost:9090/book
+    {"name":"Wizard of Oz","_id":"51921ef8b67cc57333000003"}
+    
+    curl -X PUT http://localhost:9090/book/51921ef8b67cc57333000003/publisher/51921ef8b67cc57333000002
+    {"name":"Wizard of Oz","_id":"51921ef8b67cc57333000004"}
+
+    curl -X PUT http://localhost:9090/book/51921ef8b67cc57333000003/author/51921ef8b67cc57333000001
+    {"name":"Wizard of Oz","_id":"51921ef8b67cc57333000004"}
+
+What if we want to look up books by a ``Publisher`` or ``Author``. Now that we have books associated with both a ``Publisher`` or ``Author`` we can implement the two methods that let us do exactly this, namely ``getBooksByPublisher`` and ``getBooksByAuthor``.
+
+.. code-block:: javascript
+
+  // GET /publisher/:id/books
+  var getBooksByPublisher = function(req, res) { 
+    dbInstance.collection('publishers').findOne({_id: new ObjectID(req.params.id)}, function(err, publisher) {
+      if(err)
+        return writeError(res, 500, 'Failed to retrieve publisher with id ' + req.params.id);
+
+      if(!publisher)
+        return writeError(res, 406, 'Publisher with ' + req.params.id + " was not found");
+
+      dbInstance.collection('books').find({"publisher.publisher_id": publisher._id}, {loaned_out_to: 0}).toArray(function(err, books) {
+        if(err)
+          return writeError(res, 500, 'Failed to retrieve books for publisher with id ' + req.params.id);
+
+        res.end(JSON.stringify(books));
+      });
+    });
+  }
+
+As a ``Book`` is now associated to a ``Publisher`` through the ``publisher.publisher_id`` field we can now easily look up all ``Books`` for a particular known ``Publisher``. The ``getBooksByAuthor`` method perform the same action but for looking up books by a known system ``Author`` instead.
+
+.. code-block:: javascript
+
+  // GET /author/:id/books
+  var getBooksByAuthor = function(req, res) { 
+    dbInstance.collection('authors').findOne({_id: new ObjectID(req.params.id)}, function(err, author) {
+      if(err)
+        return writeError(res, 500, 'Failed to retrieve author with id ' + req.params.id);
+
+      if(!author)
+        return writeError(res, 406, 'Author with ' + req.params.id + " was not found");
+
+      dbInstance.collection('books').find({"authors.id": author._id}, {loaned_out_to: 0}).toArray(function(err, books) {
+        if(err)
+          return writeError(res, 500, 'Failed to retrieve books for author with id ' + req.params.id);
+
+        res.end(JSON.stringify(books));
+      });
+    });
+  }
+
+In ``getBooksByAuthor`` we look up any book where there is an embedded document in the array off ``authors`` that contains the ``id`` equivalent to the given ``Author`` id. Did you maybe notice the ``{loaned_out_to: 0}`` part of the ``find`` and wonder what that means. ``{loaned_out_to: 0}`` is what's called a ``projection`` in ``MongoDB``. Basically it means we are filtering out the field ``loaned_out_to`` from the documents returned from the database as this is non-needed information. ``Projection`` let's you avoid returning all the document when it's not strictly needed, when you want to reduce the size of the document results sent to your application from the server or there are parts that needs to be filtered out as in this case where the ``loaned_out_to`` is an internal state of the ``API``.
+
+Let's try out the new search methods by firing up ``Curl`` and retrieving the ``Books`` by ``Publisher`` and ``Author``.
+
+.. code-block:: console
+
+    curl -X GET http://localhost:9090/publisher/51921ef8b67cc57333000002/books
+    [{"_id":"51921ef8b67cc57333000003","authors":[{"id":"51921ef8b67cc57333000001","name":"L. Frank Baum"}],"name":"Wizard of Oz","publisher":{"publisher_id":"51921ef8b67cc57333000002"}}]
+
+    curl -X GET http://localhost:9090/author/51921ef8b67cc57333000001/books
+    [{"_id":"51921ef8b67cc57333000003","authors":[{"id":"51921ef8b67cc57333000001","name":"L. Frank Baum"}],"name":"Wizard of Oz","publisher":{"publisher_id":"51921ef8b67cc57333000002"}}]
