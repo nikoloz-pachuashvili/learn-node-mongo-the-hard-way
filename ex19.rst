@@ -68,7 +68,6 @@ Let's consider the ``User`` entity described above. We know the user has a ``nam
           {
               "id": 1
             , "title": "Fall of the Roman Empire"
-            , "edition": 1973
             , "loaned_on": "1st of June 1986"
             , "due_on": "15th of June 1986"
           }          
@@ -87,7 +86,6 @@ We added an embedded array of documents called ``loaned_books`` that contain doc
           $push: {loaned_books: {
               id: 2
             , title: "Wizard of Oz"
-            , edition: 1967
             , loaned_on: start_date
             , due_on: due_date
           }}
@@ -100,7 +98,7 @@ We added an embedded array of documents called ``loaned_books`` that contain doc
     db.collection('users').update(
         {_id: 1}
       , {
-          $pop: {loaned_on: {id:2}}
+          $pop: {loaned_books: {id:2}}
         }, function(err, result) {})
 
 3. Extend a loan period (change the due date)
@@ -215,8 +213,7 @@ So what kind of operation could we do on this document.
 .. code-block:: javascript
 
     db.collection('books').update({
-        _id: 1
-      , loaned_out: false
+      _id: 1, loaned_out_to: {$exists: false}
     }, {
         $set: {
           loaned_out: true

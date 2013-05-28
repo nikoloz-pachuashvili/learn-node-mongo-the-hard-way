@@ -74,9 +74,9 @@ POST    /user                               Add a user to the library
 GET     /user/:id                           Get a user off the library
 REMOVE  /user/:id                           Remove a user from the library
 GET     /user/:id/loans                     Get all the books loaned by a specific user
-POST    /user/:id/loan                      Borrow a book
-DELETE  /user/:id/loan                      Return a book
-PUT     /user/:id/loan                      Extend a loan period / modify a loan period
+POST    /user/:id/loan/:book_id             Borrow a book
+DELETE  /user/:id/loan/:book_id             Return a book
+PUT     /user/:id/loan/:book_id             Extend a loan period / modify a loan period
 GET     /loan/overdue                       Get a list of all overdue books
 GET     /loan/overdue/:days                 Get a list of all overdue books in ?days days
 =========================================== ==========================================
@@ -508,9 +508,9 @@ GET     /author/:id/books                   Get books by author
 GET     /publisher/search?query=?           Search for publisher
 GET     /publisher/:id/books                Get the books by publisher
 GET     /user/:id/loans                     Get all the books loaned by a specific user
-POST    /user/:id/loan                      Borrow a book
-DELETE  /user/:id/loan                      Return a book
-PUT     /user/:id/loan                      Extend a loan period / modify a loan period
+POST    /user/:id/loan/:book_id             Borrow a book
+DELETE  /user/:id/loan/:book_id             Return a book
+PUT     /user/:id/loan/:book_id             Extend a loan period / modify a loan period
 GET     /loan/overdue                       Get a list of all overdue books
 GET     /loan/overdue/:days                 Get a list of all overdue books in ?days days
 =========================================== ==========================================

@@ -15,9 +15,9 @@ GET     /book/search?query=?                Search for books by title
 GET     /author/search?query=?              Search for author
 GET     /publisher/search?query=?           Search for publisher
 GET     /user/:id/loans                     Get all the books loaned by a specific user
-POST    /user/:id/loan                      Borrow a book
-DELETE  /user/:id/loan                      Return a book
-PUT     /user/:id/loan                      Extend a loan period / modify a loan period
+POST    /user/:id/loan/:book_id             Borrow a book
+DELETE  /user/:id/loan/:book_id             Return a book
+PUT     /user/:id/loan/:book_id             Extend a loan period / modify a loan period
 GET     /loan/overdue                       Get a list of all overdue books
 GET     /loan/overdue/:days                 Get a list of all overdue books in ?days days
 =========================================== ==========================================
@@ -140,8 +140,11 @@ Now let's test our new methods using ``Curl`` from the command line.
     curl -X POST -d "{\"name\":\"Penguin Books\"}" http://localhost:9090/publisher
     {"name":"Penguin Books","_id":"51921ef8b67cc57333000002"}
 
-    curl -X POST -d "{\"name\":\"Wizard of Oz\"}" http://localhost:9090/book
+    curl -X POST -d "{\"title\":\"Wizard of Oz\"}" http://localhost:9090/book
     {"name":"Wizard of Oz","_id":"51921ef8b67cc57333000003"}
+
+    curl -X POST -d "{\"name\":\"James Bond\"}" http://localhost:9090/user
+    {"name":"James Bond","_id":"51921ef8b67cc57333000004"}
     
     curl -X PUT http://localhost:9090/book/51921ef8b67cc57333000003/publisher/51921ef8b67cc57333000002
     {"name":"Wizard of Oz","_id":"51921ef8b67cc57333000004"}
@@ -204,3 +207,595 @@ Let's try out the new search methods by firing up ``Curl`` and retrieving the ``
 
     curl -X GET http://localhost:9090/author/51921ef8b67cc57333000001/books
     [{"_id":"51921ef8b67cc57333000003","authors":[{"id":"51921ef8b67cc57333000001","name":"L. Frank Baum"}],"name":"Wizard of Oz","publisher":{"publisher_id":"51921ef8b67cc57333000002"}}]
+
+We need to provide a couple of ways for the users of our ``API`` to search for ``Books``. These are embodied in the methods ``searchByAuthor``, ``searchByPublisher`` and ``searchByBook``. We are going to use a new experimental index introduced in ``MongoDB`` 2.4 to allow us to perform full text search on documents.
+
+.. NOTE::
+  
+  Full text search is a beta feature in ``MongoDB`` 2.4 and will most likely change a lot in forthcoming versions as it get moved from beta into a fully supported feature.
+
+Let's start with a slight modification to the connection code to create our index.
+
+.. code-block:: javascript
+
+  // Connect to MongoDB
+  MongoClient.connect("mongodb://localhost:27017/library", function(err, db) {
+    if(err) throw err;
+    dbInstance = db;
+    console.log("connected to mongodb")
+
+    db.admin().command({ setParameter : 1, textSearchEnabled : true }, function(err, result) {
+
+      db.collection('books').ensureIndex({title:"text"}, {w:0});
+      db.collection('authors').ensureIndex({name:"text"}, {w:0});
+      db.collection('publishers').ensureIndex({name:"text"}, {w:0});
+
+      server.listen(9090, function() {
+        console.log("listening on ", 9090);
+      });  
+    });
+  });
+
+The first part of the change is to execute a command against the ``admin`` database to enable the ``BETA`` text search capabilities in ``MongoDB`` 2.4. We then create a text index for each of the collections ``books``, ``authors`` and ``publishers``. The only difference between the three indexes is that the ``books`` index is on the ``title`` field of books.
+
+.. NOTE::
+
+  You might want to extend the book model with a ``description`` or ``summary`` field in the future. To index this field you might want to drop the existing text index and then reindex by changing the book index creation command to db.``collection('books').ensureIndex({title:"text", summary:"text"}, {w:0})``
+
+  More indepth information about the text index is available in a future exercise.
+
+Now when we reboot our ``API`` it will automatically create the right text indexes. It's now time to implement the first search method ``searchByAuthor``. But first let's create a little helper method to be able to access the ``query`` parameter at the end of the ``url``.
+
+.. code-block:: javascript
+
+  var queryHelper = function(req) {
+    var url_parts = url.parse(req.url, true);
+    return url_parts.query;  
+  }
+
+Also ensure you add the ``var url = require('url');`` line at the top of your script. So what does ``queryHelper`` do?. It's fairly simple it takes the ``?query=xxx`` and parses it into form we can more easily work with. If you pass it a request for the url ``http://localhost:9090/author/search?query=test`` it will return an object that looks like ``{query: "test"}`` making it easy for us to get hold of the query the user is performing. Now that we have this method it's time to write the ``searchByAuthor`` method.
+
+.. NOTE::
+  
+  What if you want to use more than a single word?. Well you have to ``URL`` encode your query. What does that mean? Well there are certain characters that are not allowed in a query string such as a blank space. If you wanted to encode the query ``oz wizard`` you would need to convert the space so that the query looked like ``oz%20wizard``. So a query for a book would look like ``http://localhost:9090/author/search?query=oz%20wizard``.
+
+.. code-block:: javascript
+
+  // GET /author/search?query=?
+  var searchByAuthor = function(req, res) {
+    var queryStringParams = queryHelper(req);
+    var query = queryStringParams.query || '';
+
+    dbInstance.command({text: "authors", search: query}, function(err, results) {
+      if(err)
+        return writeError(res, 500, 'Failed to search by author with search ' + query);
+
+      res.end(JSON.stringify(results.results));
+    });
+  }
+
+The code is not very difficult to understand, we execute the ``text`` search command and it returns a document.
+
+.. code-block:: javascript
+
+  {
+    "queryDebugString" : "oz||||||",
+    "language" : "english",
+    "results" : [
+      {
+        "score" : 0.75,
+        "obj" : {
+          "_id" : ObjectId("51921ef8b67cc57333000003"),
+          "authors" : [
+            {
+              "id" : ObjectId("51921ef8b67cc57333000001"),
+              "name" : "L. Frank Baum"
+            }
+          ],
+          "publisher" : {
+            "publisher_id" : ObjectId("51921ef8b67cc57333000002")
+          },
+          "title" : "Wizard of Oz"
+        }
+      }
+    ],
+    "stats" : {
+      "nscanned" : 1,
+      "nscannedObjects" : 0,
+      "n" : 1,
+      "nfound" : 1,
+      "timeMicros" : 107
+    },
+    "ok" : 1
+  }
+
+The actual search results are in the ``results`` field and the code turns the results into ``JSON`` and returns it. Due to text search being a ``command`` in ``MongoDB`` 2.4 it's limited to a maximum result set of ``16 MB``. It's very likely this will change going forward with the text search returning a cursor that lets you iterate over the returned results. Nice not very hard right. Let's take a look at the ``searchByPublisher`` method.
+
+.. code-block:: javascript
+
+  // GET /publisher/search?query=?
+  var searchByPublisher = function(req, res) { 
+    var queryStringParams = queryHelper(req);
+    var query = queryStringParams.query || '';
+
+    dbInstance.command({text: "publishers", search: query}, function(err, results) {
+      if(err)
+        return writeError(res, 500, 'Failed to search by author with search ' + query);
+
+      res.end(JSON.stringify(results.results));
+    });
+  }
+
+Pretty much the same as the ``searchByAuthor`` method with the difference being that we are searching the ``publishers`` pages. Finally let's allow to search for books using the method ``searchByBook``.
+
+.. code-block:: javascript
+
+  // GET /book/search?query=?
+  var searchByBook = function(req, res) { 
+    var queryStringParams = queryHelper(req);
+    var query = queryStringParams.query || '';
+
+    dbInstance.command({text: "books", search: query, project: {loaned_out_to: 0}}, function(err, results) {
+      if(err)
+        return writeError(res, 500, 'Failed to search by author with search ' + query);
+
+      res.end(JSON.stringify(results.results));
+    });
+  }
+
+Notice the single difference? Yeah you are right it's the ``project: {loaned_out_to: 0}`` field we passed into the command. This works exactly the same as the field projection parameter in a normal ``find`` allowing you to filter out fields that you do not want to return. In our case we don't want to return the ``loaned_out_to`` field as it's internal state for the ``API`` and should not be available outside. So let's test out the new ``API's`` using the ``curl`` commands.
+
+.. code-block:: console
+
+  curl -X GET http://localhost:9090/author/search?query=james
+  [{"score":0.75,"obj":{"name":"James Kirk","_id":"51921ef8b67cc57333000001"}}]
+
+  curl -X GET http://localhost:9090/publisher/search?query=books
+  [{"score":0.75,"obj":{"name":"Penguin Books","_id":"51921ef8b67cc57333000002"}}]
+
+  http://localhost:9090/book/search?query=oz
+  [{"score":0.75,"obj":{"_id":"51921ef8b67cc57333000003","authors":[{"id":"51921ef8b67cc57333000001","name":"L. Frank Baum"}],"name":"Wizard of Oz","publisher":{"publisher_id":"51921ef8b67cc57333000002"},"title":"Wizard of Oz"}}]
+
+Alright it's time to add the ability to borrow books from our library. Let's look at the ``borrowABook`` function.
+
+.. code-block:: javascript
+
+  // POST /user/:id/loan/:book_id
+  var borrowABook = function(req, res) { 
+    dbInstance.collection('books').findOne({_id: new ObjectID(req.params.book_id)}, function(err, book) {
+      if(err)
+        return writeError(res, 500, 'Failed to retrieve Book for id ' + req.params.id);
+
+      if(!book)
+        return writeError(res, 406, 'Book with ' + req.params.book_id + " was not found");
+
+      dbInstance.collection('users').findOne({_id: new ObjectID(req.params.id)}, function(err, user) {
+        if(err)
+          return writeError(res, 500, 'Failed to retrieve User for id ' + req.params.id);
+
+        if(!user)
+          return writeError(res, 406, 'User with ' + req.params.id + " was not found");
+
+        if(book.loaned_out_to)
+          return writeError(res, 406, 'Book with ' + req.params.book_id + " already loaned out");
+
+        var currentDate = new Date();
+        var dueOn = currentDate;
+        var dueOnTime = currentDate.getTime() + (14 * 24 * 60 * 60 * 1000);
+        dueOn.setTime(dueOnTime);
+
+        var loanedOutTo = {
+            user_id: user._id
+          , loaned_on: new Date()
+          , due_on: dueOn
+        }
+
+        var loanedBook = {
+            id: book._id 
+          , title: book.title
+          , loaned_out: loanedOutTo.loaned_on
+          , due_on: loanedOutTo.due_on
+        }
+
+        dbInstance.collection('books').update({_id: new ObjectID(req.params.book_id), loaned_out_to: {$exists: false}}
+          , {$set: { loaned_out:true, loaned_out_to: loanedOutTo }}, function(err, updated) {
+
+          if(err || updated == 0)
+            return writeError(res, 500, 'Failed to loan Book with id ' + req.params.book_id);
+
+          dbInstance.collection('users').update({_id: new ObjectID(req.params.id)}
+            , {$push: { loaned_books: loanedBook }}, function(err, updated) {
+
+            if(err || updated == 0)
+              return writeError(res, 500, 'Failed to update User with id ' + req.params.id);
+
+            res.end(JSON.stringify(loanedBook));
+          });
+        });
+      });
+    });
+  }
+
+Alright we got quite a bit more code than the other methods we have implemented so far, but not to worry it's much simpler than what it looks. Remember two exercises ago we defined the operations we needed to perform when borrowing a book? Let's take a look.
+
+1. Add a new loan to the user document
+  
+.. code-block:: javascript
+
+    db.collection('users').update(
+        {_id: 1}
+      , {
+          $push: {loaned_books: {
+              id: 2
+            , title: "Wizard of Oz"
+            , loaned_on: start_date
+            , due_on: due_date
+          }}
+        }, function(err, result) {})
+
+2. Mark the ``Wizard of Oz`` book as borrowed.
+
+.. code-block:: javascript
+
+    db.collection('books').update({
+      _id: 1, loaned_out_to: {$exists: false}
+    }, {
+        $set: {
+          loaned_out: true
+        , loaned_out_to: {
+              user_id: 1
+            , loaned_on: new Date()
+            , due_on: due_date_variable
+          }
+        }
+    }, function(err, doc) {});
+
+With this in mind the first part of the ``borrowABook`` method is just to ensure the passed in ``User`` and ``Book`` exist in our library. The next line is.
+
+.. code-block:: javascript
+
+  if(book.loaned_out_to)
+    return writeError(res, 406, 'Book with ' + req.params.book_id + " already loaned out");
+
+We check if the returned ``Book`` document is already loaned to another ``User``. If the field ``loaned_out_to`` exists it's been marked as loaned out.
+
+Next wee need to calculate the due date that in this library is hardcoded to 14 days and then build the embedded documents for the loan.
+
+.. code-block:: javascript
+
+    var currentDate = new Date();
+    var dueOn = currentDate;
+    var dueOnTime = currentDate.getTime() + (14 * 24 * 60 * 60 * 1000);
+    dueOn.setTime(dueOnTime);
+
+    var loanedOutTo = {
+        user_id: user._id
+      , loaned_on: new Date()
+      , due_on: dueOn
+    }
+
+    var loanedBook = {
+        id: book._id 
+      , title: book.title
+      , loaned_out: loanedOutTo.loaned_on
+      , due_on: loanedOutTo.due_on
+    }
+
+To calculate a due date ``14`` days in the future we take the current time in ``milliseconds`` and add (14 days * 24 hours * 60 minutes * 60 seconds * 1000 miliseconds in a second) to the date. We then prepare the ``loaned_out_to`` document that will set on the ``Book`` document indicating that it's loaned out. Likewise we set up the ``loanedBook`` document that will be added to the list of books borrowed by a specific ``User``.
+
+Now comes the trick. We need to ensure we only loan out the book if nobody has borrowed while we were setting up our loan details. We do this by only updating the ``Book`` ``loaned_out_to`` field if it does not exist when the ``update`` is performed. This is done with.
+
+.. code-block:: javascript
+
+  dbInstance.collection('books').update({_id: new ObjectID(req.params.book_id), loaned_out_to: {$exists: false}}, function(err, updated) {  
+  });
+
+notice the ``loaned_out_to: {$exists:false}``. This part of the ``find`` part of the ``update`` operation ensure that we will only match on a ``Book`` that has not been loaned out (meaning the ``loaned_out_to`` is not set).
+
+Awesome so if the first ``update`` succeeds we now need to add the book to the ``User`` documents under the array in the field ``loaned_books``. That's simpler than the previous update as we don't need to worry about concurrent updates adding the book multiple times. Let's look at the ``update`` statement.
+
+.. code-block:: javascript
+
+  dbInstance.collection('users').update({_id: new ObjectID(req.params.id)}
+            , {$push: { loaned_books: loanedBook }}, function(err, updated) {
+  });
+
+Notice how we use the ``$push`` operator. It will create the array field ``loaned_books`` if none already exists. Test out the ability to borrow a book using ``curl``.
+
+.. code-block:: console
+
+  curl -X POST http://localhost:9090/user/51921ef8b67cc57333000004/loan/51921ef8b67cc57333000003
+  {"id":"51921ef8b67cc57333000003","title":"Wizard of Oz","loaned_out":"2013-05-28T11:18:02.795Z","due_on":"2013-06-11T11:18:02.795Z"}
+
+Now let's get to the other important aspect of a library, namely being able to return a borrowed book. In our case this is the ``returnAABook`` method. Let's have a look at the code
+
+.. code-block:: javascript
+
+  // DELETE  /user/:id/loan/:book_id
+  var returnAABook = function(req, res) { 
+    dbInstance.collection('books').findOne({_id: new ObjectID(req.params.book_id)}, function(err, book) {
+      if(err)
+        return writeError(res, 500, 'Failed to retrieve Book for id ' + req.params.id);
+
+      if(!book)
+        return writeError(res, 406, 'Book with ' + req.params.book_id + " was not found");
+
+      dbInstance.collection('users').findOne({_id: new ObjectID(req.params.id)}, function(err, user) {
+        if(err)
+          return writeError(res, 500, 'Failed to retrieve User for id ' + req.params.id);
+
+        if(!user)
+          return writeError(res, 406, 'User with ' + req.params.id + " was not found");
+
+        dbInstance.collection('books').update({_id: new ObjectID(req.params.book_id), loaned_out: true}
+          , {$set: { loaned_out:false}, $unset: {loaned_out_to: null} }, function(err, updated) {
+
+          if(err || updated == 0)
+            return writeError(res, 500, 'Failed to return Book with id ' + req.params.book_id);
+
+          dbInstance.collection('users').update({_id: new ObjectID(req.params.id)}
+            , {$pop: { loaned_books: {id: new ObjectID(req.params.book_id) }}}, function(err, updated) {
+
+            if(err || updated == 0)
+              return writeError(res, 500, 'Failed to update User with id ' + req.params.id);
+
+            res.end(JSON.stringify(book.loaned_out_to));
+          });
+        });
+      });
+    });
+  }
+
+Just as in the previous method we first check if the ``User`` and ``Book`` are valid before we update the state. Since race conditions don't matter in this case we can do a much simpler update scheme. Let's look at the two ``update`` statements.
+
+.. code-block:: javascript
+
+  dbInstance.collection('books').update({_id: new ObjectID(req.params.book_id), loaned_out: true}
+      , {$set: { loaned_out:false}, $unset: {loaned_out_to: null} }, function(err, updated) {});
+
+The first update statement takes the passed in boko and removes the ``loaned_out_to`` field using ``$unset``. This makes the ``Book`` available for borrowing again.
+
+.. code-block:: javascript
+
+  dbInstance.collection('users').update({_id: new ObjectID(req.params.id)}
+    , {$pop: { loaned_books: {id: new ObjectID(req.params.book_id) }}}, function(err, updated) {});
+
+The second update statement removed the borrowed book from the list of ``loaned_books`` in the ``User`` document using the ``$pop`` operator matching on the document in the ``loaned_books`` array that has the ``id`` field equivalent to the Book that was returned to the library. Let's exercise the new ``API`` using ``curl``.
+
+.. code-block:: console
+
+  curl -X DELETE http://localhost:9090/user/51921ef8b67cc57333000004/loan/51921ef8b67cc57333000003
+  {"id":"51921ef8b67cc57333000003","title":"Wizard of Oz","loaned_out":"2013-05-28T11:18:02.795Z","due_on":"2013-06-11T11:18:02.795Z"}
+
+Awesome we now have the ability to borrow and return books. We just have a couple of more features for our ``API`` before we wrap it up in our next exercise with some refactorings (changing the code to make it simpler) as well as adding some validation.
+
+=========================================== ==========================================
+Method Url                                  Description
+=========================================== ==========================================
+GET     /user/:id/loans                     Get all the books loaned by a specific user
+PUT     /user/:id/loan/:book_id             Extend a loan period / modify a loan period
+GET     /loan/overdue                       Get a list of all overdue books
+GET     /loan/overdue/:days                 Get a list of all overdue books in ?days days
+=========================================== ==========================================
+
+Let's look at the first method which allows the ``API`` to return the list of books borrowed by a specific user ``getLoansByUser``.
+
+.. code-block:: javascript
+
+  // GET /user/:id/loans
+  var getLoansByUser = function(req, res) { 
+    dbInstance.collection('users').findOne({_id: new ObjectID(req.params.id)}, function(err, user) {
+      if(err)
+        return writeError(res, 500, 'Failed to retrieve User for id ' + req.params.id);
+
+      if(!user)
+        return writeError(res, 406, 'User with ' + req.params.id + " was not found");
+
+      var loaned_books = user.loaned_books || [];
+      res.end(JSON.stringify(loaned_books));
+    });
+  }
+
+It's a very simple method all we do is return the books the ``User`` has currently lent (notice the ``||``, that makes sure we return an empty array if the ``User`` has not borrowed any books). Let's try it using ``curl``. The first ``curl`` command is to ensure the ``User`` has borrowed a book so we can get a result.
+
+.. code-block:: console
+
+  curl -X POST http://localhost:9090/user/51921ef8b67cc57333000004/loan/51921ef8b67cc57333000003
+  {"id":"51921ef8b67cc57333000003","title":"Wizard of Oz","loaned_out":"2013-05-28T11:18:02.795Z","due_on":"2013-06-11T11:18:02.795Z"}
+
+  curl -X GET http://localhost:9090/user/51921ef8b67cc57333000004/loans
+  [{"id":"51921ef8b67cc57333000003","title":"Wizard of Oz","loaned_out":"2013-05-28T12:35:52.330Z","due_on":"2013-06-11T12:35:52.330Z"}]
+
+So what if the user wants to renew the book for another 14 day period. For this we have the method ``modifyLoan``. Let's take a look.
+
+.. code-block:: javascript
+
+  // PUT /user/:id/loan/:book_id
+  var modifyLoan = function(req, res) { 
+    dbInstance.collection('books').findOne({_id: new ObjectID(req.params.book_id)}, function(err, book) {
+      if(err)
+        return writeError(res, 500, 'Failed to retrieve Book for id ' + req.params.id);
+
+      if(!book)
+        return writeError(res, 406, 'Book with ' + req.params.book_id + " was not found");
+
+      dbInstance.collection('users').findOne({_id: new ObjectID(req.params.id)}, function(err, user) {
+        if(err)
+          return writeError(res, 500, 'Failed to retrieve User for id ' + req.params.id);
+
+        if(!user)
+          return writeError(res, 406, 'User with ' + req.params.id + " was not found");
+
+        if(!user.loaned_books) 
+          return writeError(res, 406, 'User with ' + req.params.id + " has not borrowed any books");
+
+        // Let's locate the book
+        var loaned_book;
+        
+        for(var i = 0; user.loaned_books.length; i++) {
+          if(user.loaned_books[i].id.toString() == req.params.book_id) {
+            loaned_book = user.loaned_books[i];
+            break;
+          }
+        }
+
+        if(loaned_book == null)
+          return writeError(res, 406, 'User with ' + req.params.id + " has not borrowed the book with id " + req.params.book_id);
+
+        var currentDate = loaned_book.due_on;
+        var dueOn = currentDate;
+        var dueOnTime = currentDate.getTime() + (14 * 24 * 60 * 60 * 1000);
+        dueOn.setTime(dueOnTime);
+
+        dbInstance.collection('users')
+          .update({_id: new ObjectID(req.params.id), "loaned_books.id": new ObjectID(req.params.book_id)}
+              , {$set: {"loaned_books.$.due_on": dueOn}}, function(err, updated) {
+
+            if(err || updated == 0)
+              return writeError(res, 500, 'Failed to update User with id ' + req.params.id);
+
+            loaned_book.due_on = dueOn;
+            res.end(JSON.stringify(loaned_book));          
+          });
+      });
+    });
+  }
+
+Quite a mouthful right. But not to worry it's not as hard as it seems. Let's break it down. Just as in previous methods we ensure that the passed in ``User`` and ``Book`` exists before getting to the meat of the method. The first thing you might notice is that we check if the ``User`` has the field ``loaned_books`` set. If it does not then obviously we cannot renew the loan as the user never borrowed the book. If they have books out we iterate over the list of ``loaned_books`` and attempt to locate the ``Book`` we wish to renew. If no ``Book`` is found ``loaned_book == null`` we return an error as the ``User`` has not borrowed this ``Book`` and we cannot renew a non existing ``Book``. If he has borrowed the ``Book`` we calculate a new due date 14 days in the future from the existing due date. We then update the ``loan`` due date. Let's have a look at the update statement.
+
+.. code-block:: javascript
+
+  dbInstance.collection('users')
+    .update({_id: new ObjectID(req.params.id), "loaned_books.id": new ObjectID(req.params.book_id)}
+        , {$set: {"loaned_books.$.due_on": dueOn}}, function(err, updated) {
+      });
+
+The ``{_id: new ObjectID(req.params.id), "loaned_books.id": new ObjectID(req.params.book_id)`` selector will match on the right ``User`` and then the correct borrowed ``Book`` in the ``loaned_books`` array. The ``{$set: {"loaned_books.$.due_on": dueOn}}`` update statement used the positional operator ``$`` to change the ``due_on`` field in the first matched embedded document in the ``loaned_books`` array which will be the ``Book`` we want to renew.
+
+Great now we have a possibility to renew a ``Book``. We now need to be able to discover what ``Books`` are passed their due date and also what ``Books`` are due in the next ``X`` days so we can send reminders to ``Users`` that their ``Books`` are due soon. Let's start with the list of ``Books`` that are due, namely the method ``overdueLoans``.
+
+.. code-block:: javascript
+
+  // GET /loan/overdue
+  var overdueLoans = function(req, res) { 
+    dbInstance.collection('users').aggregate(
+      [
+          { $match: {"loaned_books.due_on": { $lte: new Date() } } }
+        , { $unwind: "$loaned_books" }
+        , { $project: {
+                _id: "$loaned_books.id"
+              , user_id: "$_id"
+              , title: "$loaned_books.title"
+              , loaned_out: "$loaned_books.loaned_out"
+              , due_on: "$loaned_books.due_on"
+            }
+          }
+      ], function(err, results) {
+        if(err)
+          return writeError(res, 500, 'Failed to locate overdue books');
+
+        res.end(JSON.stringify(results));
+    });
+  }
+
+Remember how the borrowed ``Books`` are inside the ``User`` document?. We want to just return the matching ``Books`` for all users that are overdue as a single list of ``Books`` that are overdue with the ``user_id`` of the user who borrowed that particular overdue ``Book``; For this we will use the ``Aggregation Framework`` introduced in ``MongoDB`` 2.2. In a later exercise we will into all the intricacies of the Application Framework for now we will skim and just look at the little subset off operations we are using.
+
+The Aggregation Framework works as a set of transformations where each stage does some action on the data provided. In this case it's broken up into 3 different stages.
+
+.. code-block:: javascript
+
+  { $match: {"loaned_books.due_on": { $lte: new Date() } } }
+
+The ``$match`` operator is the equivalent to the ``find`` operation in that it will look for a set of documents in the collection that matches the passed in operators. Fairly simple and straight forward. The next operator is.
+
+.. code-block:: javascript
+
+  { $unwind: "$loaned_books" }
+
+The ``$unwind`` operator is a little harder to grasp but what it does is simple. It takes the array in the ``User`` document ``loaned_books`` and ``unwinds`` it by creating an individual document for each item in the array. Better to show by example. Lets take the following document.
+
+.. code-block:: javascript
+
+  {
+    _id: 1
+    loaned_books: [
+        {id: 2}
+      , {id: 3}
+    ]
+  }
+
+After we do ``{ $unwind: "$loaned_books" }`` we get the following documents.
+
+.. code-block:: javascript
+
+  {
+    _id: 1
+    loaned_books: {id: 2}
+  }
+
+  {
+    _id: 1
+    loaned_books: {id: 3}
+  }
+
+So as we can see we have expanded the array into a set of documents where each element in the array is mapped to a copy of the original document under the ``loaned_books`` field. Finally we want to make the embedded document under ``loaned_books`` be at the top level of the document. We execute the last step in our aggregation.
+
+.. code-block:: javascript
+
+  { $project: {
+        _id: "$loaned_books.id"
+      , user_id: "$_id"
+      , title: "$loaned_books.title"
+      , loaned_out: "$loaned_books.loaned_out"
+      , due_on: "$loaned_books.due_on"
+    }
+  }
+
+What we actually are doing is transforming (or rewriting) the documents from the ``$unwind`` step. ``user_id: "$_id"`` moves the ``_id`` field into the new field ``user_id`` while the field ``$loaned_books.id`` becomes the new ``_id`` field. Similarly we move the ``title``, ```loaned_out`` and ``due_on`` up from ``loaned_books``. The result is a brand new document. Given that we have a book passed it's due date (creating or modifying a ``User`` document for this is left to you as an exercise. A hint is to look at the update code above and use the mongo console).
+
+.. code-block:: console
+
+  curl -X GET http://localhost:9090/loan/overdue
+  [{"_id":"51921ef8b67cc57333000003","user_id":"51921ef8b67cc57333000004","title":"Wizard of Oz","loaned_out":"2013-05-28T12:35:52.330Z","due_on":"2013-05-23T13:22:15.568Z"}]
+
+We will get deeper into the Aggregation framework in a later exercise but it's quite useful as you can see and a lot more powerful. At the moment however it's limited as it's a command thus limiting it to a maximum result size of 16MB.
+
+We only have one more method to implement ``overdueLoansByDays``. Let's have a look at the code.
+
+.. code-block:: javascript
+
+  // GET /loan/overdue/:days
+  var overdueLoansByDays = function(req, res) { 
+    var days = parseInt(req.params.days, 10);
+    var currentDate = new Date();
+    var time = currentDate.getTime() + (days * 24 * 60 * 60 * 1000);
+    currentDate.setTime(time);
+
+    dbInstance.collection('users').aggregate(
+      [
+          { $match: {"loaned_books.due_on": { $lte: currentDate } } }
+        , { $unwind: "$loaned_books" }
+        , { $project: {
+                _id: "$loaned_books.id"
+              , user_id: "$_id"
+              , title: "$loaned_books.title"
+              , loaned_out: "$loaned_books.loaned_out"
+              , due_on: "$loaned_books.due_on"
+            }
+          }
+      ], function(err, results) {
+        if(err)
+          return writeError(res, 500, 'Failed to locate overdue books');
+
+        res.end(JSON.stringify(results));
+    });
+  }
+
+As we can see the only difference is in the date we pass in ``days`` that lets us check for books that validate ``x`` days in the future. Let's try it out using ``curl``.
+
+.. code-block:: console
+
+  curl -X GET http://localhost:9090/loan/overdue/1
+  [{"_id":"51921ef8b67cc57333000003","user_id":"51921ef8b67cc57333000004","title":"Wizard of Oz","loaned_out":"2013-05-28T12:35:52.330Z","due_on":"2013-05-23T13:22:15.568Z"}]
+
+Awesome that wraps up the ``API`` methods. In the next exercise we will refactor our code to include some missing validation and to reduce the code repetition.

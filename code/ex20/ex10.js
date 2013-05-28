@@ -1,4 +1,5 @@
 var http = require('http')
+  , url = require('url')
   , mongodb = require('mongodb')
   , parse = require('url').parse
   , MongoClient = mongodb.MongoClient
@@ -86,20 +87,14 @@ var router = {
   }
 }
 
-// Methods
-var searchByBook = function(req, res) { res.end('searchByBook'); }
-var getLoansByUser = function(req, res) { res.end('getLoansByUser'); }
-
-// Publisher API's
-var borrowABook = function(req, res) { res.end('borrowABook'); }
-var returnAABook = function(req, res) { res.end('returnAABook'); }
-var modifyLoan = function(req, res) { res.end('modifyLoan'); }
-var overdueLoans = function(req, res) { res.end('overdueLoans'); }
-var overdueLoansByDays = function(req, res) { res.end('overdueLoansByDays'); }
-
 var writeError = function(res, code, message) {
   res.writeHead(code, message, {'content-type': 'text/plain'});
   res.end(message);
+}
+
+var queryHelper = function(req) {
+  var url_parts = url.parse(req.url, true);
+  return url_parts.query;  
 }
 
 var postJSONHelper = function(req, callback) {  
@@ -165,11 +160,6 @@ var deleteAuthor = function(req, res) {
       res.end(JSON.stringify({_id: req.params.id}));
     });
   });
-}
-
-// GET /author/search?query=?
-var searchByAuthor = function(req, res) {   
-  res.end('searchByAuthor'); 
 }
 
 // POST /publisher
@@ -380,9 +370,6 @@ var associateAuthor = function(req, res) {
   });
 }
 
-var searchByPublisher = function(req, res) { res.end('searchByPublisher'); 
-}
-
 // GET /publisher/:id/books
 var getBooksByPublisher = function(req, res) { 
   dbInstance.collection('publishers').findOne({_id: new ObjectID(req.params.id)}, function(err, publisher) {
@@ -419,6 +406,249 @@ var getBooksByAuthor = function(req, res) {
   });
 }
 
+// GET /author/search?query=?
+var searchByAuthor = function(req, res) {
+  var queryStringParams = queryHelper(req);
+  var query = queryStringParams.query || '';
+
+  dbInstance.command({text: "authors", search: query}, function(err, results) {
+    if(err)
+      return writeError(res, 500, 'Failed to search by author with search ' + query);
+
+    res.end(JSON.stringify(results.results));
+  });
+}
+
+// GET /publisher/search?query=?
+var searchByPublisher = function(req, res) { 
+  var queryStringParams = queryHelper(req);
+  var query = queryStringParams.query || '';
+
+  dbInstance.command({text: "publishers", search: query}, function(err, results) {
+    if(err)
+      return writeError(res, 500, 'Failed to search by author with search ' + query);
+
+    res.end(JSON.stringify(results.results));
+  });
+}
+
+// GET /book/search?query=?
+var searchByBook = function(req, res) { 
+  var queryStringParams = queryHelper(req);
+  var query = queryStringParams.query || '';
+
+  dbInstance.command({text: "books", search: query, project: {loaned_out_to: 0}}, function(err, results) {
+    if(err)
+      return writeError(res, 500, 'Failed to search by author with search ' + query);
+
+    res.end(JSON.stringify(results.results));
+  });
+}
+
+// POST /user/:id/loan/:book_id
+var borrowABook = function(req, res) { 
+  dbInstance.collection('books').findOne({_id: new ObjectID(req.params.book_id)}, function(err, book) {
+    if(err)
+      return writeError(res, 500, 'Failed to retrieve Book for id ' + req.params.id);
+
+    if(!book)
+      return writeError(res, 406, 'Book with ' + req.params.book_id + " was not found");
+
+    dbInstance.collection('users').findOne({_id: new ObjectID(req.params.id)}, function(err, user) {
+      if(err)
+        return writeError(res, 500, 'Failed to retrieve User for id ' + req.params.id);
+
+      if(!user)
+        return writeError(res, 406, 'User with ' + req.params.id + " was not found");
+
+      if(book.loaned_out_to)
+        return writeError(res, 406, 'Book with ' + req.params.book_id + " already loaned out");
+
+      var currentDate = new Date();
+      var dueOn = currentDate;
+      var dueOnTime = currentDate.getTime() + (14 * 24 * 60 * 60 * 1000);
+      dueOn.setTime(dueOnTime);
+
+      var loanedOutTo = {
+          user_id: user._id
+        , loaned_on: new Date()
+        , due_on: dueOn
+      }
+
+      var loanedBook = {
+          id: book._id 
+        , title: book.title
+        , loaned_out: loanedOutTo.loaned_on
+        , due_on: loanedOutTo.due_on
+      }
+
+      dbInstance.collection('books').update({_id: new ObjectID(req.params.book_id), loaned_out_to: {$exists: false}}
+        , {$set: { loaned_out:true, loaned_out_to: loanedOutTo }}, function(err, updated) {
+
+        if(err || updated == 0)
+          return writeError(res, 500, 'Failed to loan Book with id ' + req.params.book_id);
+
+        dbInstance.collection('users').update({_id: new ObjectID(req.params.id)}
+          , {$push: { loaned_books: loanedBook }}, function(err, updated) {
+
+          if(err || updated == 0)
+            return writeError(res, 500, 'Failed to update User with id ' + req.params.id);
+
+          res.end(JSON.stringify(loanedBook));
+        });
+      });
+    });
+  });
+}
+
+// DELETE  /user/:id/loan/:book_id
+var returnAABook = function(req, res) { 
+  dbInstance.collection('books').findOne({_id: new ObjectID(req.params.book_id)}, function(err, book) {
+    if(err)
+      return writeError(res, 500, 'Failed to retrieve Book for id ' + req.params.id);
+
+    if(!book)
+      return writeError(res, 406, 'Book with ' + req.params.book_id + " was not found");
+
+    dbInstance.collection('users').findOne({_id: new ObjectID(req.params.id)}, function(err, user) {
+      if(err)
+        return writeError(res, 500, 'Failed to retrieve User for id ' + req.params.id);
+
+      if(!user)
+        return writeError(res, 406, 'User with ' + req.params.id + " was not found");
+
+      dbInstance.collection('books').update({_id: new ObjectID(req.params.book_id), loaned_out: true}
+        , {$set: { loaned_out:false}, $unset: {loaned_out_to: null} }, function(err, updated) {
+
+        if(err || updated == 0)
+          return writeError(res, 500, 'Failed to return Book with id ' + req.params.book_id);
+
+        dbInstance.collection('users').update({_id: new ObjectID(req.params.id)}
+          , {$pop: { loaned_books: {id: new ObjectID(req.params.book_id) }}}, function(err, updated) {
+
+          if(err || updated == 0)
+            return writeError(res, 500, 'Failed to update User with id ' + req.params.id);
+
+          res.end(JSON.stringify(book.loaned_out_to));
+        });
+      });
+    });
+  });
+}
+
+// GET /user/:id/loans
+var getLoansByUser = function(req, res) { 
+  dbInstance.collection('users').findOne({_id: new ObjectID(req.params.id)}, function(err, user) {
+    if(err)
+      return writeError(res, 500, 'Failed to retrieve User for id ' + req.params.id);
+
+    if(!user)
+      return writeError(res, 406, 'User with ' + req.params.id + " was not found");
+
+    var loaned_books = user.loaned_books || [];
+    res.end(JSON.stringify(loaned_books));
+  });
+}
+
+// PUT /user/:id/loan/:book_id
+var modifyLoan = function(req, res) { 
+  dbInstance.collection('books').findOne({_id: new ObjectID(req.params.book_id)}, function(err, book) {
+    if(err)
+      return writeError(res, 500, 'Failed to retrieve Book for id ' + req.params.id);
+
+    if(!book)
+      return writeError(res, 406, 'Book with ' + req.params.book_id + " was not found");
+
+    dbInstance.collection('users').findOne({_id: new ObjectID(req.params.id)}, function(err, user) {
+      if(err)
+        return writeError(res, 500, 'Failed to retrieve User for id ' + req.params.id);
+
+      if(!user)
+        return writeError(res, 406, 'User with ' + req.params.id + " was not found");
+
+      if(!user.loaned_books) 
+        return writeError(res, 406, 'User with ' + req.params.id + " has not borrowed any books");
+
+      // Let's locate the book
+      var loaned_book;
+      
+      for(var i = 0; user.loaned_books.length; i++) {
+        if(user.loaned_books[i].id.toString() == req.params.book_id) {
+          loaned_book = user.loaned_books[i];
+          break;
+        }
+      }
+
+      if(loaned_book == null)
+        return writeError(res, 406, 'User with ' + req.params.id + " has not borrowed the book with id " + req.params.book_id);
+
+      var currentDate = loaned_book.due_on;
+      var dueOn = currentDate;
+      var dueOnTime = currentDate.getTime() + (14 * 24 * 60 * 60 * 1000);
+      dueOn.setTime(dueOnTime);
+
+      dbInstance.collection('users')
+        .update({_id: new ObjectID(req.params.id), "loaned_books.id": new ObjectID(req.params.book_id)}
+            , {$set: {"loaned_books.$.due_on": dueOn}}, function(err, updated) {
+
+          if(err || updated == 0)
+            return writeError(res, 500, 'Failed to update User with id ' + req.params.id);
+
+          loaned_book.due_on = dueOn;
+          res.end(JSON.stringify(loaned_book));
+        });
+    });
+  });
+}
+
+// GET /loan/overdue
+var overdueLoans = function(req, res) { 
+  dbInstance.collection('users').aggregate(
+    [
+        { $match: {"loaned_books.due_on": { $lte: new Date() } } }
+      , { $unwind: "$loaned_books" }
+      , { $project: {
+              _id: "$loaned_books.id"
+            , user_id: "$_id"
+            , title: "$loaned_books.title"
+            , loaned_out: "$loaned_books.loaned_out"
+            , due_on: "$loaned_books.due_on"
+          }
+        }
+    ], function(err, results) {
+      if(err)
+        return writeError(res, 500, 'Failed to locate overdue books');
+
+      res.end(JSON.stringify(results));
+  });
+}
+
+// GET /loan/overdue/:days
+var overdueLoansByDays = function(req, res) { 
+  var days = parseInt(req.params.days, 10);
+  var currentDate = new Date();
+  var time = currentDate.getTime() + (days * 24 * 60 * 60 * 1000);
+  currentDate.setTime(time);
+
+  dbInstance.collection('users').aggregate(
+    [
+        { $match: {"loaned_books.due_on": { $lte: currentDate } } }
+      , { $unwind: "$loaned_books" }
+      , { $project: {
+              _id: "$loaned_books.id"
+            , user_id: "$_id"
+            , title: "$loaned_books.title"
+            , loaned_out: "$loaned_books.loaned_out"
+            , due_on: "$loaned_books.due_on"
+          }
+        }
+    ], function(err, results) {
+      if(err)
+        return writeError(res, 500, 'Failed to locate overdue books');
+
+      res.end(JSON.stringify(results));
+  });
+}
 
 // Routes for the author
 router.get("/author/search", searchByAuthor);
@@ -435,10 +665,6 @@ router.post("/publisher", createPublisher);
 router.delete("/publisher/:id", deletePublisher);
 
 // Routes for the user
-router.get("/user/:id/loans", getLoansByUser);
-router.post("/user/:id/loan", borrowABook);
-router.delete("/user/:id/loan", returnAABook);
-router.put("/user/:id/loan", modifyLoan);
 router.get("/user/:id", getUser);
 router.post("/user", createUser);
 router.delete("/user/:id", deleteUser);
@@ -446,6 +672,10 @@ router.delete("/user/:id", deleteUser);
 // Routes for handling loans
 router.get("/loan/overdue", overdueLoans);
 router.get("/loan/overdue/:days", overdueLoansByDays);
+router.get("/user/:id/loans", getLoansByUser);
+router.post("/user/:id/loan/:book_id", borrowABook);
+router.delete("/user/:id/loan/:book_id", returnAABook);
+router.put("/user/:id/loan/:book_id", modifyLoan);
 
 // Routes for the book
 router.post("/book", createBook);
@@ -466,7 +696,14 @@ MongoClient.connect("mongodb://localhost:27017/library", function(err, db) {
   dbInstance = db;
   console.log("connected to mongodb")
 
-  server.listen(9090, function() {
-    console.log("listening on ", 9090);
-  });  
+  db.admin().command({ setParameter : 1, textSearchEnabled : true }, function(err, result) {
+
+    db.collection('books').ensureIndex({title:"text"}, {w:0});
+    db.collection('authors').ensureIndex({name:"text"}, {w:0});
+    db.collection('publishers').ensureIndex({name:"text"}, {w:0});
+
+    server.listen(9090, function() {
+      console.log("listening on ", 9090);
+    });  
+  });
 });
