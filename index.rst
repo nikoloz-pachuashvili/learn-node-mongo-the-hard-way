@@ -30,6 +30,7 @@ Table Of Contents
 * `Exercise 19 <ex19.html>`_
 * `Exercise 20 <ex20.html>`_
 * `Exercise 21 <ex21.html>`_
+* `Exercise 22 <ex22.html>`_
 * `Tic Tac Toe Exercise 1 <tic1.html>`_
 * `Tic Tac Toe Exercise 2 <tic2.html>`_
 * `Tic Tac Toe Exercise 3 <tic3.html>`_
