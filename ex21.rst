@@ -798,4 +798,16 @@ As we can see the only difference is in the date we pass in ``days`` that lets u
   curl -X GET http://localhost:9090/loan/overdue/1
   [{"_id":"51921ef8b67cc57333000003","user_id":"51921ef8b67cc57333000004","title":"Wizard of Oz","loaned_out":"2013-05-28T12:35:52.330Z","due_on":"2013-05-23T13:22:15.568Z"}]
 
-Awesome that wraps up the ``API`` methods. In the next exercise we will refactor our code to include some missing validation and to reduce the code repetition.
+Awesome that wraps up the ``API`` methods.
+
+There are several improvements you could do to this code. This is left as an exercise for you. But to point you in the right direction I'll make some observations.
+
+1. There is a fair bit of duplicated code for validating the existence of Documents for ``User``, ``Author`` and ``Publisher`` that you might be able to simplify by extracting some new methods.
+
+2. There is no document validation for the ``POST`` methods. It would be useful if the ``User``, ``Author``, ``Publisher`` and ``Book`` creation methods contained validation of the new documents to ensure no illegal documents are inserted.
+
+3. You might consider breaking the application up into modules, moving the router into a separate file for example.
+
+4. What indexes are missing? Add any missing indexes to ensure you don't force MongoDB to scan entire collections.
+
+That wraps up the exercise.
