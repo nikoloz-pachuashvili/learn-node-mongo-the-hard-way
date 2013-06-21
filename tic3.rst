@@ -120,7 +120,8 @@ Finally let's look at the ``Game.finalize_board`` where we set the final state o
           {_id: new ObjectID(game_id)}
         , {$set: {final_state: state, winner: sid}}, function(err, result) {
           if(err) return callback(err);
-          if(result == 0) return callback(new Error("Failed to finalize the board with a winner or draw"));
+          if(result == 0) 
+            return callback(new Error("Failed to finalize the board with a winner or draw"));
           callback(null, null);
         });    
     }
@@ -162,8 +163,10 @@ You might have noticed that the file is fairly big so we will go through each me
 
       // Function we return that accepts the data from SocketIO
       return function(data) {
-        // Ensure the user is logged on and emit an error to the calling function if it's not the case
-        if(!is_authenticated(socket, session_store)) return emit_error(calling_method_name, "User not authenticated", socket);
+        // Ensure the user is logged on and emit an error to the calling 
+        // function if it's not the case
+        if(!is_authenticated(socket, session_store)) 
+          return emit_error(calling_method_name, "User not authenticated", socket);
         
         // Locate all active socket connections
         var clients = io.sockets.clients();
@@ -216,15 +219,19 @@ The next method concerns the act of inviting another player to play a game. Let'
 
       // Function we return that accepts the data from SocketIO
       return function(data) {
-        // Ensure the user is logged on and emit an error to the calling function if it's not the case
-        if(!is_authenticated(socket, session_store)) return emit_error(calling_method_name, "User not authenticated", socket);
+        // Ensure the user is logged on and emit an error to the calling 
+        // function if it's not the case
+        if(!is_authenticated(socket, session_store)) 
+          return emit_error(calling_method_name, "User not authenticated", socket);
 
         // Locate the destination connection
         var connection = locate_connection_with_session(io, data.sid);
 
         // If there is no connection it means the other player went away, send an error message
         // to the calling function on the client
-        if(connection == null) return emit_error(calling_method_name, "Invited user is no longer available", socket);
+        if(connection == null) 
+          return emit_error(calling_method_name
+            , "Invited user is no longer available", socket);
 
         // Grab our session id
         var our_sid = socket.handshake.sessionID;
@@ -235,7 +242,8 @@ The next method concerns the act of inviting another player to play a game. Let'
           if(err) return emit_error(calling_method_name, err.message, socket);    
           
           // Invite the other player to play a game with the
-          // calling player, we send the calling players session id and his gamer information
+          // calling player, we send the calling players session id and 
+          // his gamer information
           emit_message(event_name, {
               ok: true
             , result: {
@@ -268,20 +276,23 @@ The next method covers the case where the invited gamer decides to decline the i
 
       // Function we return that accepts the data from SocketIO
       return function(data) {
-        // Ensure the user is logged on and emit an error to the calling function if it's not the case
-        if(!is_authenticated(socket, session_store)) return emit_error(calling_method_name, "User not authenticated", socket);
+        // Ensure the user is logged on and emit an error to the calling 
+        // function if it's not the case
+        if(!is_authenticated(socket, session_store)) 
+          return emit_error(calling_method_name, "User not authenticated", socket);
 
         // Grab our session id
         var our_sid = socket.handshake.sessionID;
         // Locate the destination connection
         var connection = locate_connection_with_session(io, data.sid);
 
-        // If there is no connection it means the other player went away, send an error message
-        // to the calling function on the client
-        if(connection == null) return emit_error(calling_method_name, "User is no longer available", socket);
+        // If there is no connection it means the other player went away, 
+        // send an error message to the calling function on the client
+        if(connection == null) 
+          return emit_error(calling_method_name, "User is no longer available", socket);
 
-        // Send an error to the player who sent the invite, outlining the decline of the offer
-        // to play a game
+        // Send an error to the player who sent the invite, outlining the 
+        // decline of the offer to play a game
         emit_error(invite_gamer, "User declined game", connection);
       }
     }
@@ -307,8 +318,10 @@ The last method that is part of the invite game cycle is the ``accept_game`` met
 
       // Function we return that accepts the data from SocketIO
       return function(data) {
-        // Ensure the user is logged on and emit an error to the calling function if it's not the case
-        if(!is_authenticated(socket, session_store)) return emit_error(calling_method_name, "User not authenticated", socket);
+        // Ensure the user is logged on and emit an error to the calling 
+        // function if it's not the case
+        if(!is_authenticated(socket, session_store)) 
+          return emit_error(calling_method_name, "User not authenticated", socket);
         // Our session id
         var our_sid = socket.handshake.sessionID;
         // Locate the destination connection
@@ -316,14 +329,18 @@ The last method that is part of the invite game cycle is the ``accept_game`` met
 
         // If there is no connection it means the other player went away, send an error message
         // to the calling function on the client
-        if(connection == null) return emit_error(calling_method_name, "User is no longer available", socket);    
+        if(connection == null) 
+          return emit_error(calling_method_name, "User is no longer available", socket);    
 
         // Locate both the calling player and the destination player by their session ids
         gamer(db).findAllGamersBySids([our_sid, data.sid], function(err, players) {
           // If we have an error notify both the inviter and the invited player about an error
           if(err || players.length != 2) {
-            emit_error(event_name, "Failed to locate players for game acceptance", connection);
-            return emit_error(calling_method_name, "Failed to locate players for game acceptance", socket);
+            emit_error(event_name
+              , "Failed to locate players for game acceptance"
+              , connection);
+            return emit_error(calling_method_name
+                      , "Failed to locate players for game acceptance", socket);
           }
 
           // Grab player 1 and player 2 from the results
@@ -331,17 +348,19 @@ The last method that is part of the invite game cycle is the ``accept_game`` met
           var p2 = players[1];
           
           // Create a new game with player 1 and player 2
-          game(db).create_game(p1.sid, p1.user_name, p1.full_name, p2.sid, p2.user_name, p2.full_name, function(err, game_doc) {
-            // If we have an error notify both the inviter and the invited player about an error
-            if(err) {
-              emit_error(event_name, "Failed to create a new game", connection);
-              return emit_error(calling_method_name, "Failed to create a new game", socket);
-            }
+          game(db).create_game(p1.sid, p1.user_name
+            , p1.full_name, p2.sid, p2.user_name, p2.full_name, function(err, game_doc) {
+              // If we have an error notify both the inviter and the invited player 
+              // about an error
+              if(err) {
+                emit_error(event_name, "Failed to create a new game", connection);
+                return emit_error(calling_method_name, "Failed to create a new game", socket);
+              }
 
-            // We have a new game, notify both players about the new game information
-            emit_message(event_name, { ok: true, result: game_doc }, connection);
-            emit_message(calling_method_name, { ok: true, result: game_doc }, socket);
-          });
+              // We have a new game, notify both players about the new game information
+              emit_message(event_name, { ok: true, result: game_doc }, connection);
+              emit_message(calling_method_name, { ok: true, result: game_doc }, socket);
+            });
         });
       }
     }
@@ -372,15 +391,18 @@ The ``place_marker`` method handles the actual game play between two players. It
 
       // Function we return that accepts the data from SocketIO
       return function(data) {
-        // Ensure the user is logged on and emit an error to the calling function if it's not the case
-        if(!is_authenticated(socket, session_store)) return emit_error(calling_method_name, "User not authenticated", socket);
+        // Ensure the user is logged on and emit an error to the calling 
+        // function if it's not the case
+        if(!is_authenticated(socket, session_store)) 
+          return emit_error(calling_method_name, "User not authenticated", socket);
         // Grab our session id
         var our_sid = socket.handshake.sessionID;
 
         // Locate the game we want to place a marker on
         game(db).find_game(data.game_id, function(err, game_doc) {
           // If there is an error during the query return it to the calling function
-          if(err) return emit_error(calling_method_name, "Could not find the game", socket);
+          if(err) 
+            return emit_error(calling_method_name, "Could not find the game", socket);
 
           // Let's get the current board in play
           var board = game_doc.board;
@@ -388,9 +410,12 @@ The ``place_marker`` method handles the actual game play between two players. It
           var marker = game_doc.starting_player == our_sid ? "x" : "o";
           
           // Locate other players session id
-          var other_player_sid = game_doc.player1_sid == our_sid ? game_doc.player2_sid : game_doc.player1_sid;
+          var other_player_sid = game_doc.player1_sid == our_sid 
+            ? game_doc.player2_sid 
+            : game_doc.player1_sid;
 
-          // If we are trying to set a cell that's already set emit an error to the calling function
+          // If we are trying to set a cell that's already set emit an error 
+          // to the calling function
           if(board[data.y][data.x] == "x" || board[data.y][data.x] == "o") 
             return emit_error(calling_method_name, "Cell already selected", socket);;
 
@@ -398,54 +423,66 @@ The ``place_marker`` method handles the actual game play between two players. It
           board[data.y][data.x] = marker;
 
           // Attempt to update the board
-          game(db).update_board(our_sid, data.game_id, other_player_sid, board, function(err, result) {
-            // If we have an error it was not our turn
-            if(err) return emit_error(calling_method_name, "Not your turn", socket);
+          game(db).update_board(our_sid, data.game_id, other_player_sid, board
+            , function(err, result) {
+              // If we have an error it was not our turn
+              if(err) 
+                return emit_error(calling_method_name, "Not your turn", socket);
 
-            // Locate the destination connection
-            var connection = locate_connection_with_session(io, other_player_sid);
-      
-            // If there is no connection it means the other player went away, send an error message
-            // to the calling function on the client
-            if(connection == null) return emit_error(calling_method_name, "User is no longer available", socket);
+              // Locate the destination connection
+              var connection = locate_connection_with_session(io, other_player_sid);
+        
+              // If there is no connection it means the other player went 
+              // away, send an error message to the calling function on the client
+              if(connection == null) 
+                return emit_error(calling_method_name
+                  , "User is no longer available", socket);
 
-            // Emit valid move message to caller and the other player
-            // this notifies the clients that they can draw the marker on the board
-            emit_message(calling_method_name, { ok: true
-              , result: {y: data.y, x:data.x, marker: marker} }
-              , socket);        
-            emit_message(event_name_move, { ok: true
-              , result: {y: data.y, x:data.x, marker: marker} }
-              , connection);
+              // Emit valid move message to caller and the other player
+              // this notifies the clients that they can draw the marker on the board
+              emit_message(calling_method_name, { ok: true
+                , result: {y: data.y, x:data.x, marker: marker} }
+                , socket);        
+              emit_message(event_name_move, { ok: true
+                , result: {y: data.y, x:data.x, marker: marker} }
+                , connection);
 
-            // If there was no winner this turn
-            if(is_game_over(board, data.y, data.x, marker) == false) {
-              // If there are still fields left on the board, let's keep playing
-              if(!is_game_draw(board)) return;
+              // If there was no winner this turn
+              if(is_game_over(board, data.y, data.x, marker) == false) {
+                // If there are still fields left on the board, let's keep playing
+                if(!is_game_draw(board)) return;
+
+                // Set the winner
+                game(db).finalize_board(null, data.game_id, function(err, result) {
+                  // If we have an error it was not our turn
+                  if(err) 
+                    return emit_error(calling_method_name
+                      , "Failed to set winner on table", socket);
+                  
+                  // If there are no open spots left on the board the game
+                  // is a draw
+                  emit_message(event_name_game_over
+                    , { ok: true, result: {draw:true} }, socket);        
+                  return emit_message(event_name_game_over
+                    , { ok: true, result: {draw:true} }, connection);          
+                });
+              }
 
               // Set the winner
-              game(db).finalize_board(null, data.game_id, function(err, result) {
+              game(db).finalize_board(our_sid, data.game_id, function(err, result) {
                 // If we have an error it was not our turn
-                if(err) return emit_error(calling_method_name, "Failed to set winner on table", socket);
-                
-                // If there are no open spots left on the board the game
-                // is a draw
-                emit_message(event_name_game_over, { ok: true, result: {draw:true} }, socket);        
-                return emit_message(event_name_game_over, { ok: true, result: {draw:true} }, connection);          
+                if(err) 
+                  return emit_error(calling_method_name
+                    , "Failed to set winner on table", socket);
+
+                // There was a winner and it was the last user to place a 
+                // marker (the calling client) signal both players who won the game
+                emit_message(event_name_game_over
+                  , { ok: true, result: {winner: our_sid} }, socket);        
+                emit_message(event_name_game_over
+                  , { ok: true, result: {winner: our_sid} }, connection);
               });
-            }
-
-            // Set the winner
-            game(db).finalize_board(our_sid, data.game_id, function(err, result) {
-              // If we have an error it was not our turn
-              if(err) return emit_error(calling_method_name, "Failed to set winner on table", socket);
-
-              // There was a winner and it was the last user to place a marker (the calling client)
-              // signal both players who won the game
-              emit_message(event_name_game_over, { ok: true, result: {winner: our_sid} }, socket);        
-              emit_message(event_name_game_over, { ok: true, result: {winner: our_sid} }, connection);
-            });
-          })
+            })
         });
       }
     }
@@ -695,7 +732,8 @@ The gamer_joined Event Handler
         template_handler.setTemplate("#view", "dashboard", {gamers:gamers});    
         // Add handlers to the event
         for(var i = 0; i < gamers.length; i++) {
-          $("#gamer_" + gamers[i]._id).click(invite_gamer_button_handler(application_state, api, template_handler));
+          $("#gamer_" + gamers[i]._id)
+            .click(invite_gamer_button_handler(application_state, api, template_handler));
         }
       }
     });
@@ -783,7 +821,10 @@ The register_button_handler Handler
             
             // Add handlers for each new player so we can play them
             for(var i = 0; i < gamers.length; i++) {
-              $("#gamer_" + gamers[i]._id).click(invite_gamer_button_handler(application_state, api, template_handler));
+              $("#gamer_" + gamers[i]._id)
+                .click(invite_gamer_button_handler(application_state
+                  , api
+                  , template_handler));
             }
           });
         });
@@ -824,7 +865,10 @@ The login_button_handler Handler
 
             // Add handlers for each new player so we can play them
             for(var i = 0; i < gamers.length; i++) {
-              $("#gamer_" + gamers[i]._id).click(invite_gamer_button_handler(application_state, api, template_handler));
+              $("#gamer_" + gamers[i]._id)
+                .click(invite_gamer_button_handler(application_state
+                  , api
+                  , template_handler));
             }
           });
         })
@@ -900,12 +944,16 @@ The ``invite_accept_button_handler`` method handles the user clicking the accept
       template_handler.setTemplate("#view", "main", {});
 
       // Wire up the buttons for the main view
-      $('#register_button').click(register_button_handler(application_state, api, template_handler));
-      $('#login_button').click(login_button_handler(application_state, api, template_handler));
+      $('#register_button')
+        .click(register_button_handler(application_state, api, template_handler));
+      $('#login_button')
+        .click(login_button_handler(application_state, api, template_handler));
 
       // Wire up invite box buttons (this is in the main view)
-      $('#invite_box_accept').click(invite_accept_button_handler(application_state, api, template_handler));
-      $('#invite_box_decline').click(invite_decline_button_handler(application_state, api, template_handler));
+      $('#invite_box_accept')
+        .click(invite_accept_button_handler(application_state, api, template_handler));
+      $('#invite_box_decline')
+        .click(invite_decline_button_handler(application_state, api, template_handler));
 
       // Ensure we have the right state for the modal dialog
       $('#status_box').on("show", function() { application_state.modal = true; });  
@@ -930,7 +978,8 @@ The invite_decline_button_handler Handler
         api.decline_game(application_state.invite, function(err, result) {
           // If we have an error show the error message to the user        
           if(err) return error_box_show(err.error);
-          // No need to do anything as we declined the game and we are still showing the dashboard
+          // No need to do anything as we declined the game and we 
+          // are still showing the dashboard
         });
       }
     }
@@ -951,7 +1000,8 @@ The setupBoardGame Function
       // Let's render the board game
       template_handler.setTemplate("#view", "board", {});
       // Set the marker for our player (X if we are the starting player)
-      application_state.marker = application_state.session_id == game.current_player ? "x" : "o";
+      application_state.marker = application_state.session_id == game.current_player 
+        ? "x" : "o";
       // Get all the rows
       var rows = $('#board div');
 
@@ -961,7 +1011,10 @@ The setupBoardGame Function
 
         // For each cell create and add the handler
         for(var j = 0; j < cells.length; j++) {
-          $("#" + cells[j].id).click(game_board_cell_handler(application_state, api, template_handler, game));
+          $("#" + cells[j].id)
+            .click(game_board_cell_handler(application_state
+              , api
+              , template_handler, game));
         }
       }
     }
@@ -992,21 +1045,23 @@ The game_board_cell_handler Function
         var cell_id_image = "#" + cell_id + " img";
 
         // Let's attempt to do a move
-        api.place_marker(application_state.game._id, cell_number, row_number, function(err, data) {
-          if(err) return error_box_show(err.error);
+        api.place_marker(application_state.game._id
+          , cell_number
+          , row_number, function(err, data) {
+            if(err) return error_box_show(err.error);
 
-          // If we won
-          if(data.winner != null && data.winner == application_state.session_id) {
-            general_box_show("Congratulations", "<p>You won</p>");
-          } else if(data.winner != null) {
-            general_box_show("You lost", "<p>You got beaten buddy</p>");    
-          } 
+            // If we won
+            if(data.winner != null && data.winner == application_state.session_id) {
+              general_box_show("Congratulations", "<p>You won</p>");
+            } else if(data.winner != null) {
+              general_box_show("You lost", "<p>You got beaten buddy</p>");    
+            } 
 
-          if(data.marker == 'x') {
-            $(cell_id_image).attr("src", "/img/cross.png");
-          } else {
-            $(cell_id_image).attr("src", "/img/circle.png");
-          }
+            if(data.marker == 'x') {
+              $(cell_id_image).attr("src", "/img/cross.png");
+            } else {
+              $(cell_id_image).attr("src", "/img/circle.png");
+            }
         });
       }
     }
@@ -1067,8 +1122,12 @@ The game_invite_box_show Function
      */ 
     var game_invite_box_show = function(gamer) {
       // Set fields for the error
-      $('#invite_box_header').html("You have been invited to a game");
-      $('#invite_box_body').html("The user <strong>" + gamer.user_name + "</strong> has challenged you to a game");
+      $('#invite_box_header')
+        .html("You have been invited to a game");
+      $('#invite_box_body')
+        .html("The user <strong>" 
+          + gamer.user_name 
+          + "</strong> has challenged you to a game");
       // Show the modal box
       $('#invite_box').modal({backdrop:true, show:true})  
     }

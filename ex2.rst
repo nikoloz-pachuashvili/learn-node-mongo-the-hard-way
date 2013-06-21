@@ -25,7 +25,7 @@ to finish this exercise.
     .. code-block:: console
 
         ~ $ curl -O link
-          % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+        % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                          Dload  Upload   Total   Spent    Left  Speed
         100 56.6M  100 56.6M    0     0   353k      0  0:02:44  0:02:44 --:--:--  277k
         ~ $ ls -la
@@ -91,15 +91,21 @@ to finish this exercise.
 
         ~ $ mkdir data
         ~ $ mongod --dbpath=./data
-        Tue Dec  4 14:33:17 [initandlisten] MongoDB starting : pid=79402 port=27017 dbpath=./data/ 64-bit host=ChristianK-MacBook-Pro.local
+        Tue Dec  4 14:33:17 [initandlisten] MongoDB starting : pid=79402 port=27017 
+        dbpath=./data/ 64-bit host=ChristianK-MacBook-Pro.local
         Tue Dec  4 14:33:17 [initandlisten] 
-        Tue Dec  4 14:33:17 [initandlisten] ** WARNING: soft rlimits too low. Number of files is 256, should be at least 1000
+        Tue Dec  4 14:33:17 [initandlisten] ** WARNING: soft rlimits too low. Number of 
+        files is 256, should be at least 1000
         Tue Dec  4 14:33:17 [initandlisten] db version v2.2.2, pdfile version 4.5
-        Tue Dec  4 14:33:17 [initandlisten] git version: d1b43b61a5308c4ad0679d34b262c5af9d664267
-        Tue Dec  4 14:33:17 [initandlisten] build info: Darwin bs-osx-106-x86-64-1.local 10.8.0 Darwin Kernel Version 10.8.0: Tue Jun  7 16:33:36 PDT 2011; root:xnu-1504.15.3~1/RELEASE_I386 i386 BOOST_LIB_VERSION=1_49
+        Tue Dec  4 14:33:17 [initandlisten] git version: 
+        d1b43b61a5308c4ad0679d34b262c5af9d664267
+        Tue Dec  4 14:33:17 [initandlisten] build info: Darwin bs-osx-106-x86-64-1.local 
+        10.8.0 Darwin Kernel Version 10.8.0: Tue Jun  7 16:33:36 PDT 2011; 
+        root:xnu-1504.15.3~1/RELEASE_I386 i386 BOOST_LIB_VERSION=1_49
         Tue Dec  4 14:33:17 [initandlisten] options: { dbpath: "./data/" }
         Tue Dec  4 14:33:17 [initandlisten] journal dir=./data/journal
-        Tue Dec  4 14:33:17 [initandlisten] recover : no journal files present, no recovery needed
+        Tue Dec  4 14:33:17 [initandlisten] recover : no journal files present, 
+        no recovery needed
         Tue Dec  4 14:33:17 [websvr] admin web console waiting for connections on port 28017
         Tue Dec  4 14:33:17 [initandlisten] waiting for connections on port 27017        
 12. Open a new terminal shell window, ensure you are in the directory ``learn-exercises``

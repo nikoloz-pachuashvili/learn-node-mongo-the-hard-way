@@ -1,0 +1,10 @@
+digraph G {
+  node [shape = plaintext,height=.1];
+  Record0 [ label=< <table><tr><td port="f0">[2, 12000, "John"]</td><td port="f1"></td><td port="f2" bgcolor='#00CC11'>[18, 32000, "Arnold"]</td></tr></table> >];
+  Record1 [ label=< <table><tr><td>[1, 10000, "Steve"]</td></tr></table> >];
+  Record2 [ label=< <table><tr><td bgcolor='orange'>[7, 7000, "Peter"]</td></tr></table> >];
+  Record3 [ label=< <table><tr><td bgcolor='#00CC11'>[23, 34000, "Gandalf"]</td></tr></table> >];
+  "Record0":f0 -> "Record1";
+  "Record0":f1 -> "Record2";
+  "Record0":f2 -> "Record3";
+}

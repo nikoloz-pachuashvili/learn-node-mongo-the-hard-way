@@ -1,8 +1,8 @@
-var env                               = require('./env')
-  , main_controller                   = require('./lib/controllers/main_controller');
+var env                      = require('./env')
+  , main_controller          = require('./lib/controllers/main_controller');
 
-var register_handler                  = require('./lib/handlers/login_handler').register_handler
-  , login_handler                     = require('./lib/handlers/login_handler').login_handler
+var register_handler         = require('./lib/handlers/login_handler').register_handler
+  , login_handler            = require('./lib/handlers/login_handler').login_handler
 
 
 env.initialize(function(err, app, io, session_store, db) {  

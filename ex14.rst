@@ -426,8 +426,14 @@ The results returned are.
 
 .. code-block:: javascript
 
-    { "_id" : 1, "title" : "Wing Commander 72", "platform" : "steam", "tags" : [ "game", "scifi", "pc", "13+" ] }
-    { "_id" : 3, "title" : "Star Controller 2", "platform" : "pc", "tags" : [ "game", "scifi", "pc", "10+" ] }
+    {   "_id" : 1
+      , "title" : "Wing Commander 72"
+      , "platform" : "steam"
+      , "tags" : [ "game", "scifi", "pc", "13+" ] }
+    {   "_id" : 3
+      , "title" : "Star Controller 2"
+      , "platform" : "pc"
+      , "tags" : [ "game", "scifi", "pc", "10+" ] }
 
 .. NOTE::
     Due to each ``$or`` statement actually being checked in parallel by ``MongoDB`` they cannot share what is called a compound index (more on this later). To speed up this query we need to create two different indexes. One for the field tags and one for the field platform.
@@ -504,7 +510,10 @@ The results returned are.
 
 .. code-block:: javascript
 
-    { "_id" : 2, "title" : "Dead space 15", "platform" : "ps2000", "tags" : [ "game", "scifi", "mac", "18+" ] }
+    {   "_id" : 2
+      , "title" : "Dead space 15"
+      , "platform" : "ps2000"
+      , "tags" : [ "game", "scifi", "mac", "18+" ] }
 
 .. NOTE::
     Take care when using negations in queries where you rely on indexes as negations can sometime make it impossible for ``MongoDB`` to use an index forcing it to scan the entire collection for matching documents. In a later exercise we will learn all there is to know about indexes in ``MongoDB`` and how to ensure your queries uses them efficiently.
@@ -551,7 +560,11 @@ The results returned are.
 
 .. code-block:: javascript
 
-    { "_id" : 2, "title" : "Dead space 15", "platform" : "ps2000", "sale" : true, "tags" : [ "game", "scifi", "mac", "18+" ] }
+    {   "_id" : 2
+      , "title" : "Dead space 15"
+      , "platform" : "ps2000"
+      , "sale" : true
+      , "tags" : [ "game", "scifi", "mac", "18+" ] }
 
 ``$mod``
 --------
@@ -603,8 +616,16 @@ The results returned are.
 
 .. code-block:: javascript
 
-    { "_id" : 1, "title" : "Wing Commander 72", "platform" : "steam", "price" : 12, "tags" : [ "game", "scifi", "pc", "13+" ] }
-    { "_id" : 2, "title" : "Dead space 15", "platform" : "ps2000", "price" : 24, "tags" : [ "game", "scifi", "mac", "18+" ] }
+    {   "_id" : 1
+      , "title" : "Wing Commander 72"
+      , "platform" : "steam"
+      , "price" : 12
+      , "tags" : [ "game", "scifi", "pc", "13+" ] }
+    {   "_id" : 2
+      , "title" : "Dead space 15"
+      , "platform" : "ps2000"
+      , "price" : 24
+      , "tags" : [ "game", "scifi", "mac", "18+" ] }
 
 .. NOTE::
     The ``$mod`` operator cannot use an index so it will force ``MongoDB`` to scan through all of your documents potentially causing slow queries if the collection contains a lot of documents.
@@ -665,8 +686,12 @@ The results returned are.
 
 .. code-block:: javascript
 
-    { "_id" : 1, "title" : "Wing Commander 72", "price" : 12 }
-    { "_id" : 2, "title" : "Dead space 15", "price" : 24 }
+    {   "_id" : 1
+      , "title" : "Wing Commander 72"
+      , "price" : 12 }
+    {   "_id" : 2
+      , "title" : "Dead space 15"
+      , "price" : 24 }
 
 Since ``MongoDB`` allows a field to have any the ``$type`` operator can be very useful to detect if you have documents that use a different field type than the one expected.
 
@@ -759,7 +784,11 @@ The results returned are.
 
 .. code-block:: javascript
 
-    { "_id" : 3, "title" : "Star Controller 2", "platform" : "pc", "price" : 27, "tags" : [ "game", "scifi", "pc", "10+", "steam" ] }
+    {   "_id" : 3
+      , "title" : "Star Controller 2"
+      , "platform" : "pc"
+      , "price" : 27
+      , "tags" : [ "game", "scifi", "pc", "10+", "steam" ] }
 
 .. NOTE::
     As mentioned before use extreme caution when using ``$where`` as it will impact your application performance.
@@ -800,8 +829,12 @@ The results returned are.
 
 .. code-block:: javascript
 
-    { "_id" : 1, "title" : "Wing Commander 72", "tags" : [ "game", "scifi", "pc", "13+" ] }
-    { "_id" : 2, "title" : "Dead space 15", "tags" : [ "game", "scifi", "mac", "18+" ] } 
+    {   "_id" : 1
+      , "title" : "Wing Commander 72"
+      , "tags" : [ "game", "scifi", "pc", "13+" ] }
+    {   "_id" : 2
+      , "title" : "Dead space 15"
+      , "tags" : [ "game", "scifi", "mac", "18+" ] } 
     
 This covers the query operators in ``MongoDB`` that we wanted to cover in this exercise. We have intentionally skipped ``Geospatial`` query operators as well as ``Projection`` operators as we will introduce them in later exercises.
 

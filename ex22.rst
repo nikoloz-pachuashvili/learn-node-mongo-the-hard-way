@@ -62,13 +62,16 @@ As you can see the only server that accepts writes is the primary but the second
   ~ $ mkdir ./data/30002
   ~ $ mkdir ./data/logs
   
-  ~ $ mongod --dbpath=./data/30000 --logpath=./data/logs/30000.log --replSet test --port 30000 --fork
+  ~ $ mongod --dbpath=./data/30000 --logpath=./data/logs/30000.log 
+  --replSet test --port 30000 --fork
   about to fork child process, waiting until server is ready for connections.
   forked process: 69559
-  ~ $ mongod --dbpath=./data/30001 --logpath=./data/logs/30001.log --replSet test --port 30001 --fork
+  ~ $ mongod --dbpath=./data/30001 --logpath=./data/logs/30001.log 
+  --replSet test --port 30001 --fork
   about to fork child process, waiting until server is ready for connections.
   forked process: 69560
-  ~ $ mongod --dbpath=./data/30002 --logpath=./data/logs/30002.log --replSet test --port 30002 --fork
+  ~ $ mongod --dbpath=./data/30002 --logpath=./data/logs/30002.log 
+  --replSet test --port 30002 --fork
   about to fork child process, waiting until server is ready for connections.
   forked process: 69561
 
@@ -170,12 +173,15 @@ slaveDelay             integer (0)        Allows you to tell the server to lag `
 
 Alright let's get connected and configure the replicaset so it will be up and running.
 
-.. code-block:: console
+.. code-block:: javascript
 
   ~ $ mongo --port 30000
   MongoDB shell version: 2.4.3
   connecting to: 127.0.0.1:30000/test
-  > c = {"_id": "test", "version": 1, "members": [{ "_id": 0, "host": "localhost:30000"},{"_id": 1, "host": "localhost:30001"},{"_id": 2, "host": "localhost:30002", "arbiterOnly": true}]}
+  > c = {"_id": "test", "version": 1
+  , "members": [{ "_id": 0, "host": "localhost:30000"}
+  ,{"_id": 1, "host": "localhost:30001"}
+  ,{"_id": 2, "host": "localhost:30002", "arbiterOnly": true}]}
   {
     "_id" : "test",
     "version" : 1,
@@ -338,14 +344,15 @@ So how do we use read preference with the driver? It's fairly simple as we will 
 
   var MongoClient = require('mongodb').MongoClient;
 
-  MongoClient.connect("mongodb://localhost:30000/test?readPreference=primaryPreferred", function(err, db) {
-    if(err) throw err;
-    console.log("connected to the database");
+  MongoClient.connect("mongodb://localhost:30000/test?readPreference=primaryPreferred"
+    , function(err, db) {
+        if(err) throw err;
+        console.log("connected to the database");
 
-    var articles = db.collection('articles');    
+        var articles = db.collection('articles');    
 
-    db.close();
-  });
+        db.close();
+    });
 
 The ``db`` instance returned will have it's read preference set to ``primaryPreferred`` and the ``articles`` collection instance will inherit the read preference settings from the ``db``, meaning all read operations using the ``articles`` collection will use ``primaryPreferred``. But what if we need to override the collections ``read preference`` as we intend reads to happen from a ``secondary`` not from a ``primary``. Luckily this is fairly easy. Let's see how.
 
@@ -354,14 +361,16 @@ The ``db`` instance returned will have it's read preference set to ``primaryPref
   var MongoClient = require('mongodb').MongoClient
     , ReadPreference = require('mongodb').ReadPreference;
 
-  MongoClient.connect("mongodb://localhost:30000/test?readPreference=primaryPreferred", function(err, db) {
-    if(err) throw err;
-    console.log("connected to the database");
+  MongoClient.connect("mongodb://localhost:30000/test?readPreference=primaryPreferred"
+    , function(err, db) {
+        if(err) throw err;
+        console.log("connected to the database");
 
-    var articles = db.collection('articles', {readPreference: ReadPreference.SECONDARY_PREFERRED});    
+        var articles = db.collection('articles'
+          , {readPreference: ReadPreference.SECONDARY_PREFERRED});    
 
-    db.close();
-  });
+        db.close();
+    });
 
 Any read operations on the ``articles`` collection will now be executed with the ``secondaryPreferred`` read preference instead of the default one for the database ``primaryPreferred``. Even then imagine that there is a particular query we want to ensure is run against the ``primary`` instead of a secondary. Luckily that's possible as well. Let's see how.
 
@@ -370,16 +379,18 @@ Any read operations on the ``articles`` collection will now be executed with the
   var MongoClient = require('mongodb').MongoClient
     , ReadPreference = require('mongodb').ReadPreference;
 
-  MongoClient.connect("mongodb://localhost:30000/test?readPreference=primaryPreferred", function(err, db) {
-    if(err) throw err;
-    console.log("connected to the database");
+  MongoClient.connect("mongodb://localhost:30000/test?readPreference=primaryPreferred"
+    , function(err, db) {
+        if(err) throw err;
+        console.log("connected to the database");
 
-    var articles = db.collection('articles', {readPreference: ReadPreference.SECONDARY_PREFERRED});    
+        var articles = db.collection('articles'
+          , {readPreference: ReadPreference.SECONDARY_PREFERRED});    
 
-    var cursor = articles.find({}, {readPreference: ReadPreference.PRIMARY});
+        var cursor = articles.find({}, {readPreference: ReadPreference.PRIMARY});
 
-    db.close();
-  });
+        db.close();
+    });
 
 The ``cursor`` returned from the ``find`` method will now have the ``primary`` read preference instead of the ``secondaryPreferred`` specified in it's collection instance. So as you can see you can read preferences down to the individual query issues against the replicaset. Most of the read preferences are fairly simple but the ``nearest`` one require a bit more explanation. The idea of the ``nearest`` read preference is to attempt to steer the queries to the server that's the closest. This might sound like it's always the closest one but in fact it's not always true. The definition is actually the closest inside an acceptable latency window from the server with the lowest current pingtime. There is an optional parameter that can be passed into ``MongoClient.connect`` that lets you change the value, but the default is ``15ms``. So how does it work.
 
@@ -425,16 +436,20 @@ But what if our application should only read from the San Francisco ``secondary`
   var MongoClient = require('mongodb').MongoClient
     , ReadPreference = require('mongodb').ReadPreference;
 
-  MongoClient.connect("mongodb://localhost:30000/test?readPreference=secondaryPreferred&readPreferenceTags=dc:sf&readPreferenceTags=dc:ny", function(err, db) {
-    if(err) throw err;
-    console.log("connected to the database");
+  MongoClient.connect("mongodb://localhost:30000/test?"
+    + "readPreference=secondaryPreferred"
+    + "&readPreferenceTags=dc:sf"
+    + "&readPreferenceTags=dc:ny", function(err, db) {
+      if(err) throw err;
+      console.log("connected to the database");
 
-    var articles = db.collection('articles', {readPreference: ReadPreference.SECONDARY_PREFERRED});    
+      var articles = db.collection('articles'
+        , {readPreference: ReadPreference.SECONDARY_PREFERRED});    
 
-    var cursor = articles.find({}, {readPreference: ReadPreference.PRIMARY});
+      var cursor = articles.find({}, {readPreference: ReadPreference.PRIMARY});
 
-    db.close();
-  });
+      db.close();
+    });
 
 Let's have a look at the connection string. Notice ``readPreferenceTags=dc:sf`` and ``readPreferenceTags=dc:ny``. These tells the driver to prefer servers that are tagged with ``"dc":"df"`` before any tagged with ``"dc":"ny"``. The order of the ``readPreferenceTags=dc:ny`` matter as the first one will be the most important one. Just as in the previous example tags can be overridden at a ``collection`` and individual ``query`` level. Let's see how.
 
@@ -443,17 +458,20 @@ Let's have a look at the connection string. Notice ``readPreferenceTags=dc:sf`` 
   var MongoClient = require('mongodb').MongoClient
     , ReadPreference = require('mongodb').ReadPreference;
 
-  MongoClient.connect("mongodb://localhost:30000/test?readPreference=secondaryPreferred&readPreferenceTags=dc:sf&readPreferenceTags=dc:ny", function(err, db) {
-    if(err) throw err;
-    console.log("connected to the database");
+  MongoClient.connect("mongodb://localhost:30000/test?"
+    + "readPreference=secondaryPreferred"
+    + "&readPreferenceTags=dc:sf"
+    + "&readPreferenceTags=dc:ny", function(err, db) {
+      if(err) throw err;
+      console.log("connected to the database");
 
-    var articles = db.collection('articles');    
+      var articles = db.collection('articles');    
 
-    var cursor = articles.find({}
-      , {readPreference: new ReadPreference(ReadPreference.PRIMARY, {"dc": "ny"}});
+      var cursor = articles.find({}
+        , {readPreference: new ReadPreference(ReadPreference.PRIMARY, {"dc": "ny"}});
 
-    db.close();
-  });
+      db.close();
+    });
 
 We create an instance of the ``ReadPreference`` class pass in the desired tags as the second parameter of the constructor. The ``cursor`` from the ``articles.find`` will now attempt to read from the New York tagged server instead of the San Francisco one.
 

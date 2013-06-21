@@ -26,7 +26,8 @@ var register_handler = function(io, socket, session_store, db) {
       
       // The user already exists notify the client function
       if(_user != null) 
-        return emit_error(calling_method_name, "User with user name " + user_name + " already exists", socket);
+        return emit_error(calling_method_name
+            , "User with user name " + user_name + " already exists", socket);
 
       // The user does not exist, let's create it
       user(db).createUser(full_name, user_name, password, function(err, _user) {
@@ -36,7 +37,8 @@ var register_handler = function(io, socket, session_store, db) {
         
         // We have a legal registration, lets set up the state needed
         // and log the user in
-        emit_login_or_registration_ok(io, calling_method_name, db, session_store, user_name, socket);        
+        emit_login_or_registration_ok(io
+          , calling_method_name, db, session_store, user_name, socket);        
       });
     })
   }
@@ -61,11 +63,13 @@ var login_handler = function(io, socket, session_store, db) {
       if(err) return emit_error(calling_method_name, err.message, socket);
       // There was no user returned, meaning the user either does not exist or the
       // password is incorrect
-      if(user == null) return emit_error(calling_method_name, "User or Password is incorrect", socket);
+      if(user == null) return emit_error(calling_method_name
+          , "User or Password is incorrect", socket);
       
       // We have a legal login, lets set up the state needed
       // and log the user in
-      emit_login_or_registration_ok(io, calling_method_name, db, session_store, user_name, socket);
+      emit_login_or_registration_ok(io
+        , calling_method_name, db, session_store, user_name, socket);
     });
   }
 }
@@ -75,7 +79,7 @@ var login_handler = function(io, socket, session_store, db) {
  * returns the gamer data to all other clients that are connected signaling a new
  * player is available
  */
-var emit_login_or_registration_ok = function(io, event, db, session_store, user_name, socket) {
+var emit_login_or_registration_ok = function(io,event,db,session_store,user_name,socket) {
   // Easier to keep track of where we emitting messages
   var event_name          = "gamer_joined";
 

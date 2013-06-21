@@ -18,7 +18,7 @@ MongoClient.connect("mongodb://localhost:27017/test", function(err, db) {
 
   mydocuments.insert(documents, {continueOnError: true}, function(err, result) {
     if(err) {
-      console.log("failed to perform bulk insert due to multiple documents having the same _id field")
+      console.log("failed to perform bulk insert due to duplicate _id field")
     }
 
     db.close();

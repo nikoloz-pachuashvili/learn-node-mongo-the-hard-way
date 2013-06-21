@@ -54,9 +54,12 @@ API.prototype.once = function(event, callback) {
  */
 API.prototype.register = function(full_name, user_name, password, callback) {  
   // Do basic validation
-  if(full_name == null || full_name.length == 0) return callback(create_error("register", "Full name cannot be empty"));
-  if(user_name == null || user_name.length == 0) return callback(create_error("register", "User name cannot be empty"));
-  if(password == null || password.length == 0) return callback(create_error("register", "Password name cannot be empty"));
+  if(full_name == null || full_name.length == 0) 
+    return callback(create_error("register", "Full name cannot be empty"));
+  if(user_name == null || user_name.length == 0) 
+    return callback(create_error("register", "User name cannot be empty"));
+  if(password == null || password.length == 0) 
+    return callback(create_error("register", "Password name cannot be empty"));
   // Register callback
   this.once("register", callback);
   // Fire message
@@ -72,8 +75,10 @@ API.prototype.register = function(full_name, user_name, password, callback) {
  */
 API.prototype.login = function(user_name, password, callback) {  
   // Do basic validation
-  if(user_name == null || user_name.length == 0) return callback(create_error("login", "User name cannot be empty"));
-  if(password == null || password.length == 0) return callback(create_error("login", "Password name cannot be empty"));
+  if(user_name == null || user_name.length == 0) 
+    return callback(create_error("login", "User name cannot be empty"));
+  if(password == null || password.length == 0) 
+    return callback(create_error("login", "Password name cannot be empty"));
   // Register callback
   this.once("login", callback);
   // Fire message

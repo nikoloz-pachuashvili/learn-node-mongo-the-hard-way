@@ -431,9 +431,18 @@ Let's perform a normal simple query to retrieve all the users.
 
     > use test
     > db.users.find({pid:{$gt: 1}})
-    { "_id" : ObjectId("51824040ae699e537241fcef"), "pid" : 2, "name" : "John", "salary" : 12000 }
-    { "_id" : ObjectId("51824040ae699e537241fcf0"), "pid" : 7, "name" : "Peter", "salary" : 7000 }
-    { "_id" : ObjectId("51824040ae699e537241fcf1"), "pid" : 18, "name" : "Arnold", "salary" : 32000 }    
+    {   "_id" : ObjectId("51824040ae699e537241fcef")
+      , "pid" : 2
+      , "name" : "John"
+      , "salary" : 12000 }
+    {   "_id" : ObjectId("51824040ae699e537241fcf0")
+      , "pid" : 7
+      , "name" : "Peter"
+      , "salary" : 7000 }
+    {   "_id" : ObjectId("51824040ae699e537241fcf1")
+      , "pid" : 18
+      , "name" : "Arnold"
+      , "salary" : 32000 }    
 
 Sweet works fine and the explain method returns
 
@@ -635,14 +644,16 @@ One more thing to note is that this also works for ``compound indexes``. Let's s
     > db.employees.insert({ssid:'123', name:'Peter'})
     > db.employees.ensureIndex({ssid:1, name:1}, {unique:true})
     > db.employees.insert({ssid:'123', name:'Peter'})
-    E11000 duplicate key error index: test.employees.$ssid_1_name_1  dup key: { : "123", : "Peter" }
+    E11000 duplicate key error index: test.employees.$ssid_1_name_1  
+    dup key: { : "123", : "Peter" }
     > db.employees.insert({ssid:'123', name:'Peter2'})
 
 The index can be created in the following way with the driver.
 
 .. code-block:: javascript
 
-    db.collection('employees').ensureIndex({ssid:1, name:1}, {unique:true}, function(err, result) {});
+    db.collection('employees')
+      .ensureIndex({ssid:1, name:1}, {unique:true}, function(err, result) {});
 
 As you can see it works perfectly with a ``compound index`` as well.
 

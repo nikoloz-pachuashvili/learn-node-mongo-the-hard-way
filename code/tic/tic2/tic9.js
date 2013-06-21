@@ -41,19 +41,22 @@ TemplateHandler.prototype.start = function(callback) {
 }
 
 /**
- * Render a template by the template name and then set a div with the rendered template, the context is an
- * object of values used in the template
+ * Render a template by the template name and then set a div with the rendered template, 
+ * the context is an object of values used in the template
  */
 TemplateHandler.prototype.setTemplate = function(id, template_name, context) {  
   var container = $(id);
   // If there is no such HTML container throw an error
-  if(container == null || container.html == null) throw new Error("no container " + id);
+  if(container == null || container.html == null) 
+    throw new Error("no container " + id);
   // If the template does not exist throw an error
-  if(this.template_file_content[template_name] == null) throw new Error("no template name " + template_name + " loaded");
+  if(this.template_file_content[template_name] == null) 
+    throw new Error("no template name " + template_name + " loaded");
   // Ensure at least empty context
   context = context == null ? {} : context;
   // Render template
-  var rendered_template = Mustache.render(this.template_file_content[template_name], context);
+  var rendered_template = Mustache.render(this.template_file_content[template_name]
+    , context);
   // No error render the template
   container.html(rendered_template);
 }
@@ -70,7 +73,8 @@ TemplateHandler.prototype.isTemplate = function(template_name) {
  */
 TemplateHandler.prototype.render = function(template_name, context) {
   // If the template does not exist throw an error
-  if(this.template_file_content[template_name] == null) throw new Error("no template name " + template_name + " loaded");
+  if(this.template_file_content[template_name] == null) 
+    throw new Error("no template name " + template_name + " loaded");
   // Ensure at least empty context
   context = context == null ? {} : context;
   // Render template

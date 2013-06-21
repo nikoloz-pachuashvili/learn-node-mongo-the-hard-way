@@ -19,7 +19,8 @@ module.exports = function(db) {
   // Update the last active time for a list of gamers by their session ids
   //
   Gamer.updateGamersUpdatedDateBySids = function(sids, callback) {
-    db.collection('gamers').update({sid:{$in: sids}}, {$set: {updated_on: new Date()}}, {multi:true}, callback);
+    db.collection('gamers')
+      .update({sid:{$in: sids}}, {$set: {updated_on: new Date()}}, {multi:true}, callback);
   }
 
   //
@@ -36,7 +37,8 @@ module.exports = function(db) {
   // Initialize the gamer collection, by adding indexes etc
   //
   Gamer.init = function(callback) {
-    db.collection('gamers').ensureIndex({updated_on: 1}, {expireAfterSeconds: (60 * 60)}, callback);
+    db.collection('gamers')
+      .ensureIndex({updated_on: 1}, {expireAfterSeconds: (60 * 60)}, callback);
   }
 
   return Gamer;

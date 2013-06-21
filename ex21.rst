@@ -28,29 +28,48 @@ The two first API calls we need to implement is the ability to ``associate`` a `
 
   // PUT /book/:id/publisher/:publisher_id
   var associatePublisher = function(req, res) {
-    dbInstance.collection('books').findOne({_id: new ObjectID(req.params.id)}, function(err, book) {
-      if(err)
-        return writeError(res, 500, 'Failed to retrieve book with id ' + req.params.id);
-
-      if(!book)
-        return writeError(res, 406, 'Book with ' + req.params.id + " was not found");
-
-      dbInstance.collection('publishers').findOne({_id: new ObjectID(req.params.publisher_id)}, function(err, publisher) {
+    dbInstance.collection('books')
+      .findOne({_id: new ObjectID(req.params.id)}, function(err, book) {
         if(err)
-          return writeError(res, 500, 'Failed to retrieve publisher with id ' + req.params.publisher_id);
+          return writeError(res
+            , 500
+            , 'Failed to retrieve book with id ' + req.params.id);
 
-        if(!publisher)
-          return writeError(res, 406, 'Publisher with ' + req.params.publisher_id + " was not found");
+        if(!book)
+          return writeError(res
+            , 406
+            , 'Book with ' + req.params.id + " was not found");
 
-        dbInstance.collection('books').update({_id: new ObjectID(req.params.id)}
-            , {$set: {"publisher.publisher_id": new ObjectID(req.params.publisher_id)}}, function(err, updated) {
+        dbInstance.collection('publishers')
+          .findOne({_id: new ObjectID(req.params.publisher_id)}
+            , function(err, publisher) {
+              if(err)
+                return writeError(res
+                  , 500
+                  , 'Failed to retrieve publisher with id ' + req.params.publisher_id);
 
-          if(err)
-            return writeError(res, 500, 'Failed to update publisher for book with id ' + req.params.id);
+              if(!publisher)
+                return writeError(res
+                  , 406
+                  , 'Publisher with ' + req.params.publisher_id + " was not found");
 
-          res.end(JSON.stringify({_id: req.params.id}));
-        });
-      });
+              dbInstance.collection('books')
+                .update({_id: new ObjectID(req.params.id)}
+                  , {
+                    $set: {
+                      "publisher.publisher_id": new ObjectID(req.params.publisher_id)
+                    }
+                  }, function(err, updated) {
+
+                    if(err)
+                      return writeError(res
+                        , 500
+                        , 'Failed to update publisher for book with id ' 
+                          + req.params.id);
+
+                    res.end(JSON.stringify({_id: req.params.id}));
+              });
+          });
     });
   }
 
@@ -60,64 +79,79 @@ Notice a couple of things. First off all we verify that both the indicated ``Boo
 
   // PUT /book/:id/author/:publisher_id
   var associateAuthor = function(req, res) {  
-    dbInstance.collection('books').findOne({_id: new ObjectID(req.params.id)}, function(err, book) {
-      if(err)
-        return writeError(res, 500, 'Failed to retrieve book with id ' + req.params.id);
-
-      if(!book)
-        return writeError(res, 406, 'Book with ' + req.params.id + " was not found");
-
-      dbInstance.collection('authors').findOne({_id: new ObjectID(req.params.author_id)}, function(err, author) {
+    dbInstance.collection('books')
+      .findOne({_id: new ObjectID(req.params.id)}, function(err, book) {
         if(err)
-          return writeError(res, 500, 'Failed to retrieve publisher with id ' + req.params.author_id);
+          return writeError(res
+            , 500
+            , 'Failed to retrieve book with id ' + req.params.id);
 
-        if(!author)
-          return writeError(res, 406, 'Author with ' + req.params.author_id + " was not found");
+        if(!book)
+          return writeError(res
+            , 406
+            , 'Book with ' + req.params.id + " was not found");
 
-        var author = {
-            id: new ObjectID(req.params.author_id)
-          , name: author.name
-        }
+        dbInstance.collection('authors')
+          .findOne({_id: new ObjectID(req.params.author_id)}, function(err, author) {
+            if(err)
+              return writeError(res
+                , 500
+                , 'Failed to retrieve publisher with id ' + req.params.author_id);
 
-        dbInstance.collection('books').update({_id: new ObjectID(req.params.id)}
-            , {$addToSet: {"authors": author}}, function(err, updated) {
+            if(!author)
+              return writeError(res
+                , 406
+                , 'Author with ' + req.params.author_id + " was not found");
 
-          if(err)
-            return writeError(res, 500, 'Failed to update publisher for book with id ' + req.params.id);
+            var author = {
+                id: new ObjectID(req.params.author_id)
+              , name: author.name
+            }
 
-          if(updated == 0) 
-            return writeError(res, 500, 'Author already associated with the book with id ' + req.params.id);
+            dbInstance.collection('books')
+              .update({_id: new ObjectID(req.params.id)}
+                , {$addToSet: {"authors": author}}, function(err, updated) {
 
-          res.end(JSON.stringify({_id: req.params.id}));
-        });
+                if(err)
+                  return writeError(res
+                    , 500
+                    , 'Failed to update publisher for book with id ' + req.params.id);
+
+                if(updated == 0) 
+                  return writeError(res
+                    , 500
+                    , 'Author already associated with the book with id ' 
+                      + req.params.id);
+
+                res.end(JSON.stringify({_id: req.params.id}));
+              });
+          });
       });
-    });
   }
-
-It looks very similar to the previous ``associatePublisher`` method but with one important difference. As we have an array of ``authors`` for a book we want to ensure that we do not have duplicate ``Author`` entries. Luckily ``MongoDB`` provides an ``update`` operated called ``$addToSet``. Let's go look at what the operator does briefly.
-
 
 .. NOTE::
 
   The ``$addToSet`` only adds a value to an array if the value does not already exist. Let's see how we can use this in practice. Remember the meeting. Well let's use ``$addToSet`` and attempt to add a duplicate document. Open up your editor and type in.
 
-  {{ ork.code('code/ex10/ex4.js|pyg') }}
+It looks very similar to the previous ``associatePublisher`` method but with one important difference. As we have an array of ``authors`` for a book we want to ensure that we do not have duplicate ``Author`` entries. Luckily ``MongoDB`` provides an ``update`` operated called ``$addToSet``. Let's go look at what the operator does briefly.
 
-  Your output should look like the following.
+{{ ork.code('code/ex10/ex4.js|pyg') }}
 
-  .. code-block:: console
+Your output should look like the following.
 
-      connected to database
-      { _id: 1,
-        description: 'We need to buy the ACME widget and need budget approval',
-        endTime: Wed Jan 23 2013 15:35:03 GMT+0100 (CET),
-        participants:
-         [ { name: 'April', email: 'april@inc.com' },
-           { name: 'John', email: 'john@inc.com' } ],
-        startTime: Wed Jan 23 2013 15:35:03 GMT+0100 (CET),
-        title: 'Let\'s buy a widget' }
+.. code-block:: console
 
-  As you can see there was no duplicate entries of the user ``April`` in the participants field when using ``$addToSet``. But what if we want to modify a document inside an array, not remove it from the array but set a value on it. Luckily there are a couple of ways we can go about doing this.
+    connected to database
+    { _id: 1,
+      description: 'We need to buy the ACME widget and need budget approval',
+      endTime: Wed Jan 23 2013 15:35:03 GMT+0100 (CET),
+      participants:
+       [ { name: 'April', email: 'april@inc.com' },
+         { name: 'John', email: 'john@inc.com' } ],
+      startTime: Wed Jan 23 2013 15:35:03 GMT+0100 (CET),
+      title: 'Let\'s buy a widget' }
+
+As you can see there was no duplicate entries of the user ``April`` in the participants field when using ``$addToSet``. But what if we want to modify a document inside an array, not remove it from the array but set a value on it. Luckily there are a couple of ways we can go about doing this.
 
 This is perfect for our method. We create a new embedded document.
 
@@ -146,10 +180,12 @@ Now let's test our new methods using ``Curl`` from the command line.
     curl -X POST -d "{\"name\":\"James Bond\"}" http://localhost:9090/user
     {"name":"James Bond","_id":"51921ef8b67cc57333000004"}
     
-    curl -X PUT http://localhost:9090/book/51921ef8b67cc57333000003/publisher/51921ef8b67cc57333000002
+    curl -X PUT http://localhost:9090/book/51921ef8b67cc57333000003/publisher
+    /51921ef8b67cc57333000002
     {"name":"Wizard of Oz","_id":"51921ef8b67cc57333000004"}
 
-    curl -X PUT http://localhost:9090/book/51921ef8b67cc57333000003/author/51921ef8b67cc57333000001
+    curl -X PUT http://localhost:9090/book/51921ef8b67cc57333000003/author
+    /51921ef8b67cc57333000001
     {"name":"Wizard of Oz","_id":"51921ef8b67cc57333000004"}
 
 What if we want to look up books by a ``Publisher`` or ``Author``. Now that we have books associated with both a ``Publisher`` or ``Author`` we can implement the two methods that let us do exactly this, namely ``getBooksByPublisher`` and ``getBooksByAuthor``.
@@ -158,19 +194,28 @@ What if we want to look up books by a ``Publisher`` or ``Author``. Now that we h
 
   // GET /publisher/:id/books
   var getBooksByPublisher = function(req, res) { 
-    dbInstance.collection('publishers').findOne({_id: new ObjectID(req.params.id)}, function(err, publisher) {
-      if(err)
-        return writeError(res, 500, 'Failed to retrieve publisher with id ' + req.params.id);
-
-      if(!publisher)
-        return writeError(res, 406, 'Publisher with ' + req.params.id + " was not found");
-
-      dbInstance.collection('books').find({"publisher.publisher_id": publisher._id}, {loaned_out_to: 0}).toArray(function(err, books) {
+    dbInstance.collection('publishers')
+      .findOne({_id: new ObjectID(req.params.id)}, function(err, publisher) {
         if(err)
-          return writeError(res, 500, 'Failed to retrieve books for publisher with id ' + req.params.id);
+          return writeError(res
+            , 500
+            , 'Failed to retrieve publisher with id ' + req.params.id);
 
-        res.end(JSON.stringify(books));
-      });
+        if(!publisher)
+          return writeError(res
+            , 406
+            , 'Publisher with ' + req.params.id + " was not found");
+
+        dbInstance.collection('books')
+          .find({"publisher.publisher_id": publisher._id}, {loaned_out_to: 0})
+          .toArray(function(err, books) {
+            if(err)
+              return writeError(res
+                , 500
+                , 'Failed to retrieve books for publisher with id ' + req.params.id);
+
+            res.end(JSON.stringify(books));
+        });
     });
   }
 
@@ -180,19 +225,29 @@ As a ``Book`` is now associated to a ``Publisher`` through the ``publisher.publi
 
   // GET /author/:id/books
   var getBooksByAuthor = function(req, res) { 
-    dbInstance.collection('authors').findOne({_id: new ObjectID(req.params.id)}, function(err, author) {
-      if(err)
-        return writeError(res, 500, 'Failed to retrieve author with id ' + req.params.id);
-
-      if(!author)
-        return writeError(res, 406, 'Author with ' + req.params.id + " was not found");
-
-      dbInstance.collection('books').find({"authors.id": author._id}, {loaned_out_to: 0}).toArray(function(err, books) {
+    dbInstance.collection('authors')
+      .findOne({_id: new ObjectID(req.params.id)}, function(err, author) {
         if(err)
-          return writeError(res, 500, 'Failed to retrieve books for author with id ' + req.params.id);
+          return writeError(res
+            , 500
+            , 'Failed to retrieve author with id ' + req.params.id);
 
-        res.end(JSON.stringify(books));
-      });
+        if(!author)
+          return writeError(res
+            , 406
+            , 'Author with ' + req.params.id + " was not found");
+
+        dbInstance.collection('books')
+          .find({"authors.id": author._id}, {loaned_out_to: 0})
+          .toArray(function(err, books) {
+            if(err)
+              return writeError(res
+                , 500
+                , 'Failed to retrieve books for author with id ' 
+                  + req.params.id);
+
+            res.end(JSON.stringify(books));
+        });
     });
   }
 
@@ -203,10 +258,14 @@ Let's try out the new search methods by firing up ``Curl`` and retrieving the ``
 .. code-block:: console
 
     curl -X GET http://localhost:9090/publisher/51921ef8b67cc57333000002/books
-    [{"_id":"51921ef8b67cc57333000003","authors":[{"id":"51921ef8b67cc57333000001","name":"L. Frank Baum"}],"name":"Wizard of Oz","publisher":{"publisher_id":"51921ef8b67cc57333000002"}}]
+    [{"_id":"51921ef8b67cc57333000003","authors":[{"id":"51921ef8b67cc57333000001"
+    ,"name":"L. Frank Baum"}],"name":"Wizard of Oz"
+    ,"publisher":{"publisher_id":"51921ef8b67cc57333000002"}}]
 
     curl -X GET http://localhost:9090/author/51921ef8b67cc57333000001/books
-    [{"_id":"51921ef8b67cc57333000003","authors":[{"id":"51921ef8b67cc57333000001","name":"L. Frank Baum"}],"name":"Wizard of Oz","publisher":{"publisher_id":"51921ef8b67cc57333000002"}}]
+    [{"_id":"51921ef8b67cc57333000003","authors":[{"id":"51921ef8b67cc57333000001"
+    ,"name":"L. Frank Baum"}],"name":"Wizard of Oz"
+    ,"publisher":{"publisher_id":"51921ef8b67cc57333000002"}}]
 
 We need to provide a couple of ways for the users of our ``API`` to search for ``Books``. These are embodied in the methods ``searchByAuthor``, ``searchByPublisher`` and ``searchByBook``. We are going to use a new experimental index introduced in ``MongoDB`` 2.4 to allow us to perform full text search on documents.
 
@@ -224,15 +283,16 @@ Let's start with a slight modification to the connection code to create our inde
     dbInstance = db;
     console.log("connected to mongodb")
 
-    db.admin().command({ setParameter : 1, textSearchEnabled : true }, function(err, result) {
+    db.admin()
+      .command({ setParameter : 1, textSearchEnabled : true }, function(err, result) {
 
-      db.collection('books').ensureIndex({title:"text"}, {w:0});
-      db.collection('authors').ensureIndex({name:"text"}, {w:0});
-      db.collection('publishers').ensureIndex({name:"text"}, {w:0});
+        db.collection('books').ensureIndex({title:"text"}, {w:0});
+        db.collection('authors').ensureIndex({name:"text"}, {w:0});
+        db.collection('publishers').ensureIndex({name:"text"}, {w:0});
 
-      server.listen(9090, function() {
-        console.log("listening on ", 9090);
-      });  
+        server.listen(9090, function() {
+          console.log("listening on ", 9090);
+        });  
     });
   });
 
@@ -268,7 +328,9 @@ Also ensure you add the ``var url = require('url');`` line at the top of your sc
 
     dbInstance.command({text: "authors", search: query}, function(err, results) {
       if(err)
-        return writeError(res, 500, 'Failed to search by author with search ' + query);
+        return writeError(res
+          , 500
+          , 'Failed to search by author with search ' + query);
 
       res.end(JSON.stringify(results.results));
     });
@@ -318,11 +380,14 @@ The actual search results are in the ``results`` field and the code turns the re
     var queryStringParams = queryHelper(req);
     var query = queryStringParams.query || '';
 
-    dbInstance.command({text: "publishers", search: query}, function(err, results) {
-      if(err)
-        return writeError(res, 500, 'Failed to search by author with search ' + query);
+    dbInstance.command({text: "publishers", search: query}
+      , function(err, results) {
+        if(err)
+          return writeError(res
+            , 500
+            , 'Failed to search by author with search ' + query);
 
-      res.end(JSON.stringify(results.results));
+        res.end(JSON.stringify(results.results));
     });
   }
 
@@ -335,11 +400,16 @@ Pretty much the same as the ``searchByAuthor`` method with the difference being 
     var queryStringParams = queryHelper(req);
     var query = queryStringParams.query || '';
 
-    dbInstance.command({text: "books", search: query, project: {loaned_out_to: 0}}, function(err, results) {
-      if(err)
-        return writeError(res, 500, 'Failed to search by author with search ' + query);
+    dbInstance.command({text: "books"
+      , search: query
+      , project: {loaned_out_to: 0}}
+      , function(err, results) {
+        if(err)
+          return writeError(res
+            , 500
+            , 'Failed to search by author with search ' + query);
 
-      res.end(JSON.stringify(results.results));
+        res.end(JSON.stringify(results.results));
     });
   }
 
@@ -354,7 +424,10 @@ Notice the single difference? Yeah you are right it's the ``project: {loaned_out
   [{"score":0.75,"obj":{"name":"Penguin Books","_id":"51921ef8b67cc57333000002"}}]
 
   http://localhost:9090/book/search?query=oz
-  [{"score":0.75,"obj":{"_id":"51921ef8b67cc57333000003","authors":[{"id":"51921ef8b67cc57333000001","name":"L. Frank Baum"}],"name":"Wizard of Oz","publisher":{"publisher_id":"51921ef8b67cc57333000002"},"title":"Wizard of Oz"}}]
+  [{"score":0.75,"obj":{"_id":"51921ef8b67cc57333000003"
+  ,"authors":[{"id":"51921ef8b67cc57333000001","name":"L. Frank Baum"}]
+  ,"name":"Wizard of Oz","publisher":{"publisher_id":"51921ef8b67cc57333000002"}
+  ,"title":"Wizard of Oz"}}]
 
 Alright it's time to add the ability to borrow books from our library. Let's look at the ``borrowABook`` function.
 
@@ -362,57 +435,80 @@ Alright it's time to add the ability to borrow books from our library. Let's loo
 
   // POST /user/:id/loan/:book_id
   var borrowABook = function(req, res) { 
-    dbInstance.collection('books').findOne({_id: new ObjectID(req.params.book_id)}, function(err, book) {
-      if(err)
-        return writeError(res, 500, 'Failed to retrieve Book for id ' + req.params.id);
-
-      if(!book)
-        return writeError(res, 406, 'Book with ' + req.params.book_id + " was not found");
-
-      dbInstance.collection('users').findOne({_id: new ObjectID(req.params.id)}, function(err, user) {
+    dbInstance.collection('books')
+      .findOne({_id: new ObjectID(req.params.book_id)}, function(err, book) {
         if(err)
-          return writeError(res, 500, 'Failed to retrieve User for id ' + req.params.id);
+          return writeError(res
+            , 500
+            , 'Failed to retrieve Book for id ' + req.params.id);
 
-        if(!user)
-          return writeError(res, 406, 'User with ' + req.params.id + " was not found");
+        if(!book)
+          return writeError(res
+            , 406
+            , 'Book with ' + req.params.book_id + " was not found");
 
-        if(book.loaned_out_to)
-          return writeError(res, 406, 'Book with ' + req.params.book_id + " already loaned out");
+        dbInstance.collection('users')
+          .findOne({_id: new ObjectID(req.params.id)}, function(err, user) {
+            if(err)
+              return writeError(res
+                , 500
+                , 'Failed to retrieve User for id ' + req.params.id);
 
-        var currentDate = new Date();
-        var dueOn = currentDate;
-        var dueOnTime = currentDate.getTime() + (14 * 24 * 60 * 60 * 1000);
-        dueOn.setTime(dueOnTime);
+            if(!user)
+              return writeError(res
+                , 406
+                , 'User with ' + req.params.id + " was not found");
 
-        var loanedOutTo = {
-            user_id: user._id
-          , loaned_on: new Date()
-          , due_on: dueOn
-        }
+            if(book.loaned_out_to)
+              return writeError(res
+                , 406
+                , 'Book with ' + req.params.book_id + " already loaned out");
 
-        var loanedBook = {
-            id: book._id 
-          , title: book.title
-          , loaned_out: loanedOutTo.loaned_on
-          , due_on: loanedOutTo.due_on
-        }
+            var currentDate = new Date();
+            var dueOn = currentDate;
+            var dueOnTime = currentDate.getTime() + (14 * 24 * 60 * 60 * 1000);
+            dueOn.setTime(dueOnTime);
 
-        dbInstance.collection('books').update({_id: new ObjectID(req.params.book_id), loaned_out_to: {$exists: false}}
-          , {$set: { loaned_out:true, loaned_out_to: loanedOutTo }}, function(err, updated) {
+            var loanedOutTo = {
+                user_id: user._id
+              , loaned_on: new Date()
+              , due_on: dueOn
+            }
 
-          if(err || updated == 0)
-            return writeError(res, 500, 'Failed to loan Book with id ' + req.params.book_id);
+            var loanedBook = {
+                id: book._id 
+              , title: book.title
+              , loaned_out: loanedOutTo.loaned_on
+              , due_on: loanedOutTo.due_on
+            }
 
-          dbInstance.collection('users').update({_id: new ObjectID(req.params.id)}
-            , {$push: { loaned_books: loanedBook }}, function(err, updated) {
+            dbInstance.collection('books')
+              .update({_id: new ObjectID(req.params.book_id)
+                , loaned_out_to: {$exists: false}}
+                , {$set: 
+                    { 
+                        loaned_out:true
+                      , loaned_out_to: loanedOutTo }}, function(err, updated) {
 
-            if(err || updated == 0)
-              return writeError(res, 500, 'Failed to update User with id ' + req.params.id);
+                  if(err || updated == 0)
+                    return writeError(res
+                      , 500
+                      , 'Failed to loan Book with id ' + req.params.book_id);
 
-            res.end(JSON.stringify(loanedBook));
-          });
+                  dbInstance.collection('users')
+                    .update({_id: new ObjectID(req.params.id)}
+                    , {$push: 
+                        { loaned_books: loanedBook }}, function(err, updated) {
+
+                      if(err || updated == 0)
+                        return writeError(res
+                          , 500
+                          , 'Failed to update User with id ' + req.params.id);
+
+                      res.end(JSON.stringify(loanedBook));
+                    });
+                });
         });
-      });
     });
   }
 
@@ -487,7 +583,9 @@ Now comes the trick. We need to ensure we only loan out the book if nobody has b
 
 .. code-block:: javascript
 
-  dbInstance.collection('books').update({_id: new ObjectID(req.params.book_id), loaned_out_to: {$exists: false}}, function(err, updated) {  
+  dbInstance.collection('books')
+    .update({_id: new ObjectID(req.params.book_id)
+      , loaned_out_to: {$exists: false}}, function(err, updated) {  
   });
 
 notice the ``loaned_out_to: {$exists:false}``. This part of the ``find`` part of the ``update`` operation ensure that we will only match on a ``Book`` that has not been loaned out (meaning the ``loaned_out_to`` is not set).
@@ -496,16 +594,19 @@ Awesome so if the first ``update`` succeeds we now need to add the book to the `
 
 .. code-block:: javascript
 
-  dbInstance.collection('users').update({_id: new ObjectID(req.params.id)}
-            , {$push: { loaned_books: loanedBook }}, function(err, updated) {
+  dbInstance.collection('users')
+    .update({_id: new ObjectID(req.params.id)}
+          , {$push: { loaned_books: loanedBook }}, function(err, updated) {
   });
 
 Notice how we use the ``$push`` operator. It will create the array field ``loaned_books`` if none already exists. Test out the ability to borrow a book using ``curl``.
 
 .. code-block:: console
 
-  curl -X POST http://localhost:9090/user/51921ef8b67cc57333000004/loan/51921ef8b67cc57333000003
-  {"id":"51921ef8b67cc57333000003","title":"Wizard of Oz","loaned_out":"2013-05-28T11:18:02.795Z","due_on":"2013-06-11T11:18:02.795Z"}
+  curl -X POST http://localhost:9090/user/51921ef8b67cc57333000004/loan
+  /51921ef8b67cc57333000003
+  {"id":"51921ef8b67cc57333000003","title":"Wizard of Oz"
+  ,"loaned_out":"2013-05-28T11:18:02.795Z","due_on":"2013-06-11T11:18:02.795Z"}
 
 Now let's get to the other important aspect of a library, namely being able to return a borrowed book. In our case this is the ``returnAABook`` method. Let's have a look at the code
 
@@ -513,59 +614,85 @@ Now let's get to the other important aspect of a library, namely being able to r
 
   // DELETE  /user/:id/loan/:book_id
   var returnAABook = function(req, res) { 
-    dbInstance.collection('books').findOne({_id: new ObjectID(req.params.book_id)}, function(err, book) {
-      if(err)
-        return writeError(res, 500, 'Failed to retrieve Book for id ' + req.params.id);
-
-      if(!book)
-        return writeError(res, 406, 'Book with ' + req.params.book_id + " was not found");
-
-      dbInstance.collection('users').findOne({_id: new ObjectID(req.params.id)}, function(err, user) {
+    dbInstance.collection('books')
+      .findOne({_id: new ObjectID(req.params.book_id)}, function(err, book) {
         if(err)
-          return writeError(res, 500, 'Failed to retrieve User for id ' + req.params.id);
+          return writeError(res
+            , 500
+            , 'Failed to retrieve Book for id ' + req.params.id);
 
-        if(!user)
-          return writeError(res, 406, 'User with ' + req.params.id + " was not found");
+        if(!book)
+          return writeError(res
+            , 406
+            , 'Book with ' + req.params.book_id + " was not found");
 
-        dbInstance.collection('books').update({_id: new ObjectID(req.params.book_id), loaned_out: true}
-          , {$set: { loaned_out:false}, $unset: {loaned_out_to: null} }, function(err, updated) {
+        dbInstance.collection('users')
+          .findOne({_id: new ObjectID(req.params.id)}, function(err, user) {
+            if(err)
+              return writeError(res
+                , 500
+                , 'Failed to retrieve User for id ' + req.params.id);
 
-          if(err || updated == 0)
-            return writeError(res, 500, 'Failed to return Book with id ' + req.params.book_id);
+            if(!user)
+              return writeError(res
+                , 406
+                , 'User with ' + req.params.id + " was not found");
 
-          dbInstance.collection('users').update({_id: new ObjectID(req.params.id)}
-            , {$pop: { loaned_books: {id: new ObjectID(req.params.book_id) }}}, function(err, updated) {
+            dbInstance.collection('books')
+              .update({
+                  _id: new ObjectID(req.params.book_id)
+                , loaned_out: true}
+              , {   $set: { loaned_out:false}
+                  , $unset: {loaned_out_to: null} }, function(err, updated) {
 
-            if(err || updated == 0)
-              return writeError(res, 500, 'Failed to update User with id ' + req.params.id);
+              if(err || updated == 0)
+                return writeError(res
+                  , 500
+                  , 'Failed to return Book with id ' + req.params.book_id);
 
-            res.end(JSON.stringify(book.loaned_out_to));
-          });
+              dbInstance.collection('users')
+                .update({_id: new ObjectID(req.params.id)}
+                , {$pop: { loaned_books: {id: new ObjectID(req.params.book_id) }}}
+                , function(err, updated) {
+
+                  if(err || updated == 0)
+                    return writeError(res
+                      , 500
+                      , 'Failed to update User with id ' + req.params.id);
+
+                  res.end(JSON.stringify(book.loaned_out_to));
+              });
+            });
         });
       });
-    });
   }
 
 Just as in the previous method we first check if the ``User`` and ``Book`` are valid before we update the state. Since race conditions don't matter in this case we can do a much simpler update scheme. Let's look at the two ``update`` statements.
 
 .. code-block:: javascript
 
-  dbInstance.collection('books').update({_id: new ObjectID(req.params.book_id), loaned_out: true}
-      , {$set: { loaned_out:false}, $unset: {loaned_out_to: null} }, function(err, updated) {});
+  dbInstance.collection('books')
+    .update({_id: new ObjectID(req.params.book_id), loaned_out: true}
+      , {   $set: { loaned_out:false}
+          , $unset: {loaned_out_to: null} }, function(err, updated) {});
 
 The first update statement takes the passed in boko and removes the ``loaned_out_to`` field using ``$unset``. This makes the ``Book`` available for borrowing again.
 
 .. code-block:: javascript
 
-  dbInstance.collection('users').update({_id: new ObjectID(req.params.id)}
-    , {$pop: { loaned_books: {id: new ObjectID(req.params.book_id) }}}, function(err, updated) {});
+  dbInstance.collection('users')
+    .update({_id: new ObjectID(req.params.id)}
+    , {$pop: { loaned_books: {id: new ObjectID(req.params.book_id) }}}
+    , function(err, updated) {});
 
 The second update statement removed the borrowed book from the list of ``loaned_books`` in the ``User`` document using the ``$pop`` operator matching on the document in the ``loaned_books`` array that has the ``id`` field equivalent to the Book that was returned to the library. Let's exercise the new ``API`` using ``curl``.
 
 .. code-block:: console
 
-  curl -X DELETE http://localhost:9090/user/51921ef8b67cc57333000004/loan/51921ef8b67cc57333000003
-  {"id":"51921ef8b67cc57333000003","title":"Wizard of Oz","loaned_out":"2013-05-28T11:18:02.795Z","due_on":"2013-06-11T11:18:02.795Z"}
+  curl -X DELETE http://localhost:9090/user/51921ef8b67cc57333000004/loan
+  /51921ef8b67cc57333000003
+  {"id":"51921ef8b67cc57333000003","title":"Wizard of Oz"
+  ,"loaned_out":"2013-05-28T11:18:02.795Z","due_on":"2013-06-11T11:18:02.795Z"}
 
 Awesome we now have the ability to borrow and return books. We just have a couple of more features for our ``API`` before we wrap it up in our next exercise with some refactorings (changing the code to make it simpler) as well as adding some validation.
 
@@ -584,15 +711,20 @@ Let's look at the first method which allows the ``API`` to return the list of bo
 
   // GET /user/:id/loans
   var getLoansByUser = function(req, res) { 
-    dbInstance.collection('users').findOne({_id: new ObjectID(req.params.id)}, function(err, user) {
-      if(err)
-        return writeError(res, 500, 'Failed to retrieve User for id ' + req.params.id);
+    dbInstance.collection('users')
+      .findOne({_id: new ObjectID(req.params.id)}, function(err, user) {
+        if(err)
+          return writeError(res
+            , 500
+            , 'Failed to retrieve User for id ' + req.params.id);
 
-      if(!user)
-        return writeError(res, 406, 'User with ' + req.params.id + " was not found");
+        if(!user)
+          return writeError(res
+            , 406
+            , 'User with ' + req.params.id + " was not found");
 
-      var loaned_books = user.loaned_books || [];
-      res.end(JSON.stringify(loaned_books));
+        var loaned_books = user.loaned_books || [];
+        res.end(JSON.stringify(loaned_books));
     });
   }
 
@@ -600,11 +732,14 @@ It's a very simple method all we do is return the books the ``User`` has current
 
 .. code-block:: console
 
-  curl -X POST http://localhost:9090/user/51921ef8b67cc57333000004/loan/51921ef8b67cc57333000003
-  {"id":"51921ef8b67cc57333000003","title":"Wizard of Oz","loaned_out":"2013-05-28T11:18:02.795Z","due_on":"2013-06-11T11:18:02.795Z"}
+  curl -X POST http://localhost:9090/user/51921ef8b67cc57333000004/loan
+  /51921ef8b67cc57333000003
+  {"id":"51921ef8b67cc57333000003","title":"Wizard of Oz"
+  ,"loaned_out":"2013-05-28T11:18:02.795Z","due_on":"2013-06-11T11:18:02.795Z"}
 
   curl -X GET http://localhost:9090/user/51921ef8b67cc57333000004/loans
-  [{"id":"51921ef8b67cc57333000003","title":"Wizard of Oz","loaned_out":"2013-05-28T12:35:52.330Z","due_on":"2013-06-11T12:35:52.330Z"}]
+  [{"id":"51921ef8b67cc57333000003","title":"Wizard of Oz"
+  ,"loaned_out":"2013-05-28T12:35:52.330Z","due_on":"2013-06-11T12:35:52.330Z"}]
 
 So what if the user wants to renew the book for another 14 day period. For this we have the method ``modifyLoan``. Let's take a look.
 
@@ -612,53 +747,72 @@ So what if the user wants to renew the book for another 14 day period. For this 
 
   // PUT /user/:id/loan/:book_id
   var modifyLoan = function(req, res) { 
-    dbInstance.collection('books').findOne({_id: new ObjectID(req.params.book_id)}, function(err, book) {
-      if(err)
-        return writeError(res, 500, 'Failed to retrieve Book for id ' + req.params.id);
-
-      if(!book)
-        return writeError(res, 406, 'Book with ' + req.params.book_id + " was not found");
-
-      dbInstance.collection('users').findOne({_id: new ObjectID(req.params.id)}, function(err, user) {
+    dbInstance.collection('books')
+      .findOne({_id: new ObjectID(req.params.book_id)}, function(err, book) {
         if(err)
-          return writeError(res, 500, 'Failed to retrieve User for id ' + req.params.id);
+          return writeError(res
+            , 500
+            , 'Failed to retrieve Book for id ' + req.params.id);
 
-        if(!user)
-          return writeError(res, 406, 'User with ' + req.params.id + " was not found");
-
-        if(!user.loaned_books) 
-          return writeError(res, 406, 'User with ' + req.params.id + " has not borrowed any books");
-
-        // Let's locate the book
-        var loaned_book;
-        
-        for(var i = 0; user.loaned_books.length; i++) {
-          if(user.loaned_books[i].id.toString() == req.params.book_id) {
-            loaned_book = user.loaned_books[i];
-            break;
-          }
-        }
-
-        if(loaned_book == null)
-          return writeError(res, 406, 'User with ' + req.params.id + " has not borrowed the book with id " + req.params.book_id);
-
-        var currentDate = loaned_book.due_on;
-        var dueOn = currentDate;
-        var dueOnTime = currentDate.getTime() + (14 * 24 * 60 * 60 * 1000);
-        dueOn.setTime(dueOnTime);
+        if(!book)
+          return writeError(res
+            , 406
+            , 'Book with ' + req.params.book_id + " was not found");
 
         dbInstance.collection('users')
-          .update({_id: new ObjectID(req.params.id), "loaned_books.id": new ObjectID(req.params.book_id)}
-              , {$set: {"loaned_books.$.due_on": dueOn}}, function(err, updated) {
+          .findOne({_id: new ObjectID(req.params.id)}, function(err, user) {
+            if(err)
+              return writeError(res
+                , 500
+                , 'Failed to retrieve User for id ' + req.params.id);
 
-            if(err || updated == 0)
-              return writeError(res, 500, 'Failed to update User with id ' + req.params.id);
+            if(!user)
+              return writeError(res
+                , 406
+                , 'User with ' + req.params.id + " was not found");
 
-            loaned_book.due_on = dueOn;
-            res.end(JSON.stringify(loaned_book));          
+            if(!user.loaned_books) 
+              return writeError(res
+                , 406
+                , 'User with ' + req.params.id + " has not borrowed any books");
+
+            // Let's locate the book
+            var loaned_book;
+            
+            for(var i = 0; user.loaned_books.length; i++) {
+              if(user.loaned_books[i].id.toString() == req.params.book_id) {
+                loaned_book = user.loaned_books[i];
+                break;
+              }
+            }
+
+            if(loaned_book == null)
+              return writeError(res
+                , 406
+                , 'User with ' + req.params.id 
+                  + " has not borrowed the book with id " 
+                  + req.params.book_id);
+
+            var currentDate = loaned_book.due_on;
+            var dueOn = currentDate;
+            var dueOnTime = currentDate.getTime() + (14 * 24 * 60 * 60 * 1000);
+            dueOn.setTime(dueOnTime);
+
+            dbInstance.collection('users')
+              .update({_id: new ObjectID(req.params.id)
+                , "loaned_books.id": new ObjectID(req.params.book_id)}
+                , {$set: {"loaned_books.$.due_on": dueOn}}, function(err, updated) {
+
+                  if(err || updated == 0)
+                    return writeError(res
+                      , 500
+                      , 'Failed to update User with id ' + req.params.id);
+
+                  loaned_book.due_on = dueOn;
+                  res.end(JSON.stringify(loaned_book));          
+              });
           });
       });
-    });
   }
 
 Quite a mouthful right. But not to worry it's not as hard as it seems. Let's break it down. Just as in previous methods we ensure that the passed in ``User`` and ``Book`` exists before getting to the meat of the method. The first thing you might notice is that we check if the ``User`` has the field ``loaned_books`` set. If it does not then obviously we cannot renew the loan as the user never borrowed the book. If they have books out we iterate over the list of ``loaned_books`` and attempt to locate the ``Book`` we wish to renew. If no ``Book`` is found ``loaned_book == null`` we return an error as the ``User`` has not borrowed this ``Book`` and we cannot renew a non existing ``Book``. If he has borrowed the ``Book`` we calculate a new due date 14 days in the future from the existing due date. We then update the ``loan`` due date. Let's have a look at the update statement.
@@ -666,7 +820,8 @@ Quite a mouthful right. But not to worry it's not as hard as it seems. Let's bre
 .. code-block:: javascript
 
   dbInstance.collection('users')
-    .update({_id: new ObjectID(req.params.id), "loaned_books.id": new ObjectID(req.params.book_id)}
+    .update({_id: new ObjectID(req.params.id)
+        , "loaned_books.id": new ObjectID(req.params.book_id)}
         , {$set: {"loaned_books.$.due_on": dueOn}}, function(err, updated) {
       });
 
@@ -756,7 +911,9 @@ What we actually are doing is transforming (or rewriting) the documents from the
 .. code-block:: console
 
   curl -X GET http://localhost:9090/loan/overdue
-  [{"_id":"51921ef8b67cc57333000003","user_id":"51921ef8b67cc57333000004","title":"Wizard of Oz","loaned_out":"2013-05-28T12:35:52.330Z","due_on":"2013-05-23T13:22:15.568Z"}]
+  [{"_id":"51921ef8b67cc57333000003","user_id":"51921ef8b67cc57333000004"
+  ,"title":"Wizard of Oz","loaned_out":"2013-05-28T12:35:52.330Z"
+  ,"due_on":"2013-05-23T13:22:15.568Z"}]
 
 We will get deeper into the Aggregation framework in a later exercise but it's quite useful as you can see and a lot more powerful. At the moment however it's limited as it's a command thus limiting it to a maximum result size of 16MB.
 
@@ -796,7 +953,9 @@ As we can see the only difference is in the date we pass in ``days`` that lets u
 .. code-block:: console
 
   curl -X GET http://localhost:9090/loan/overdue/1
-  [{"_id":"51921ef8b67cc57333000003","user_id":"51921ef8b67cc57333000004","title":"Wizard of Oz","loaned_out":"2013-05-28T12:35:52.330Z","due_on":"2013-05-23T13:22:15.568Z"}]
+  [{"_id":"51921ef8b67cc57333000003","user_id":"51921ef8b67cc57333000004"
+  ,"title":"Wizard of Oz","loaned_out":"2013-05-28T12:35:52.330Z"
+  ,"due_on":"2013-05-23T13:22:15.568Z"}]
 
 Awesome that wraps up the ``API`` methods.
 

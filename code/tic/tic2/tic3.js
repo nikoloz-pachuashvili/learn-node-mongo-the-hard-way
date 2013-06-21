@@ -22,7 +22,8 @@ module.exports = function(db) {
   // Initialize the gamer collection, by adding indexes etc
   //
   Gamer.init = function(callback) {
-    db.collection('gamers').ensureIndex({updated_on: 1}, {expireAfterSeconds: (60 * 60)}, callback);
+    db.collection('gamers').ensureIndex({updated_on: 1}
+      , {expireAfterSeconds: (60 * 60)}, callback);
   }
 
   return Gamer;

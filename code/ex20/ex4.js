@@ -39,23 +39,31 @@ var createAuthor = function(req, res) {
 
 // GET /author/:id
 var getAuthor = function(req, res) { 
-  dbInstance.collection('authors').findOne({_id: new ObjectID(req.params.id)}, function(err, doc) {
-    if(err || doc == null) 
-      return writeError(res, 404, 'Failed to retrieve document from database for id ' + req.params.id);
-   
-    res.end(JSON.stringify(doc));
+  dbInstance.collection('authors')
+    .findOne({_id: new ObjectID(req.params.id)}, function(err, doc) {
+      if(err || doc == null) 
+        return writeError(res
+          , 404
+          , 'Failed to retrieve document from database for id ' + req.params.id);
+     
+      res.end(JSON.stringify(doc));
   });
 }
 
 // DELETE /author/:id
 var deleteAuthor = function(req, res) { 
-  dbInstance.collection('authors').remove({_id: new ObjectID(req.params.id)}, function(err, deleted) {
-    if(err) 
-      return writeError(res, 500, 'Failed to delete document from database for id ' + req.params.id);
-    
-    if(deleted == 0)
-      return writeError(res, 404, 'No document with id ' + req.params.id + ' found in database');
+  dbInstance.collection('authors')
+    .remove({_id: new ObjectID(req.params.id)}, function(err, deleted) {
+      if(err) 
+        return writeError(res
+          , 500
+          , 'Failed to delete document from database for id ' + req.params.id);
+      
+      if(deleted == 0)
+        return writeError(res
+          , 404
+          , 'No document with id ' + req.params.id + ' found in database');
 
-    res.end(JSON.stringify({_id: req.params.id}));
+      res.end(JSON.stringify({_id: req.params.id}));
   });
 }

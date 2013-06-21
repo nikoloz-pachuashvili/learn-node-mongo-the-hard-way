@@ -1,6 +1,7 @@
 var emit_message = require("../models/shared").emit_message
   , is_authenticated = require("../models/shared").is_authenticated
-  , locate_connection_with_session = require("../models/shared").locate_connection_with_session
+  , locate_connection_with_session = require("../models/shared")
+                                        .locate_connection_with_session
   , emit_error = require("../models/shared").emit_error;
 
 var user = require('../models/user')
@@ -8,7 +9,7 @@ var user = require('../models/user')
   , game = require('../models/game');
 
 /**
- * Locate all the available gamers by their session ids. We do this by introspecting
+ * Locate all the available gamers by their session IDs. We do this by introspecting
  * all available connections for SocketIO. However note that if we wanted to use
  * the cluster functionality in Node.JS we would probably have to rewrite this as
  * a lot of the users might be living in different processes and by default SocketIO
@@ -20,8 +21,10 @@ var find_all_available_gamers = function(io, socket, session_store, db) {
 
   // Function we return that accepts the data from SocketIO
   return function(data) {
-    // Ensure the user is logged on and emit an error to the calling function if it's not the case
-    if(!is_authenticated(socket, session_store)) return emit_error(calling_method_name, "User not authenticated", socket);
+    // Ensure the user is logged on and emit an error to the 
+    // calling function if it's not the case
+    if(!is_authenticated(socket, session_store)) 
+      return emit_error(calling_method_name, "User not authenticated", socket);
     
     // Locate all active socket connections
     var clients = io.sockets.clients();
@@ -65,15 +68,18 @@ var invite_gamer = function(io, socket, session_store, db) {
 
   // Function we return that accepts the data from SocketIO
   return function(data) {
-    // Ensure the user is logged on and emit an error to the calling function if it's not the case
-    if(!is_authenticated(socket, session_store)) return emit_error(calling_method_name, "User not authenticated", socket);
+    // Ensure the user is logged on and emit an error to 
+    // the calling function if it's not the case
+    if(!is_authenticated(socket, session_store)) 
+      return emit_error(calling_method_name, "User not authenticated", socket);
 
     // Locate the destination connection
     var connection = locate_connection_with_session(io, data.sid);
 
     // If there is no connection it means the other player went away, send an error message
     // to the calling function on the client
-    if(connection == null) return emit_error(calling_method_name, "Invited user is no longer available", socket);
+    if(connection == null) 
+      return emit_error(calling_method_name, "Invited user is no longer available", socket);
 
     // Grab our session id
     var our_sid = socket.handshake.sessionID;
@@ -106,8 +112,10 @@ var decline_game = function(io, socket, session_store, db) {
 
   // Function we return that accepts the data from SocketIO
   return function(data) {
-    // Ensure the user is logged on and emit an error to the calling function if it's not the case
-    if(!is_authenticated(socket, session_store)) return emit_error(calling_method_name, "User not authenticated", socket);
+    // Ensure the user is logged on and emit an error to the 
+    // calling function if it's not the case
+    if(!is_authenticated(socket, session_store)) 
+      return emit_error(calling_method_name, "User not authenticated", socket);
 
     // Grab our session id
     var our_sid = socket.handshake.sessionID;
@@ -116,7 +124,8 @@ var decline_game = function(io, socket, session_store, db) {
 
     // If there is no connection it means the other player went away, send an error message
     // to the calling function on the client
-    if(connection == null) return emit_error(calling_method_name, "User is no longer available", socket);
+    if(connection == null) 
+      return emit_error(calling_method_name, "User is no longer available", socket);
 
     // Send an error to the player who sent the invite, outlining the decline of the offer
     // to play a game
@@ -134,8 +143,10 @@ var accept_game = function(io, socket, session_store, db) {
 
   // Function we return that accepts the data from SocketIO
   return function(data) {
-    // Ensure the user is logged on and emit an error to the calling function if it's not the case
-    if(!is_authenticated(socket, session_store)) return emit_error(calling_method_name, "User not authenticated", socket);
+    // Ensure the user is logged on and emit an error to the calling 
+    // function if it's not the case
+    if(!is_authenticated(socket, session_store)) 
+      return emit_error(calling_method_name, "User not authenticated", socket);
     // Our session id
     var our_sid = socket.handshake.sessionID;
     // Locate the destination connection
@@ -143,14 +154,17 @@ var accept_game = function(io, socket, session_store, db) {
 
     // If there is no connection it means the other player went away, send an error message
     // to the calling function on the client
-    if(connection == null) return emit_error(calling_method_name, "User is no longer available", socket);    
+    if(connection == null) 
+      return emit_error(calling_method_name, "User is no longer available", socket);    
 
     // Locate both the calling player and the destination player by their session ids
     gamer(db).findAllGamersBySids([our_sid, data.sid], function(err, players) {
-      // If we have an error notify both the inviter and the invited player about an error
+      // If we have an error notify both the inviter and 
+      // the invited player about an error
       if(err || players.length != 2) {
         emit_error(event_name, "Failed to locate players for game acceptance", connection);
-        return emit_error(calling_method_name, "Failed to locate players for game acceptance", socket);
+        return emit_error(calling_method_name
+          , "Failed to locate players for game acceptance", socket);
       }
 
       // Grab player 1 and player 2 from the results
@@ -158,16 +172,17 @@ var accept_game = function(io, socket, session_store, db) {
       var p2 = players[1];
       
       // Create a new game with player 1 and player 2
-      game(db).create_game(p1.sid, p1.user_name, p1.full_name, p2.sid, p2.user_name, p2.full_name, function(err, game_doc) {
-        // If we have an error notify both the inviter and the invited player about an error
-        if(err) {
-          emit_error(event_name, "Failed to create a new game", connection);
-          return emit_error(calling_method_name, "Failed to create a new game", socket);
-        }
+      game(db).create_game(p1.sid, p1.user_name, p1.full_name
+        , p2.sid, p2.user_name, p2.full_name, function(err, game_doc) {
+          // If we have an error notify both the inviter and the invited player about an error
+          if(err) {
+            emit_error(event_name, "Failed to create a new game", connection);
+            return emit_error(calling_method_name, "Failed to create a new game", socket);
+          }
 
-        // We have a new game, notify both players about the new game information
-        emit_message(event_name, { ok: true, result: game_doc }, connection);
-        emit_message(calling_method_name, { ok: true, result: game_doc }, socket);
+          // We have a new game, notify both players about the new game information
+          emit_message(event_name, { ok: true, result: game_doc }, connection);
+          emit_message(calling_method_name, { ok: true, result: game_doc }, socket);
       });
     });
   }
@@ -184,8 +199,10 @@ var place_marker = function(io, socket, session_store, db) {
 
   // Function we return that accepts the data from SocketIO
   return function(data) {
-    // Ensure the user is logged on and emit an error to the calling function if it's not the case
-    if(!is_authenticated(socket, session_store)) return emit_error(calling_method_name, "User not authenticated", socket);
+    // Ensure the user is logged on and emit an error to the 
+    // calling function if it's not the case
+    if(!is_authenticated(socket, session_store)) 
+      return emit_error(calling_method_name, "User not authenticated", socket);
     // Grab our session id
     var our_sid = socket.handshake.sessionID;
 
@@ -200,9 +217,12 @@ var place_marker = function(io, socket, session_store, db) {
       var marker = game_doc.starting_player == our_sid ? "x" : "o";
       
       // Locate other players session id
-      var other_player_sid = game_doc.player1_sid == our_sid ? game_doc.player2_sid : game_doc.player1_sid;
+      var other_player_sid = game_doc.player1_sid == our_sid 
+        ? game_doc.player2_sid 
+        : game_doc.player1_sid;
 
-      // If we are trying to set a cell that's already set emit an error to the calling function
+      // If we are trying to set a cell that's already set emit 
+      // an error to the calling function
       if(board[data.y][data.x] == "x" || board[data.y][data.x] == "o") 
         return emit_error(calling_method_name, "Cell already selected", socket);;
 
@@ -210,53 +230,64 @@ var place_marker = function(io, socket, session_store, db) {
       board[data.y][data.x] = marker;
 
       // Attempt to update the board
-      game(db).update_board(our_sid, data.game_id, other_player_sid, board, function(err, result) {
-        // If we have an error it was not our turn
-        if(err) return emit_error(calling_method_name, "Not your turn", socket);
+      game(db).update_board(our_sid, data.game_id, other_player_sid, board
+        , function(err, result) {
+          // If we have an error it was not our turn
+          if(err) 
+            return emit_error(calling_method_name, "Not your turn", socket);
 
-        // Locate the destination connection
-        var connection = locate_connection_with_session(io, other_player_sid);
-  
-        // If there is no connection it means the other player went away, send an error message
-        // to the calling function on the client
-        if(connection == null) return emit_error(calling_method_name, "User is no longer available", socket);
+          // Locate the destination connection
+          var connection = locate_connection_with_session(io, other_player_sid);
+    
+          // If there is no connection it means the other player went away, 
+          // send an error message to the calling function on the client
+          if(connection == null) 
+            return emit_error(calling_method_name, "User is no longer available", socket);
 
-        // Emit valid move message to caller and the other player
-        // this notifies the clients that they can draw the marker on the board
-        emit_message(calling_method_name, { ok: true
-          , result: {y: data.y, x:data.x, marker: marker} }
-          , socket);        
-        emit_message(event_name_move, { ok: true
-          , result: {y: data.y, x:data.x, marker: marker} }
-          , connection);
+          // Emit valid move message to caller and the other player
+          // this notifies the clients that they can draw the marker on the board
+          emit_message(calling_method_name, { ok: true
+            , result: {y: data.y, x:data.x, marker: marker} }
+            , socket);        
+          emit_message(event_name_move, { ok: true
+            , result: {y: data.y, x:data.x, marker: marker} }
+            , connection);
 
-        // If there was no winner this turn
-        if(is_game_over(board, data.y, data.x, marker) == false) {
-          // If there are still fields left on the board, let's keep playing
-          if(!is_game_draw(board)) return;
+          // If there was no winner this turn
+          if(is_game_over(board, data.y, data.x, marker) == false) {
+            // If there are still fields left on the board, let's keep playing
+            if(!is_game_draw(board)) return;
+
+            // Set the winner
+            game(db).finalize_board(null, data.game_id, function(err, result) {
+              // If we have an error it was not our turn
+              if(err) 
+                return emit_error(calling_method_name
+                  , "Failed to set winner on table", socket);
+              
+              // If there are no open spots left on the board the game
+              // is a draw
+              emit_message(event_name_game_over
+                , { ok: true, result: {draw:true} }, socket);        
+              return emit_message(event_name_game_over
+                , { ok: true, result: {draw:true} }, connection);          
+            });
+          }
 
           // Set the winner
-          game(db).finalize_board(null, data.game_id, function(err, result) {
+          game(db).finalize_board(our_sid, data.game_id, function(err, result) {
             // If we have an error it was not our turn
-            if(err) return emit_error(calling_method_name, "Failed to set winner on table", socket);
-            
-            // If there are no open spots left on the board the game
-            // is a draw
-            emit_message(event_name_game_over, { ok: true, result: {draw:true} }, socket);        
-            return emit_message(event_name_game_over, { ok: true, result: {draw:true} }, connection);          
+            if(err) 
+              return emit_error(calling_method_name
+                , "Failed to set winner on table", socket);
+
+            // There was a winner and it was the last user to place a 
+            // marker (the calling client) signal both players who won the game
+            emit_message(event_name_game_over
+              , { ok: true, result: {winner: our_sid} }, socket);        
+            emit_message(event_name_game_over
+              , { ok: true, result: {winner: our_sid} }, connection);
           });
-        }
-
-        // Set the winner
-        game(db).finalize_board(our_sid, data.game_id, function(err, result) {
-          // If we have an error it was not our turn
-          if(err) return emit_error(calling_method_name, "Failed to set winner on table", socket);
-
-          // There was a winner and it was the last user to place a marker (the calling client)
-          // signal both players who won the game
-          emit_message(event_name_game_over, { ok: true, result: {winner: our_sid} }, socket);        
-          emit_message(event_name_game_over, { ok: true, result: {winner: our_sid} }, connection);
-        });
       })
     });
   }

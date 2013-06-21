@@ -7,13 +7,13 @@ So it's probably dawned on you that MongoDB is a document database. Moreover it'
 .. code-block:: json
 
   {
-    'name': 'MongoDB',
-    'version': 2.2,
-    'description': 'A schemaless document database',
-    'features': ['schemaless', 'document oriented', 'fast', 'scalable'],
-    'main developer': {
-      name: '10gen',
-      location: 'new york city'
+    "name": "MongoDB",
+    "version": 2,
+    "description": "A schemaless document database",
+    "features": ["schemaless", "document oriented", "fast", "scalable"],
+    "main developer": {
+      "name": "10gen",
+      "location": "new york city"
     }
   }
 

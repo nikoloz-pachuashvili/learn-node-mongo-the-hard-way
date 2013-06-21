@@ -223,7 +223,7 @@ So as you might have suspected you can make multiple changes on a document in a 
     second update operations: $inc: {value: -1}
 
     possible ordering of operations:
-    --------------------------------
+    -----------------------------------------
         first update: $set: {value2: 'hello'}
        second update: $inc: {value: -1}
         first update: $inc: {value: -5}
@@ -239,7 +239,7 @@ To avoid this in the example above we use the ``$isolated`` operator as part of 
     second update operations: $inc: {value: -1}
 
     possible ordering of operations:
-    --------------------------------
+    ----------------------------------------------------------
         first update: $set: {value2: 'hello'}
         first update: $inc: {value: -5}
        second update: $inc: {value: -1} (failes as value is 0)

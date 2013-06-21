@@ -1,6 +1,7 @@
 <div class="span6">
   <h2>Register</h2>
-  <p>Pick a user name and enter your full name to be able to play games, you can reuse the user name as many times as you wish.</p>
+  <p>Pick a user name and enter your full name to be able to play games, 
+  you can reuse the user name as many times as you wish.</p>
   <form class="form-horizontal">
     <div class="control-group">
       <label class="control-label" for="inputFullNameRegister">Full Name</label>

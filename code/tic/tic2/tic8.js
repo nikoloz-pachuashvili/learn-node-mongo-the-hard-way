@@ -21,13 +21,15 @@ template_handler.start(function(err) {
   template_handler.setTemplate("#view", "main", {});
 
   // Wire up the buttons for the main view
-  $('#register_button').click(register_button_handler(application_state, api, template_handler));
-  $('#login_button').click(login_button_handler(application_state, api, template_handler));
+  $('#register_button')
+    .click(register_button_handler(application_state, api, template_handler));
+  $('#login_button')
+    .click(login_button_handler(application_state, api, template_handler));
 })
 
-/*********************************************************************************************
+/****************************************************************************************
  * Application events we listen to
- ********************************************************************************************/
+ ****************************************************************************************/
 
 /**
  * The init event, the server has set up everything an assigned us
@@ -45,9 +47,9 @@ api.on('gamer_joined', function(err, data) {
   if(err) return;
 });
 
-/*********************************************************************************************
+/****************************************************************************************
  * Handlers
- ********************************************************************************************/
+ ****************************************************************************************/
 /**
  * Handles the attempt to register a new user
  */
@@ -89,9 +91,9 @@ var login_button_handler = function(application_state, api, template_handler) {
   }
 }
 
-/*********************************************************************************************
+/****************************************************************************************
  * Helper methods
- ********************************************************************************************/
+ ****************************************************************************************/
 
 /**
  * Show an error message box

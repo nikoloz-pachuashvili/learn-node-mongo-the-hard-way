@@ -32,4 +32,4 @@ var disconnected = function(io, socket, session_store, db) {
   } 
 }
 
-exports.disconnected              = disconnected;
+exports.disconnected = disconnected;

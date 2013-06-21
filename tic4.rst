@@ -19,31 +19,36 @@ Let's start with the chat functionality. Chat is defined as a text instant messa
 .. code-block:: javascript
 
     //
-    // Create a new game, it contains all the information about the two players, the empty board, the whole
-    // game chat record, who is starting the game and who is the current player.
+    // Create a new game, it contains all the information about the two players, 
+    // the empty board, the whole game chat record, who is starting the 
+    // game and who is the current player.
     // 
-    Game.create_game = function(p1_sid, p1_user_name, p1_full_name, p2_sid, p2_user_name, p2_full_name, callback) {
-      db.collection('games').insert({
-          player1_sid: p1_sid
-        , player1_user_name: p1_user_name
-        , player1_full_name: p1_full_name
-        , player2_sid: p2_sid
-        , player2_user_name: p2_user_name
-        , player2_full_name: p2_full_name
-        , board: [
-            [0, 0, 0, 0]
-          , [0, 0, 0, 0]
-          , [0, 0, 0, 0]
-          , [0, 0, 0, 0]
-        ]
-        , chat: []
-        , created_on: new Date()
-        , starting_player: p1_sid
-        , current_player: p1_sid
-      }, function(err, result) {
-        if(err) return callback(err);
-        callback(null, Array.isArray(result) ? result[0] : result);
-      })
+    Game.create_game = function(p1_sid
+      , p1_user_name
+      , p1_full_name
+      , p2_sid, p2_user_name, p2_full_name, callback) {
+        
+        db.collection('games').insert({
+            player1_sid: p1_sid
+          , player1_user_name: p1_user_name
+          , player1_full_name: p1_full_name
+          , player2_sid: p2_sid
+          , player2_user_name: p2_user_name
+          , player2_full_name: p2_full_name
+          , board: [
+              [0, 0, 0, 0]
+            , [0, 0, 0, 0]
+            , [0, 0, 0, 0]
+            , [0, 0, 0, 0]
+          ]
+          , chat: []
+          , created_on: new Date()
+          , starting_player: p1_sid
+          , current_player: p1_sid
+        }, function(err, result) {
+          if(err) return callback(err);
+          callback(null, Array.isArray(result) ? result[0] : result);
+        });
     }
 
 Now let's create a handler for the chat messages. Create the file ``lib/handlers/chat_handler.js`` and open it with your editor.
@@ -75,14 +80,15 @@ Let's not forget to add the ``send_message`` handler to the ``require`` section 
 
 .. code-block:: javascript
 
-    var register_handler                  = require('./lib/handlers/login_handler').register_handler
-      , login_handler                     = require('./lib/handlers/login_handler').login_handler
-      , find_all_available_gamers         = require('./lib/handlers/gamer_handler').find_all_available_gamers
-      , invite_gamer                      = require('./lib/handlers/gamer_handler').invite_gamer
-      , decline_game                      = require('./lib/handlers/gamer_handler').decline_game
-      , accept_game                       = require('./lib/handlers/gamer_handler').accept_game
-      , place_marker                      = require('./lib/handlers/gamer_handler').place_marker
-      , send_message                      = require('./lib/handlers/chat_handler').send_message;
+    var register_handler          = require('./lib/handlers/login_handler').register_handler
+      , login_handler             = require('./lib/handlers/login_handler').login_handler
+      , find_all_available_gamers = require('./lib/handlers/gamer_handler')
+                                        .find_all_available_gamers
+      , invite_gamer              = require('./lib/handlers/gamer_handler').invite_gamer
+      , decline_game              = require('./lib/handlers/gamer_handler').decline_game
+      , accept_game               = require('./lib/handlers/gamer_handler').accept_game
+      , place_marker              = require('./lib/handlers/gamer_handler').place_marker
+      , send_message              = require('./lib/handlers/chat_handler').send_message;
 
 
 Front End
@@ -98,7 +104,8 @@ Next we need to add the HTML markup for that makes up the chat interface on the 
 
     <div class="span4">
       <div id="chat"></div>
-      <input class="input-block-level" type="text" placeholder="chat message" id="chat_message"/>
+      <input class="input-block-level" type="text" placeholder="chat message" 
+        id="chat_message"/>
     </div>
 
 Let's pretty it up a bit, by adding some css styling. Open the ``public/css/app.css`` file and add the following to the end of it.
@@ -151,7 +158,8 @@ That's formating take care off. It's time to wire up the chat functionality to y
             if(err) return error_box_show(err.error);
       
             // Push the current message to the bottom
-            chat_window.append('<p class="chat_msg_current">' + get_date_time_string() + '&#62; ' + message + "</p>");
+            chat_window.append('<p class="chat_msg_current">' 
+              + get_date_time_string() + '&#62; ' + message + "</p>");
             // Clear out the messages
             chat_input.val('');
           });
@@ -164,7 +172,8 @@ Wire it up by adding the line shown below to the end of the ``setupBoardGame`` f
 .. code-block:: javascript
 
     // Map up the chat handler
-    $('#chat_message').keypress(chat_handler(application_state, api, template_handler, game));  
+    $('#chat_message')
+      .keypress(chat_handler(application_state, api, template_handler, game));  
 
 The ``chat_handler`` will listen for keyboard key presses and if it detects the ``return`` key it will take the content of the chat input box and send it to the server using the ``api.send_message`` method and append it to the chat window if the sending of the message succeeded.
 
@@ -182,13 +191,13 @@ The item we need to add is an event handler for ``chat_message`` events sent fro
       // Get the chat window  
       var chat_window = $('#chat');
       // Push the current message to the bottom
-      chat_window.append('<p class="chat_msg_other">' + get_date_time_string() + '&#62; ' + message + '</p>');
+      chat_window.append('<p class="chat_msg_other">' 
+        + get_date_time_string() + '&#62; ' + message + '</p>');
     });
 
 Notice that we use a method called ``get_date_time_string``. This is a helper method to format a date-time stamp for the chat message. Add the implementation under the ``Helper`` section of the ``public/javascripts/app.js`` file.
 
 .. code-block:: javascript
-    :linenos:
 
     /**
      * Get a date time string
@@ -230,7 +239,8 @@ We need to locate all games that are still active for this player and then set t
           {$or: [{player1_sid: sid}, {player2_sid: sid}], winner: {$exists: false}}
         , {$set: {final_state: 'draw', winner: null}}, {multi:true}, function(err, result) {
           if(err) return callback(err);
-          if(result == 0) return callback(new Error("Failed to finalize the boards with a draw"));
+          if(result == 0) 
+            return callback(new Error("Failed to finalize the boards with a draw"));
           callback(null, null);
         });    
     }
@@ -241,7 +251,7 @@ Before we jump to the frontend let's make sure we wire up the new handler. Open 
 
 .. code-block:: javascript
 
-    var disconnected                      = require('./lib/handlers/user_handler').disconnected; 
+    var disconnected      = require('./lib/handlers/user_handler').disconnected; 
 
 at the top and the handler below the ``send_message`` handler
 
@@ -269,7 +279,8 @@ Open the ``public/javascripts/app.js`` file and add an event handler for the ``d
       var sid = data;
       // Check if the current game is being played with this user
       if(application_state.game 
-        && (application_state.game.player1_sid == sid || application_state.game.player2_sid == sid)) {
+        && (application_state.game.player1_sid == sid 
+              || application_state.game.player2_sid == sid)) {
 
         // Load all the available gamers
         api.find_all_available_gamers(function(err, gamers) {
@@ -284,7 +295,10 @@ Open the ``public/javascripts/app.js`` file and add an event handler for the ``d
           
           // Add handlers for each new player so we can play them
           for(var i = 0; i < gamers.length; i++) {
-            $("#gamer_" + gamers[i]._id).click(invite_gamer_button_handler(application_state, api, template_handler));
+            $("#gamer_" + gamers[i]._id)
+              .click(invite_gamer_button_handler(application_state
+                , api
+                , template_handler));
           }
 
           // Reset the game state
@@ -305,7 +319,8 @@ We are nearly there but we need to let the gamer have a way to leave a game at t
     <div class="span4">
       <div><button id="quit_game">Quit Game</button></div>
       <div id="chat"></div>
-      <input class="input-block-level" type="text" placeholder="chat message" id="chat_message"/>
+      <input class="input-block-level" type="text" 
+        placeholder="chat message" id="chat_message"/>
     </div>
 
 We then need to add a handler for the ``Quit Game`` button. Open up the ``public/javascripts/app.js`` file and modify the ``setupBoardGame`` to add a handler called ``quit_game_handler`` below the ``$('#chat_message').keypress(chat_handler(application_state, api, template_handler, game));`` line.
@@ -321,7 +336,8 @@ We then need to add a handler for the ``Quit Game`` button. Open up the ``public
       // Let's render the board game
       template_handler.setTemplate("#view", "board", {});
       // Set the marker for our player (X if we are the starting player)
-      application_state.marker = application_state.session_id == game.current_player ? "x" : "o";
+      application_state.marker = application_state.session_id == game.current_player 
+                                                                    ? "x" : "o";
       // Get all the rows
       var rows = $('#board div');
 
@@ -331,13 +347,16 @@ We then need to add a handler for the ``Quit Game`` button. Open up the ``public
 
         // For each cell create and add the handler
         for(var j = 0; j < cells.length; j++) {
-          $("#" + cells[j].id).click(game_board_cell_handler(application_state, api, template_handler, game));
+          $("#" + cells[j].id)
+            .click(game_board_cell_handler(application_state, api, template_handler, game));
         }
       }
 
       // Map up the chat handler
-      $('#chat_message').keypress(chat_handler(application_state, api, template_handler, game));  
-      $('#quit_game').click(quit_game_handler(application_state, api, template_handler, game));
+      $('#chat_message')
+        .keypress(chat_handler(application_state, api, template_handler, game));  
+      $('#quit_game')
+        .click(quit_game_handler(application_state, api, template_handler, game));
     }
 
 Now we need to complete the ``quit_game_handler`` method and add it to the ``public/javascripts/app.js`` file.
@@ -366,7 +385,10 @@ Now we need to complete the ``quit_game_handler`` method and add it to the ``pub
             
             // Add handlers for each new player so we can play them
             for(var i = 0; i < gamers.length; i++) {
-              $("#gamer_" + gamers[i]._id).click(invite_gamer_button_handler(application_state, api, template_handler));
+              $("#gamer_" + gamers[i]._id)
+                .click(invite_gamer_button_handler(application_state
+                    , api
+                    , template_handler));
             }
           });      
         });

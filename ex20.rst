@@ -210,11 +210,14 @@ Let's look at the ``getAuthor`` method next.
 
     // GET /author/:id
     var getAuthor = function(req, res) { 
-      dbInstance.collection('authors').findOne({_id: new ObjectID(req.params.id)}, function(err, doc) {
-        if(err || doc == null) 
-          return writeError(res, 404, 'Failed to retrieve document from database for id ' + req.params.id);
-       
-        res.end(JSON.stringify(doc));
+      dbInstance.collection('authors')
+        .findOne({_id: new ObjectID(req.params.id)}, function(err, doc) {
+          if(err || doc == null) 
+            return writeError(res
+              , 404
+              , 'Failed to retrieve document from database for id ' + req.params.id);
+         
+          res.end(JSON.stringify(doc));
       });
     }
 
@@ -228,14 +231,20 @@ Finally let's have a look at how we allow for removing authors.
 
     // DELETE /author/:id
     var deleteAuthor = function(req, res) { 
-      dbInstance.collection('authors').remove({_id: new ObjectID(req.params.id)}, function(err, deleted) {
-        if(err) 
-          return writeError(res, 500, 'Failed to delete document from database for id ' + req.params.id);
-        
-        if(deleted == 0)
-          return writeError(res, 404, 'No document with id ' + req.params.id + ' found in database');
+      dbInstance
+        .collection('authors')
+        .remove({_id: new ObjectID(req.params.id)}, function(err, deleted) {
+          if(err) 
+            return writeError(res
+              , 500
+              , 'Failed to delete document from database for id ' + req.params.id);
+          
+          if(deleted == 0)
+            return writeError(res
+              , 404
+              , 'No document with id ' + req.params.id + ' found in database');
 
-        res.end(JSON.stringify({_id: req.params.id}));
+          res.end(JSON.stringify({_id: req.params.id}));
       });
     }
 
@@ -251,23 +260,35 @@ So let's change the ``deleteAuthor`` method to ensure we can only delete ``Autho
 
     // DELETE /author/:id
     var deleteAuthor = function(req, res) { 
-      dbInstance.collection('books').count({"authors.id": new ObjectID(req.params.id)}, function(err, count) {
-        if(err) 
-          return writeError(res, 500, 'Failed to delete document from database for id ' + req.params.id);
-
-        if(count > 0)
-          return writeError(res, 406, 'Author with ' + req.params.id + " cannot be deleted as it's associated with existing books");
-
-        dbInstance.collection('authors').remove({_id: new ObjectID(req.params.id)}, function(err, deleted) {
+      dbInstance.collection('books')
+        .count({"authors.id": new ObjectID(req.params.id)}, function(err, count) {
           if(err) 
-            return writeError(res, 500, 'Failed to delete document from database for id ' + req.params.id);
-          
-          if(deleted == 0)
-            return writeError(res, 404, 'No document with id ' + req.params.id + ' found in database');
+            return writeError(res
+              , 500
+              , 'Failed to delete document from database for id ' + req.params.id);
 
-          res.end(JSON.stringify({_id: req.params.id}));
+          if(count > 0)
+            return writeError(res
+              , 406
+              , 'Author with ' 
+                + req.params.id 
+                + " cannot be deleted as it's associated with existing books");
+
+          dbInstance.collection('authors')
+            .remove({_id: new ObjectID(req.params.id)}, function(err, deleted) {
+              if(err) 
+                return writeError(res
+                  , 500
+                  , 'Failed to delete document from database for id ' + req.params.id);
+              
+              if(deleted == 0)
+                return writeError(res
+                  , 404
+                  , 'No document with id ' + req.params.id + ' found in database');
+
+              res.end(JSON.stringify({_id: req.params.id}));
+          });
         });
-      });
     }
 
 The main difference is that we ``count`` the number of books that have the author with the passed in ``id``. If the ``count`` is larger than ``0`` it means we cannot delete the ``Author`` as it would break the data integrity.
@@ -298,11 +319,14 @@ The only main difference here is changing the collection we are using to the pub
 
   // GET /publisher/:id
   var getPublisher = function(req, res) {
-    dbInstance.collection('publishers').findOne({_id: new ObjectID(req.params.id)}, function(err, doc) {
-      if(err || doc == null) 
-        return writeError(res, 404, 'Failed to retrieve document from database for id ' + req.params.id);
-     
-      res.end(JSON.stringify(doc));
+    dbInstance.collection('publishers')
+      .findOne({_id: new ObjectID(req.params.id)}, function(err, doc) {
+        if(err || doc == null) 
+          return writeError(res
+            , 404
+            , 'Failed to retrieve document from database for id ' + req.params.id);
+       
+        res.end(JSON.stringify(doc));
     });
   }
 
@@ -312,23 +336,35 @@ The only main difference being that we are retrieving the documents from the ``p
 
   // DELETE /publisher/:id
   var deletePublisher  = function(req, res) {
-    dbInstance.collection('books').count({"publisher_id": new ObjectID(req.params.id)}, function(err, count) {
-      if(err) 
-        return writeError(res, 500, 'Failed to delete document from database for id ' + req.params.id);
-
-      if(count > 0)
-        return writeError(res, 406, 'Publisher with ' + req.params.id + " cannot be deleted as it's associated with existing books");
-
-      dbInstance.collection('publishers').remove({_id: new ObjectID(req.params.id)}, function(err, deleted) {
+    dbInstance.collection('books')
+      .count({"publisher_id": new ObjectID(req.params.id)}, function(err, count) {
         if(err) 
-          return writeError(res, 500, 'Failed to delete document from database for id ' + req.params.id);
-        
-        if(deleted == 0)
-          return writeError(res, 404, 'No document with id ' + req.params.id + ' found in database');
+          return writeError(res
+            , 500
+            , 'Failed to delete document from database for id ' + req.params.id);
 
-        res.end(JSON.stringify({_id: req.params.id}));
+        if(count > 0)
+          return writeError(res
+            , 406
+            , 'Publisher with ' 
+              + req.params.id 
+              + " cannot be deleted as it's associated with existing books");
+
+        dbInstance.collection('publishers')
+          .remove({_id: new ObjectID(req.params.id)}, function(err, deleted) {
+            if(err) 
+              return writeError(res
+                , 500
+                , 'Failed to delete document from database for id ' + req.params.id);
+            
+            if(deleted == 0)
+              return writeError(res
+                , 404
+                , 'No document with id ' + req.params.id + ' found in database');
+
+            res.end(JSON.stringify({_id: req.params.id}));
+        });
       });
-    });
   }
 
 Let's make sure the methods correctly by testing it from the command line using curl. ``Note`` that the id returned will vary on your system so make sure you change ``51921ef8b67cc57333000001`` where appropriate to your own id.
@@ -372,11 +408,14 @@ Just as in ``getAuthor`` and ``getPublisher`` the ``getUser`` method is very sim
 
   // GET /user/:id
   var getUser = function(req, res) {
-    dbInstance.collection('users').findOne({_id: new ObjectID(req.params.id)}, function(err, doc) {
-      if(err || doc == null) 
-        return writeError(res, 404, 'Failed to retrieve document from database for id ' + req.params.id);
-     
-      res.end(JSON.stringify(doc));
+    dbInstance.collection('users')
+      .findOne({_id: new ObjectID(req.params.id)}, function(err, doc) {
+        if(err || doc == null) 
+          return writeError(res
+            , 404
+            , 'Failed to retrieve document from database for id ' + req.params.id);
+       
+        res.end(JSON.stringify(doc));
     });
   }
 
@@ -386,22 +425,34 @@ The main difference in the ``deleteUser`` method vs ``deleteAuthor`` or ``delete
 
   // DELETE /user/:id
   var deleteUser  = function(req, res) {
-    dbInstance.collection('books').count({"loaned_out_to.user_id": new ObjectID(req.params.id)}, function(err, count) {
-      if(err) 
-        return writeError(res, 500, 'Failed to delete document from database for id ' + req.params.id);
-
-      if(count > 0)
-        return writeError(res, 406, 'User with ' + req.params.id + " cannot be deleted as it's associated with existing books");
-
-      dbInstance.collection('users').remove({_id: new ObjectID(req.params.id)}, function(err, deleted) {
+    dbInstance.collection('books')
+      .count({"loaned_out_to.user_id": new ObjectID(req.params.id)}, function(err, count) {
         if(err) 
-          return writeError(res, 500, 'Failed to delete document from database for id ' + req.params.id);
-        
-        if(deleted == 0)
-          return writeError(res, 404, 'No document with id ' + req.params.id + ' found in database');
+          return writeError(res
+            , 500
+            , 'Failed to delete document from database for id ' + req.params.id);
 
-        res.end(JSON.stringify({_id: req.params.id}));
-      });
+        if(count > 0)
+          return writeError(res
+            , 406
+            , 'User with ' 
+              + req.params.id 
+              + " cannot be deleted as it's associated with existing books");
+
+        dbInstance.collection('users')
+          .remove({_id: new ObjectID(req.params.id)}, function(err, deleted) {
+            if(err) 
+              return writeError(res
+                , 500
+                , 'Failed to delete document from database for id ' + req.params.id);
+            
+            if(deleted == 0)
+              return writeError(res
+                , 404
+                , 'No document with id ' + req.params.id + ' found in database');
+
+            res.end(JSON.stringify({_id: req.params.id}));
+        });
     });
   }
 
@@ -444,11 +495,14 @@ Looks very similar to the previous ``createXXX`` methods for ``Author``, ``Publi
 
   // GET /book/:id
   var getBook = function(req, res) {
-    dbInstance.collection('books').findOne({_id: new ObjectID(req.params.id)}, function(err, doc) {
-      if(err || doc == null) 
-        return writeError(res, 404, 'Failed to retrieve document from database for id ' + req.params.id);
-     
-      res.end(JSON.stringify(doc));
+    dbInstance.collection('books')
+      .findOne({_id: new ObjectID(req.params.id)}, function(err, doc) {
+        if(err || doc == null) 
+          return writeError(res
+            , 404
+            , 'Failed to retrieve document from database for id ' + req.params.id);
+       
+        res.end(JSON.stringify(doc));
     });
   }
 
@@ -458,26 +512,40 @@ Again very similar to the previous ``getXXX`` methods. How about the ``deleteBoo
 
   // DELETE /book/:id
   var deleteBook  = function(req, res) {
-    dbInstance.collection('books').findOne({_id: new ObjectID(req.params.id)}, function(err, book) {
-      if(err) 
-        return writeError(res, 500, 'Failed to delete document from database for id ' + req.params.id);
-
-      if(!book)
-        return writeError(res, 406, 'Book with ' + req.params.id + " was not found");
-
-      if(book.loaned_out_to && book.loaned_out_to.length > 0)
-        return writeError(res, 500, 'Book with ' + req.params.id + " was not deleted as copies are currently loaned out");
-
-      dbInstance.collection('books').remove({_id: new ObjectID(req.params.id)}, function(err, deleted) {
+    dbInstance.collection('books')
+      .findOne({_id: new ObjectID(req.params.id)}, function(err, book) {
         if(err) 
-          return writeError(res, 500, 'Failed to delete document from database for id ' + req.params.id);
-        
-        if(deleted == 0)
-          return writeError(res, 404, 'No document with id ' + req.params.id + ' found in database');
+          return writeError(res
+            , 500
+            , 'Failed to delete document from database for id ' + req.params.id);
 
-        res.end(JSON.stringify({_id: req.params.id}));
+        if(!book)
+          return writeError(res
+            , 406
+            , 'Book with ' + req.params.id + " was not found");
+
+        if(book.loaned_out_to && book.loaned_out_to.length > 0)
+          return writeError(res
+            , 500
+            , 'Book with ' 
+              + req.params.id 
+              + " was not deleted as copies are currently loaned out");
+
+        dbInstance.collection('books')
+          .remove({_id: new ObjectID(req.params.id)}, function(err, deleted) {
+            if(err) 
+              return writeError(res
+                , 500
+                , 'Failed to delete document from database for id ' + req.params.id);
+            
+            if(deleted == 0)
+              return writeError(res
+                , 404
+                , 'No document with id ' + req.params.id + ' found in database');
+
+            res.end(JSON.stringify({_id: req.params.id}));
+        });
       });
-    });
   }
 
 As we can see the main difference here is that we don't let the book be deleted if there are any copies out for loan. This is ensured by checking the ``loaned_out_to`` array on the returned ``Book``. If it's empty we can go ahead and delete the ``Book`` as nobody is in possession of it. Notice that we are not checking the ``Authors`` or ``Publishers`` collections as they do not store any information directly associated with the ``Book`` so removing a Book does not cause ``Authors`` and ``Pulishers`` to link to non-existing books.

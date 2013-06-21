@@ -13,9 +13,9 @@ or ``NPM`` for short. In this exercise we will learn the basics of using
     .. code-block:: console
 
         ~ $ npm search mongodb
-        mongodb           A node.js driver for MongoDB               =christkv             2012-12-03 17:
-        mongodb-async     Thin & clean async wrapper for mongodb     =zir                  2012-10-26 17:
-        mongodb-errors    Helper classes to deal with mongodb errors =mwawrusch            2012-11-25 03:
+        mongodb           A node.js driver for MongoDB               =christkv 2012-12-03 17:
+        mongodb-async     Thin & clean async wrapper for mongodb     =zir 2012-10-26 17:
+        mongodb-errors    Helper classes to deal with mongodb errors =mwawrusch 2012-11-25 03:
 
     The ``npm search text`` command lets you search for available modules that you can use 
 
@@ -30,7 +30,8 @@ or ``NPM`` for short. In this exercise we will learn the basics of using
         npm http GET https://registry.npmjs.org/bson/0.1.5
         npm http 304 https://registry.npmjs.org/bson/0.1.5
 
-        > bson@0.1.5 install /Users/ck/coding/projects/learnexercises/node_modules/mongodb/node_modules/bson
+        > bson@0.1.5 install /Users/ck/coding/projects/learnexercises
+        /node_modules/mongodb/node_modules/bson
         > node install.js || (exit 0)
 
         ================================================================================

@@ -114,16 +114,26 @@ Notice the part called ``dependencies``. This tells NPM that the application nee
     touch public/javascripts/api.js
     touch public/javascripts/template_handler.js
     touch public/css/app.css
-    curl http://www.bootstrapcdn.com/twitter-bootstrap/2.2.2/js/bootstrap.min.js > public/javascripts/bootstrap.min.js
-    curl http://www.bootstrapcdn.com/twitter-bootstrap/2.2.2/css/bootstrap.css > public/css/bootstrap.css
-    curl http://www.bootstrapcdn.com/twitter-bootstrap/2.2.2/css/bootstrap-responsive.css > public/css/bootstrap-responsive.css
-    curl http://cdnjs.cloudflare.com/ajax/libs/jquery/1.8.3/jquery.min.js > public/javascripts/jquery.js
-    curl http://cdnjs.cloudflare.com/ajax/libs/mustache.js/0.7.0/mustache.min.js > public/javascripts/mustache.js
-    curl https://raw.github.com/christkv/tic-tac-toe/master/public/img/board_background_img.png > public/img/board_background_img.png
-    curl https://raw.github.com/christkv/tic-tac-toe/master/public/img/circle.png > public/img/circle.png
-    curl https://raw.github.com/christkv/tic-tac-toe/master/public/img/cross.png > public/img/cross.png
-    curl https://raw.github.com/christkv/tic-tac-toe/master/public/img/glyphicons-halflings-white.png > public/img/glyphicons-halflings-white.png
-    curl https://raw.github.com/christkv/tic-tac-toe/master/public/img/glyphicons-halflings.png > public/img/glyphicons-halflings.png
+    curl http://www.bootstrapcdn.com/twitter-bootstrap/2.2.2/js/bootstrap.min.js > 
+    public/javascripts/bootstrap.min.js
+    curl http://www.bootstrapcdn.com/twitter-bootstrap/2.2.2/css/bootstrap.css > 
+    public/css/bootstrap.css
+    curl http://www.bootstrapcdn.com/twitter-bootstrap/2.2.2/css/bootstrap-responsive.css > 
+    public/css/bootstrap-responsive.css
+    curl http://cdnjs.cloudflare.com/ajax/libs/jquery/1.8.3/jquery.min.js > 
+    public/javascripts/jquery.js
+    curl http://cdnjs.cloudflare.com/ajax/libs/mustache.js/0.7.0/mustache.min.js > 
+    public/javascripts/mustache.js
+    curl https://raw.github.com/christkv/tic-tac-toe/master/public/img/board_background_img.
+    png > public/img/board_background_img.png
+    curl https://raw.github.com/christkv/tic-tac-toe/master/public/img/circle.png > 
+    public/img/circle.png
+    curl https://raw.github.com/christkv/tic-tac-toe/master/public/img/cross.png > 
+    public/img/cross.png
+    curl https://raw.github.com/christkv/tic-tac-toe/master/public/img/glyphicons-halflings-
+    white.png > public/img/glyphicons-halflings-white.png
+    curl https://raw.github.com/christkv/tic-tac-toe/master/public/img/glyphicons-halflings.
+    png > public/img/glyphicons-halflings.png
 
 Right we are set for the basic structure of the application. Let's get cracking on the first part of the application. The places to start are the ``app.js`` and the ``env.js`` files. 
 

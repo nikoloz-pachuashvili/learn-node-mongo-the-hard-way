@@ -42,8 +42,8 @@ We are defining both of these ``handler`` functions in the ``lib/handlers/login_
 
 .. code-block:: javascript
 
-    var register_handler                  = require('./lib/handlers/login_handler').register_handler
-      , login_handler                     = require('./lib/handlers/login_handler').login_handler
+    var register_handler     = require('./lib/handlers/login_handler').register_handler
+      , login_handler        = require('./lib/handlers/login_handler').login_handler
 
 Don't worry how these handlers look we will get back to them in a minute. First we need to talk a bit about how our data structures look.
 
@@ -216,9 +216,12 @@ Why do we do this. Well simply put. When we do a single call to the backend we d
      */
     API.prototype.register = function(full_name, user_name, password, callback) {  
       // Do basic validation
-      if(full_name == null || full_name.length == 0) return callback(create_error("register", "Full name cannot be empty"));
-      if(user_name == null || user_name.length == 0) return callback(create_error("register", "User name cannot be empty"));
-      if(password == null || password.length == 0) return callback(create_error("register", "Password name cannot be empty"));
+      if(full_name == null || full_name.length == 0) 
+        return callback(create_error("register", "Full name cannot be empty"));
+      if(user_name == null || user_name.length == 0) 
+        return callback(create_error("register", "User name cannot be empty"));
+      if(password == null || password.length == 0) 
+        return callback(create_error("register", "Password name cannot be empty"));
       // Register callback
       this.once("register", callback);
       // Fire message
@@ -234,8 +237,10 @@ Why do we do this. Well simply put. When we do a single call to the backend we d
      */
     API.prototype.login = function(user_name, password, callback) {  
       // Do basic validation
-      if(user_name == null || user_name.length == 0) return callback(create_error("login", "User name cannot be empty"));
-      if(password == null || password.length == 0) return callback(create_error("login", "Password name cannot be empty"));
+      if(user_name == null || user_name.length == 0) 
+        return callback(create_error("login", "User name cannot be empty"));
+      if(password == null || password.length == 0) 
+        return callback(create_error("login", "Password name cannot be empty"));
       // Register callback
       this.once("login", callback);
       // Fire message
@@ -331,8 +336,10 @@ That covers how the ``TemplateHandler`` class works. It's time to get back to th
       template_handler.setTemplate("#view", "main", {});
 
       // Wire up the buttons for the main view
-      $('#register_button').click(register_button_handler(application_state, api, template_handler));
-      $('#login_button').click(login_button_handler(application_state, api, template_handler));
+      $('#register_button')
+        .click(register_button_handler(application_state, api, template_handler));
+      $('#login_button')
+        .click(login_button_handler(application_state, api, template_handler));
     })
 
 When the user first goes to ``http://localhost:3000`` a ``TemplateHandler`` instance gets created and the method ``start`` is called that loads all the templates. The code then sets the initial template view overwriting the HTML element identified by the id ``view`` with the starting application view. After rendering and replacing the HTML the method wires up the ``register_button`` and the ``login_button`` to listen for ``click`` events. If a user clicks the ``register_button`` the ``register_button_handler`` function is called and if the user clicks the ``login_button`` the ``login_button_handler`` function is called. That takes care of wiring up the buttons. Let's look at the wiring up of ``event`` handlers in ``public/javascript/app.js``.

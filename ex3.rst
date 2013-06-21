@@ -52,14 +52,16 @@ Mac OSX
         Trace
             at Socket.EventEmitter.addListener (events.js:175:15)
             at Socket.EventEmitter.once (events.js:196:8)
-            at ClientRequest.<anonymous> (/Users/ck/coding/projects/learnexercises/node_modules/request/main.js:521:27)
+            at ClientRequest.<anonymous> 
+            (/Users/ck/coding/projects/learnexercises/node_modules/request/main.js:521:27)
             at ClientRequest.g (events.js:192:14)
             at ClientRequest.EventEmitter.emit (events.js:96:17)
             at HTTPParser.parserOnIncomingClient [as onIncoming] (http.js:1462:7)
             at HTTPParser.parserOnHeadersComplete [as onHeadersComplete] (http.js:111:23)
             at Socket.socketOnData [as ondata] (http.js:1367:20)
             at TCP.onread (net.js:403:27)
-        (node) warning: possible EventEmitter memory leak detected. 11 listeners added. Use emitter.setMaxListeners() to increase limit.
+        (node) warning: possible EventEmitter memory leak detected. 11 listeners added. 
+        Use emitter.setMaxListeners() to increase limit.
         
         Looking at the output from our little program notice that the first line ``DONE``
         was the last line in our program. This shows one of the main pitfals most developers
