@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+    <!--[if gt IE 8]><!-->
+<html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8" />
+
+  <!-- Set the viewport width to device width for mobile -->
+  <meta name="viewport" content="width=device-width" />
+
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
+<title>Exercise 14: Querying MongoDB</title>
+
+  <!-- Included CSS Files (Compressed) -->
+  <link rel="stylesheet" href="stylesheets/foundation.min.css">
+  <link rel="stylesheet" href="stylesheets/pygments.css">
+  <link rel="stylesheet" href="stylesheets/app.css">
+
+  <script src="javascripts/modernizr.foundation.js"></script>
+
+  <!-- IE Fix for HTML5 Tags -->
+  <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+</head>
+<body>
+
+  <div class="row">
+          <h1 class="title">Exercise 14: Querying MongoDB</h1>
+      </div>
+  </div>
+
+  <div class="row">
+    <div class="eleven columns">
+        <p>To understand how queries work in <tt class="docutils literal">MongoDB</tt> we need to understand how they work under the covers. When you execute a query against <tt class="docutils literal">MongoDB</tt> it will create what is called a <tt class="docutils literal">Cursor</tt> that is pointing to the results from the query. This is easier to show. Let's imagine that we perform a query asking for all cars that are owned by Steve. The might look like this.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span><span class="nx">owner</span><span class="o">:</span> <span class="s1">'Steve'</span><span class="p">}</span>
+</pre>
+<p>There might be 1000 results for this query in the database as Steve is a very rich man indeed. To avoid sending all of the documents all at once to your application <tt class="docutils literal">MongoDB</tt> decides to send only the first <tt class="docutils literal">100</tt> cars. That leaves  <tt class="docutils literal">900</tt> cars that we need to transfer. To be able to keep track of where in the 1000 cars we are for the next <tt class="docutils literal">100</tt> we want to read <tt class="docutils literal">MongoDB</tt> keeps a <tt class="docutils literal">Cursor</tt> pointing to the current read location in the 1000 cars result. In this case the <tt class="docutils literal">Cursor</tt> would point to <cite>100</cite>.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="22%" />
+<col width="22%" />
+<col width="56%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Start</th>
+<th class="head">End</th>
+<th class="head">Cursor Position</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>0</td>
+<td>100</td>
+<td>X</td>
+</tr>
+<tr><td>100</td>
+<td>200</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>200</td>
+<td>300</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>.</td>
+<td>.</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>900</td>
+<td>1000</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<p>After reading the first <tt class="docutils literal">100</tt> cars the cursor position changes to point to the next <tt class="docutils literal">100</tt> cars.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="21%" />
+<col width="21%" />
+<col width="57%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Start</th>
+<th class="head">End</th>
+<th class="head">Cursor Position</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>0</td>
+<td>100</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>100</td>
+<td>200</td>
+<td>X</td>
+</tr>
+<tr><td>200</td>
+<td>300</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>.</td>
+<td>.</td>
+<td>&nbsp;</td>
+</tr>
+<tr><td>900</td>
+<td>1000</td>
+<td>&nbsp;</td>
+</tr>
+</tbody>
+</table>
+<p>We are only using <tt class="docutils literal">100</tt> as an example your application could choose to read only 4 documents at the time as you can tell <tt class="docutils literal">MongoDB</tt> how big you want each read to be. But more about that later. Once you finish reading the documents the <tt class="docutils literal">Cursor</tt> is removed on <tt class="docutils literal">MongoDB</tt>. There are some limitations on <tt class="docutils literal">Cursors</tt>. You cannot go backwards in time only forward. In other words if you read the first <tt class="docutils literal">100</tt> cars from the <tt class="docutils literal">Cursor</tt> you cannot then reread the first <tt class="docutils literal">100</tt> cars from the same cursor. You will have to execute a brand new query to do this.</p>
+<p>The <tt class="docutils literal">NodeJS</tt> driver represents the <tt class="docutils literal">MongoDB</tt> cursor using a class called <tt class="docutils literal">Cursor</tt> that we will explore in depth in later exercises. For this exercise we will explore the <tt class="docutils literal">MongoDB</tt> query language using the simplest query function the driver has called <tt class="docutils literal">findOne</tt> that returns the first document from a query.</p>
+<div class="section" id="the-query-language">
+<h1>The Query Language</h1>
+<p>The <tt class="docutils literal">MongoDB</tt> query language features several different operators. These include Comparison, Logical, Element, JavaScript, Geospatial and Array operators. In this exercise we will cover the Comparison, Logical, Element, JavaScript and Array operator. We will leave Geospatial ones to a later exercise.</p>
+<p>So lets start with the Comparison operators.</p>
+</div>
+<div class="section" id="comparison-operators">
+<h1>Comparison operators</h1>
+<p>The comparison operators let's you compare documents to values to select the ones you wish to be returned. There are several operators available including <tt class="docutils literal">$all</tt>, <tt class="docutils literal">$gt</tt>, <tt class="docutils literal">$gte</tt>, <tt class="docutils literal">$in</tt>, <tt class="docutils literal">$lt</tt>, <tt class="docutils literal">$lte</tt>, <tt class="docutils literal">$ne</tt> and <tt class="docutils literal">$nin</tt>. Let's go through them and see how they work (we only look at how the matching works).</p>
+</div>
+<div class="section" id="all-contains-all">
+<h1><tt class="docutils literal">$all</tt> (Contains all)</h1>
+<p>Say you have a set of documents containing some tags.</p>
+<pre class="code javascript literal-block">
+<span class="p">[</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Wing Commander 72&quot;</span>
+  <span class="p">,</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;pc&quot;</span><span class="p">,</span> <span class="s2">&quot;13+&quot;</span><span class="p">]</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Dead space 15&quot;</span>
+  <span class="p">,</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;mac&quot;</span><span class="p">,</span> <span class="s2">&quot;18+&quot;</span><span class="p">]</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">3</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Star Controller 2&quot;</span>
+  <span class="p">,</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;pc&quot;</span><span class="p">,</span> <span class="s2">&quot;10+&quot;</span><span class="p">]</span>
+<span class="p">}]</span>
+</pre>
+<p>Now image that you want to locate all the documents that contain the tags <tt class="docutils literal">&quot;game&quot;</tt>, <tt class="docutils literal">&quot;scifi&quot;</tt> and <tt class="docutils literal">&quot;pc&quot;</tt>. This is where the <tt class="docutils literal">$all</tt> operator comes in. Our query would look like this.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span><span class="nx">tags</span><span class="o">:</span> <span class="p">{</span><span class="nx">$all</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;pc&quot;</span><span class="p">]}}</span>
+</pre>
+<p>The results returned are.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;title&quot;</span> <span class="o">:</span> <span class="s2">&quot;Wing Commander 72&quot;</span><span class="p">,</span> <span class="s2">&quot;tags&quot;</span> <span class="o">:</span> <span class="p">[</span> <span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;pc&quot;</span><span class="p">,</span> <span class="s2">&quot;13+&quot;</span> <span class="p">]</span> <span class="p">}</span>
+<span class="p">{</span> <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;title&quot;</span> <span class="o">:</span> <span class="s2">&quot;Star Controller 2&quot;</span><span class="p">,</span> <span class="s2">&quot;tags&quot;</span> <span class="o">:</span> <span class="p">[</span> <span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;pc&quot;</span><span class="p">,</span> <span class="s2">&quot;10+&quot;</span> <span class="p">]</span> <span class="p">}</span>
+</pre>
+</div>
+<div class="section" id="gt-greater-than">
+<h1><tt class="docutils literal">$gt</tt> (Greater Than)</h1>
+<p>Say you have some user documents containing the field age.</p>
+<pre class="code javascript literal-block">
+<span class="p">[</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Agent Smith&quot;</span>
+  <span class="p">,</span> <span class="nx">age</span><span class="o">:</span> <span class="mi">67</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Mr Anderson&quot;</span>
+  <span class="p">,</span> <span class="nx">age</span><span class="o">:</span> <span class="mi">25</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">3</span>
+  <span class="p">,</span> <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Trinity&quot;</span>
+  <span class="p">,</span> <span class="nx">age</span><span class="o">:</span> <span class="mi">28</span>
+<span class="p">}]</span>
+</pre>
+<p>You wish to query for the users that are older than 30 years. Let's use the <tt class="docutils literal">$gt</tt> or <tt class="docutils literal">Greater Than</tt> operator. The query would look like this.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span><span class="nx">age</span><span class="o">:</span> <span class="p">{</span><span class="nx">$gt</span><span class="o">:</span> <span class="mi">28</span><span class="p">}}</span>
+</pre>
+<p>The results returned are.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span> <span class="o">:</span> <span class="s2">&quot;Agent Smith&quot;</span><span class="p">,</span> <span class="s2">&quot;age&quot;</span> <span class="o">:</span> <span class="mi">67</span> <span class="p">}</span>
+</pre>
+</div>
+<div class="section" id="gte-greater-than-or-equal">
+<h1><tt class="docutils literal">$gte</tt> (Greater Than or Equal)</h1>
+<p><tt class="docutils literal">$gte</tt> or <tt class="docutils literal">Greater than or Equal</tt> is similar to <tt class="docutils literal">$gt</tt> but includes any documents that match the value provided as well as any values larger than the provided value. Given the following documents.</p>
+<pre class="code javascript literal-block">
+<span class="p">[</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Agent Smith&quot;</span>
+  <span class="p">,</span> <span class="nx">age</span><span class="o">:</span> <span class="mi">67</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Mr Anderson&quot;</span>
+  <span class="p">,</span> <span class="nx">age</span><span class="o">:</span> <span class="mi">25</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">3</span>
+  <span class="p">,</span> <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Trinity&quot;</span>
+  <span class="p">,</span> <span class="nx">age</span><span class="o">:</span> <span class="mi">28</span>
+<span class="p">}]</span>
+</pre>
+<p>Let's select all the documents where the age is greater or equal to <tt class="docutils literal">28</tt>.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span><span class="nx">age</span><span class="o">:</span> <span class="p">{</span><span class="nx">$gte</span><span class="o">:</span> <span class="mi">28</span><span class="p">}}</span>
+</pre>
+<p>The results returned are.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span> <span class="o">:</span> <span class="s2">&quot;Agent Smith&quot;</span><span class="p">,</span> <span class="s2">&quot;age&quot;</span> <span class="o">:</span> <span class="mi">67</span> <span class="p">}</span>
+<span class="p">{</span> <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span> <span class="o">:</span> <span class="s2">&quot;Trinity&quot;</span><span class="p">,</span> <span class="s2">&quot;age&quot;</span> <span class="o">:</span> <span class="mi">28</span> <span class="p">}</span>
+</pre>
+</div>
+<div class="section" id="in-contains-one-of">
+<h1><tt class="docutils literal">$in</tt> (Contains One Of)</h1>
+<p>The <tt class="docutils literal">$in</tt> operator lets us match any document where a value is in a predefined set of values. Let's take a set of documents.</p>
+<pre class="code javascript literal-block">
+<span class="p">[</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Wing Commander 72&quot;</span>
+  <span class="p">,</span> <span class="nx">platform</span><span class="o">:</span> <span class="s2">&quot;xbox1080&quot;</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Dead space 15&quot;</span>
+  <span class="p">,</span> <span class="nx">platform</span><span class="o">:</span> <span class="s2">&quot;ps2000&quot;</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">3</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Star Controller 2&quot;</span>
+  <span class="p">,</span> <span class="nx">platform</span><span class="o">:</span> <span class="s2">&quot;pc&quot;</span>
+<span class="p">}]</span>
+</pre>
+<p>Let's select all the games that are available for the <tt class="docutils literal">xbox1080</tt> and the <tt class="docutils literal">ps2000</tt>.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span><span class="nx">platform</span><span class="o">:</span> <span class="p">{</span><span class="nx">$in</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;ps2000&quot;</span><span class="p">,</span> <span class="s2">&quot;xbox1080&quot;</span><span class="p">]}}</span>
+</pre>
+<p>The results returned are.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;title&quot;</span> <span class="o">:</span> <span class="s2">&quot;Wing Commander 72&quot;</span><span class="p">,</span> <span class="s2">&quot;platform&quot;</span> <span class="o">:</span> <span class="s2">&quot;xbox1080&quot;</span> <span class="p">}</span>
+<span class="p">{</span> <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;title&quot;</span> <span class="o">:</span> <span class="s2">&quot;Dead space 15&quot;</span><span class="p">,</span> <span class="s2">&quot;platform&quot;</span> <span class="o">:</span> <span class="s2">&quot;ps2000&quot;</span> <span class="p">}</span>
+</pre>
+</div>
+<div class="section" id="lt-less-than">
+<h1><tt class="docutils literal">$lt</tt> (Less Than)</h1>
+<p>Say you have some user documents containing the field age.</p>
+<pre class="code javascript literal-block">
+<span class="p">[</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Agent Smith&quot;</span>
+  <span class="p">,</span> <span class="nx">age</span><span class="o">:</span> <span class="mi">67</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Mr Anderson&quot;</span>
+  <span class="p">,</span> <span class="nx">age</span><span class="o">:</span> <span class="mi">25</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">3</span>
+  <span class="p">,</span> <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Trinity&quot;</span>
+  <span class="p">,</span> <span class="nx">age</span><span class="o">:</span> <span class="mi">28</span>
+<span class="p">}]</span>
+</pre>
+<p>We wish to select all the users where the age is less than 28.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span><span class="nx">age</span><span class="o">:</span> <span class="p">{</span><span class="nx">$lt</span><span class="o">:</span> <span class="mi">28</span><span class="p">}}</span>
+</pre>
+<p>The results returned are.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span> <span class="o">:</span> <span class="s2">&quot;Mr Anderson&quot;</span><span class="p">,</span> <span class="s2">&quot;age&quot;</span> <span class="o">:</span> <span class="mi">25</span> <span class="p">}</span>
+</pre>
+</div>
+<div class="section" id="lte-less-than-or-equal">
+<h1><tt class="docutils literal">$lte</tt> (Less Than or Equal)</h1>
+<p>Just as with <tt class="docutils literal">$gte</tt>, <tt class="docutils literal">$lte</tt> is a Less than or equal operator letting you find all documents where the specified field is less or equal to the provided value. Let's see it in action.</p>
+<pre class="code javascript literal-block">
+<span class="p">[</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Agent Smith&quot;</span>
+  <span class="p">,</span> <span class="nx">age</span><span class="o">:</span> <span class="mi">67</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Mr Anderson&quot;</span>
+  <span class="p">,</span> <span class="nx">age</span><span class="o">:</span> <span class="mi">25</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">3</span>
+  <span class="p">,</span> <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Trinity&quot;</span>
+  <span class="p">,</span> <span class="nx">age</span><span class="o">:</span> <span class="mi">28</span>
+<span class="p">}]</span>
+</pre>
+<p>We wish to select all the users where the age is less than 28.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span><span class="nx">age</span><span class="o">:</span> <span class="p">{</span><span class="nx">$lte</span><span class="o">:</span> <span class="mi">28</span><span class="p">}}</span>
+</pre>
+<p>The results returned are.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span> <span class="o">:</span> <span class="s2">&quot;Mr Anderson&quot;</span><span class="p">,</span> <span class="s2">&quot;age&quot;</span> <span class="o">:</span> <span class="mi">25</span> <span class="p">}</span>
+<span class="p">{</span> <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span> <span class="o">:</span> <span class="s2">&quot;Trinity&quot;</span><span class="p">,</span> <span class="s2">&quot;age&quot;</span> <span class="o">:</span> <span class="mi">28</span> <span class="p">}</span>
+</pre>
+</div>
+<div class="section" id="ne-not-equal-to">
+<h1><tt class="docutils literal">$ne</tt> (Not Equal To)</h1>
+<p>Imagine if we wish to find all documents that does not specify a specific value. Let's take an example set of documents.</p>
+<pre class="code javascript literal-block">
+<span class="p">[</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Agent Smith&quot;</span>
+  <span class="p">,</span> <span class="nx">agent</span><span class="o">:</span> <span class="kc">true</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Mr Anderson&quot;</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">3</span>
+  <span class="p">,</span> <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Trinity&quot;</span>
+  <span class="p">,</span> <span class="nx">agent</span><span class="o">:</span> <span class="kc">false</span>
+<span class="p">}]</span>
+</pre>
+<p>We wish to select all the users who are not agents.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span><span class="nx">agent</span><span class="o">:</span> <span class="p">{</span><span class="nx">$ne</span><span class="o">:</span> <span class="kc">true</span><span class="p">}}</span>
+</pre>
+<p>The results returned are.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span> <span class="o">:</span> <span class="s2">&quot;Mr Anderson&quot;</span> <span class="p">}</span>
+<span class="p">{</span> <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span> <span class="o">:</span> <span class="s2">&quot;Trinity&quot;</span><span class="p">,</span> <span class="s2">&quot;agent&quot;</span> <span class="o">:</span> <span class="kc">false</span> <span class="p">}</span>
+</pre>
+<p>Take not that <tt class="docutils literal">$ne</tt> matches not only on the document that has <tt class="docutils literal">agent:false</tt> but also the document that does not contain the <tt class="docutils literal">agent</tt> field.</p>
+</div>
+<div class="section" id="nin-contains-none-of">
+<h1><tt class="docutils literal">$nin</tt> (Contains None Of)</h1>
+<p>Think of <tt class="docutils literal">$nin</tt> as a reverse off the <tt class="docutils literal">$in</tt> operator. Let's define a set of documents.</p>
+<pre class="code javascript literal-block">
+<span class="p">[</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Wing Commander 72&quot;</span>
+  <span class="p">,</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;pc&quot;</span><span class="p">,</span> <span class="s2">&quot;13+&quot;</span><span class="p">]</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Dead space 15&quot;</span>
+  <span class="p">,</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;mac&quot;</span><span class="p">,</span> <span class="s2">&quot;18+&quot;</span><span class="p">]</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">3</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Star Controller 2&quot;</span>
+  <span class="p">,</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;pc&quot;</span><span class="p">,</span> <span class="s2">&quot;10+&quot;</span><span class="p">]</span>
+<span class="p">}]</span>
+</pre>
+<p>Let's select all the games that do not contain the <tt class="docutils literal">pc</tt> tag.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span><span class="nx">tags</span><span class="o">:</span><span class="p">{</span><span class="nx">$nin</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;pc&quot;</span><span class="p">]}}</span>
+</pre>
+<p>The results returned are.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;title&quot;</span> <span class="o">:</span> <span class="s2">&quot;Dead space 15&quot;</span><span class="p">,</span> <span class="s2">&quot;tags&quot;</span> <span class="o">:</span> <span class="p">[</span> <span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;mac&quot;</span><span class="p">,</span> <span class="s2">&quot;18+&quot;</span> <span class="p">]</span> <span class="p">}</span>
+</pre>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">In a later exercise we will learn about something called indexes that speed up queries. <tt class="docutils literal">$nin</tt> is poison for search on very big collections because <tt class="docutils literal">$nin</tt> queries cannot use an index and needs to scan through all of the document individually. The best is to rewrite you code to avoid <tt class="docutils literal">$nin</tt> or only use it in very small collections where the cost of scanning through all of the documents is very low.</p>
+</div>
+<p>That covers all the comparison expressions for <tt class="docutils literal">MongoDB</tt>. Next let's see how we can combine them with <tt class="docutils literal">Logical</tt> operators to make create more advanced queries.</p>
+</div>
+<div class="section" id="logical-operators">
+<h1>Logical operators</h1>
+<p>So what if you want to query for an age range (between 10 and 20 years) or return only documents where the age is 20 and the location is Barcelona. This is where the logical operators come in. There are four of them in <tt class="docutils literal">MongoDB</tt>. They are <tt class="docutils literal">$and</tt>, <tt class="docutils literal">$or</tt>, <tt class="docutils literal">$not</tt> and <tt class="docutils literal">$or</tt>. Let's look at them in turn.</p>
+</div>
+<div class="section" id="and">
+<h1><tt class="docutils literal">$and</tt></h1>
+<p>The <tt class="docutils literal">$and</tt> operator allows to ask questions like find me all users aged 28 and living in New York. Only documents matching both of them will be returned. Let's look at a simple example.</p>
+<pre class="code javascript literal-block">
+<span class="p">[</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Agent Smith&quot;</span>
+  <span class="p">,</span> <span class="nx">location</span><span class="o">:</span> <span class="s2">&quot;NYC&quot;</span>
+  <span class="p">,</span> <span class="nx">age</span><span class="o">:</span> <span class="mi">67</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Mr Anderson&quot;</span>
+  <span class="p">,</span> <span class="nx">location</span><span class="o">:</span> <span class="s2">&quot;NYC&quot;</span>
+  <span class="p">,</span> <span class="nx">age</span><span class="o">:</span> <span class="mi">25</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">3</span>
+  <span class="p">,</span> <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Trinity&quot;</span>
+  <span class="p">,</span> <span class="nx">location</span><span class="o">:</span> <span class="s2">&quot;NYC&quot;</span>
+  <span class="p">,</span> <span class="nx">age</span><span class="o">:</span> <span class="mi">28</span>
+<span class="p">}]</span>
+</pre>
+<p>We wish to select all the users where the age is less than 28.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span><span class="nx">$and</span><span class="o">:</span> <span class="p">[</span><span class="p">{</span><span class="nx">age</span><span class="o">:</span> <span class="mi">28</span><span class="p">},</span> <span class="p">{</span><span class="nx">location</span><span class="o">:</span> <span class="s2">&quot;NYC&quot;</span><span class="p">}]}</span>
+</pre>
+<p>The results returned are.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span> <span class="o">:</span> <span class="s2">&quot;Trinity&quot;</span><span class="p">,</span> <span class="s2">&quot;location&quot;</span> <span class="o">:</span> <span class="s2">&quot;NYC&quot;</span><span class="p">,</span> <span class="s2">&quot;age&quot;</span> <span class="o">:</span> <span class="mi">28</span> <span class="p">}</span>
+</pre>
+<p>Let's look at how we can combine the logical operator with a comparison operator to select a range. More specifically all the users living in NYC between and including the ages of 28 and 70.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span><span class="nx">$and</span><span class="o">:</span> <span class="p">[</span><span class="p">{</span><span class="nx">age</span><span class="o">:</span> <span class="p">{</span><span class="nx">$gte</span><span class="o">:</span> <span class="mi">28</span><span class="p">}},</span> <span class="p">{</span><span class="nx">age</span><span class="o">:</span> <span class="p">{</span><span class="nx">$lte</span><span class="o">:</span> <span class="mi">70</span><span class="p">}},</span> <span class="p">{</span><span class="nx">location</span><span class="o">:</span> <span class="s2">&quot;NYC&quot;</span><span class="p">}]}</span>
+</pre>
+<p>The results returned are.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span> <span class="o">:</span> <span class="s2">&quot;Agent Smith&quot;</span><span class="p">,</span> <span class="s2">&quot;location&quot;</span> <span class="o">:</span> <span class="s2">&quot;NYC&quot;</span><span class="p">,</span> <span class="s2">&quot;age&quot;</span> <span class="o">:</span> <span class="mi">67</span> <span class="p">}</span>
+<span class="p">{</span> <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span> <span class="o">:</span> <span class="s2">&quot;Trinity&quot;</span><span class="p">,</span> <span class="s2">&quot;location&quot;</span> <span class="o">:</span> <span class="s2">&quot;NYC&quot;</span><span class="p">,</span> <span class="s2">&quot;age&quot;</span> <span class="o">:</span> <span class="mi">28</span> <span class="p">}</span>
+</pre>
+<p>One thing we need to mention is that the <tt class="docutils literal">$and</tt> operator can be expressed in a different way. Let's look how. Take the same query as above.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span><span class="nx">age</span><span class="o">:</span> <span class="p">{</span><span class="nx">$gte</span><span class="o">:</span> <span class="mi">28</span><span class="p">,</span> <span class="nx">$lte</span><span class="o">:</span> <span class="mi">70</span><span class="p">},</span> <span class="nx">location</span><span class="o">:</span> <span class="s2">&quot;NYC&quot;</span><span class="p">}</span>
+</pre>
+<p>The results returned are.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span> <span class="o">:</span> <span class="s2">&quot;Agent Smith&quot;</span><span class="p">,</span> <span class="s2">&quot;location&quot;</span> <span class="o">:</span> <span class="s2">&quot;NYC&quot;</span><span class="p">,</span> <span class="s2">&quot;age&quot;</span> <span class="o">:</span> <span class="mi">67</span> <span class="p">}</span>
+<span class="p">{</span> <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span> <span class="o">:</span> <span class="s2">&quot;Trinity&quot;</span><span class="p">,</span> <span class="s2">&quot;location&quot;</span> <span class="o">:</span> <span class="s2">&quot;NYC&quot;</span><span class="p">,</span> <span class="s2">&quot;age&quot;</span> <span class="o">:</span> <span class="mi">28</span> <span class="p">}</span>
+</pre>
+<p>Let's look at what just happened. Take <tt class="docutils literal">age: {$gte: 28, $lte: 70}</tt> the comma between the <tt class="docutils literal">$gte</tt> and <tt class="docutils literal">$lte</tt> is an implicit <tt class="docutils literal">$and</tt> meaning this is a short form for the same expression as above using the <tt class="docutils literal">$and</tt>. So for short you can use the comma as an <tt class="docutils literal">$and</tt>.</p>
+</div>
+<div class="section" id="or">
+<h1><tt class="docutils literal">$or</tt></h1>
+<p>The <tt class="docutils literal">$or</tt> or logical OR let's you ask questions such as return all games where the platform is <tt class="docutils literal">pc</tt> or one of the tags is <tt class="docutils literal">&quot;pc&quot;</tt>. To be selected a document has to satisfy at least one of the <tt class="docutils literal">$or</tt> statements.</p>
+<pre class="code javascript literal-block">
+<span class="p">[</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Wing Commander 72&quot;</span>
+  <span class="p">,</span> <span class="nx">platform</span><span class="o">:</span> <span class="s2">&quot;steam&quot;</span>
+  <span class="p">,</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;pc&quot;</span><span class="p">,</span> <span class="s2">&quot;13+&quot;</span><span class="p">]</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Dead space 15&quot;</span>
+  <span class="p">,</span> <span class="nx">platform</span><span class="o">:</span> <span class="s2">&quot;ps2000&quot;</span>
+  <span class="p">,</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;mac&quot;</span><span class="p">,</span> <span class="s2">&quot;18+&quot;</span><span class="p">]</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">3</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Star Controller 2&quot;</span>
+  <span class="p">,</span> <span class="nx">platform</span><span class="o">:</span> <span class="s2">&quot;pc&quot;</span>
+  <span class="p">,</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;pc&quot;</span><span class="p">,</span> <span class="s2">&quot;10+&quot;</span><span class="p">]</span>
+<span class="p">}]</span>
+</pre>
+<p>Let's select all the games that do not contain the <tt class="docutils literal">pc</tt> tag.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span><span class="nx">$or</span><span class="o">:</span> <span class="p">[</span><span class="p">{</span><span class="nx">platform</span><span class="o">:</span> <span class="s2">&quot;pc&quot;</span><span class="p">},</span> <span class="p">{</span><span class="nx">tags</span><span class="o">:</span> <span class="p">{</span><span class="nx">$in</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;pc&quot;</span><span class="p">]}}]}</span>
+</pre>
+<p>The results returned are.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span>   <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="s2">&quot;title&quot;</span> <span class="o">:</span> <span class="s2">&quot;Wing Commander 72&quot;</span>
+  <span class="p">,</span> <span class="s2">&quot;platform&quot;</span> <span class="o">:</span> <span class="s2">&quot;steam&quot;</span>
+  <span class="p">,</span> <span class="s2">&quot;tags&quot;</span> <span class="o">:</span> <span class="p">[</span> <span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;pc&quot;</span><span class="p">,</span> <span class="s2">&quot;13+&quot;</span> <span class="p">]</span> <span class="p">}</span>
+<span class="p">{</span>   <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">3</span>
+  <span class="p">,</span> <span class="s2">&quot;title&quot;</span> <span class="o">:</span> <span class="s2">&quot;Star Controller 2&quot;</span>
+  <span class="p">,</span> <span class="s2">&quot;platform&quot;</span> <span class="o">:</span> <span class="s2">&quot;pc&quot;</span>
+  <span class="p">,</span> <span class="s2">&quot;tags&quot;</span> <span class="o">:</span> <span class="p">[</span> <span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;pc&quot;</span><span class="p">,</span> <span class="s2">&quot;10+&quot;</span> <span class="p">]</span> <span class="p">}</span>
+</pre>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">Due to each <tt class="docutils literal">$or</tt> statement actually being checked in parallel by <tt class="docutils literal">MongoDB</tt> they cannot share what is called a compound index (more on this later). To speed up this query we need to create two different indexes. One for the field tags and one for the field platform.</p>
+</div>
+</div>
+<div class="section" id="not">
+<h1><tt class="docutils literal">$not</tt></h1>
+<p>The <tt class="docutils literal">$not</tt> or logical NOT let's you ask questions such as, show me all users that are not older than 28. Take the following documents.</p>
+<pre class="code javascript literal-block">
+<span class="p">[</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Agent Smith&quot;</span>
+  <span class="p">,</span> <span class="nx">location</span><span class="o">:</span> <span class="s2">&quot;NYC&quot;</span>
+  <span class="p">,</span> <span class="nx">age</span><span class="o">:</span> <span class="mi">67</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Mr Anderson&quot;</span>
+  <span class="p">,</span> <span class="nx">location</span><span class="o">:</span> <span class="s2">&quot;NYC&quot;</span>
+  <span class="p">,</span> <span class="nx">age</span><span class="o">:</span> <span class="mi">25</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">3</span>
+  <span class="p">,</span> <span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;Trinity&quot;</span>
+  <span class="p">,</span> <span class="nx">location</span><span class="o">:</span> <span class="s2">&quot;NYC&quot;</span>
+  <span class="p">,</span> <span class="nx">age</span><span class="o">:</span> <span class="mi">28</span>
+<span class="p">}]</span>
+</pre>
+<p>We wish to select all the users where the age is not greater than 28 and less than 26.</p>
+<pre class="code javascript literal-block">
+<span class="nx">age</span><span class="o">:</span> <span class="p">{</span> <span class="nx">$not</span><span class="o">:</span> <span class="p">{</span> <span class="nx">$gt</span><span class="o">:</span> <span class="mi">28</span><span class="p">,</span> <span class="nx">$lt</span><span class="o">:</span> <span class="mi">26</span><span class="p">}}}</span>
+</pre>
+<p>The results returned are.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span> <span class="o">:</span> <span class="s2">&quot;Trinity&quot;</span><span class="p">,</span> <span class="s2">&quot;location&quot;</span> <span class="o">:</span> <span class="s2">&quot;NYC&quot;</span><span class="p">,</span> <span class="s2">&quot;age&quot;</span> <span class="o">:</span> <span class="mi">28</span> <span class="p">}</span>
+</pre>
+<p>In most cases a <tt class="docutils literal">$not</tt> operator can be considered a reversal of a query and can be useful to quickly find what is not covered by a given query.</p>
+</div>
+<div class="section" id="nor">
+<h1><tt class="docutils literal">$nor</tt></h1>
+<p>The <tt class="docutils literal">$nor</tt> or logical NOR is way to locate documents that do not satisfy an expression. Given a set of documents.</p>
+<pre class="code javascript literal-block">
+<span class="p">[</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Wing Commander 72&quot;</span>
+  <span class="p">,</span> <span class="nx">platform</span><span class="o">:</span> <span class="s2">&quot;steam&quot;</span>
+  <span class="p">,</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;pc&quot;</span><span class="p">,</span> <span class="s2">&quot;13+&quot;</span><span class="p">]</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Dead space 15&quot;</span>
+  <span class="p">,</span> <span class="nx">platform</span><span class="o">:</span> <span class="s2">&quot;ps2000&quot;</span>
+  <span class="p">,</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;mac&quot;</span><span class="p">,</span> <span class="s2">&quot;18+&quot;</span><span class="p">]</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">3</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Star Controller 2&quot;</span>
+  <span class="p">,</span> <span class="nx">platform</span><span class="o">:</span> <span class="s2">&quot;pc&quot;</span>
+  <span class="p">,</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;pc&quot;</span><span class="p">,</span> <span class="s2">&quot;10+&quot;</span><span class="p">]</span>
+<span class="p">}]</span>
+</pre>
+<p>Let's select all the games that do not have the tag <tt class="docutils literal">pc</tt> nor the tag <tt class="docutils literal">10+</tt>.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="nx">$nor</span><span class="o">:</span> <span class="p">[</span><span class="p">{</span><span class="nx">tags</span><span class="o">:</span> <span class="s2">&quot;pc&quot;</span><span class="p">},</span> <span class="p">{</span><span class="nx">tags</span><span class="o">:</span> <span class="s2">&quot;10+&quot;</span><span class="p">}]}</span>
+</pre>
+<p>The results returned are.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span>   <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="s2">&quot;title&quot;</span> <span class="o">:</span> <span class="s2">&quot;Dead space 15&quot;</span>
+  <span class="p">,</span> <span class="s2">&quot;platform&quot;</span> <span class="o">:</span> <span class="s2">&quot;ps2000&quot;</span>
+  <span class="p">,</span> <span class="s2">&quot;tags&quot;</span> <span class="o">:</span> <span class="p">[</span> <span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;mac&quot;</span><span class="p">,</span> <span class="s2">&quot;18+&quot;</span> <span class="p">]</span> <span class="p">}</span>
+</pre>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">Take care when using negations in queries where you rely on indexes as negations can sometime make it impossible for <tt class="docutils literal">MongoDB</tt> to use an index forcing it to scan the entire collection for matching documents. In a later exercise we will learn all there is to know about indexes in <tt class="docutils literal">MongoDB</tt> and how to ensure your queries uses them efficiently.</p>
+</div>
+<p>This covers the Logical operators the <tt class="docutils literal">MongoDB</tt> query language supports. Next up is element level operators.</p>
+</div>
+<div class="section" id="element-operators">
+<h1>Element operators</h1>
+<p>The element operators <tt class="docutils literal">$exists</tt>, <tt class="docutils literal">$mod</tt> and <tt class="docutils literal">$type</tt> let you match on if a field exists, a specific module remainder or if the field is of a specific BSON type.</p>
+</div>
+<div class="section" id="exists">
+<h1><tt class="docutils literal">$exists</tt></h1>
+<p>The <tt class="docutils literal">$exists</tt> operator lets us select documents based on if a field exists or not instead of by a specific value. Given the documents below.</p>
+<pre class="code javascript literal-block">
+<span class="p">[</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Wing Commander 72&quot;</span>
+  <span class="p">,</span> <span class="nx">platform</span><span class="o">:</span> <span class="s2">&quot;steam&quot;</span>
+  <span class="p">,</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;pc&quot;</span><span class="p">,</span> <span class="s2">&quot;13+&quot;</span><span class="p">]</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Dead space 15&quot;</span>
+  <span class="p">,</span> <span class="nx">platform</span><span class="o">:</span> <span class="s2">&quot;ps2000&quot;</span>
+  <span class="p">,</span> <span class="nx">sale</span><span class="o">:</span> <span class="kc">true</span>
+  <span class="p">,</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;mac&quot;</span><span class="p">,</span> <span class="s2">&quot;18+&quot;</span><span class="p">]</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">3</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Star Controller 2&quot;</span>
+  <span class="p">,</span> <span class="nx">platform</span><span class="o">:</span> <span class="s2">&quot;pc&quot;</span>
+  <span class="p">,</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;pc&quot;</span><span class="p">,</span> <span class="s2">&quot;10+&quot;</span><span class="p">]</span>
+<span class="p">}]</span>
+</pre>
+<p>Let's select all the games that are for sale (in this case has the field sale).</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="nx">sale</span><span class="o">:</span> <span class="p">{</span><span class="nx">$exists</span><span class="o">:</span> <span class="kc">true</span> <span class="p">}}</span>
+</pre>
+<p>The results returned are.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span>   <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="s2">&quot;title&quot;</span> <span class="o">:</span> <span class="s2">&quot;Dead space 15&quot;</span>
+  <span class="p">,</span> <span class="s2">&quot;platform&quot;</span> <span class="o">:</span> <span class="s2">&quot;ps2000&quot;</span>
+  <span class="p">,</span> <span class="s2">&quot;sale&quot;</span> <span class="o">:</span> <span class="kc">true</span>
+  <span class="p">,</span> <span class="s2">&quot;tags&quot;</span> <span class="o">:</span> <span class="p">[</span> <span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;mac&quot;</span><span class="p">,</span> <span class="s2">&quot;18+&quot;</span> <span class="p">]</span> <span class="p">}</span>
+</pre>
+</div>
+<div class="section" id="mod">
+<h1><tt class="docutils literal">$mod</tt></h1>
+<p>The <tt class="docutils literal">$mod</tt> operator let's us match documents based on the remainder of dividing to numbers. We have two simple examples below.</p>
+<pre class="code console literal-block">
+<span class="go">8 / 8    = 1
+8 mod 8  = 0
+
+8 / 9    = 0.88888888
+8 mod 9  = 0
+
+16 / 8   = 2
+16 mod 8 = 0</span>
+</pre>
+<p>As you can see the <tt class="docutils literal">remainder</tt> of the <tt class="docutils literal">8 / 9</tt> division is <tt class="docutils literal">8</tt> as it cannot be divided to a whole number. The module only show the remainder of the division. Let's look at an example that's a bit contrived but still demonstrates the usage of the <tt class="docutils literal">$mod</tt> operator.</p>
+<pre class="code javascript literal-block">
+<span class="p">[</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Wing Commander 72&quot;</span>
+  <span class="p">,</span> <span class="nx">platform</span><span class="o">:</span> <span class="s2">&quot;steam&quot;</span>
+  <span class="p">,</span> <span class="nx">price</span><span class="o">:</span> <span class="mi">12</span>
+  <span class="p">,</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;pc&quot;</span><span class="p">,</span> <span class="s2">&quot;13+&quot;</span><span class="p">]</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Dead space 15&quot;</span>
+  <span class="p">,</span> <span class="nx">platform</span><span class="o">:</span> <span class="s2">&quot;ps2000&quot;</span>
+  <span class="p">,</span> <span class="nx">price</span><span class="o">:</span> <span class="mi">24</span>
+  <span class="p">,</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;mac&quot;</span><span class="p">,</span> <span class="s2">&quot;18+&quot;</span><span class="p">]</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">3</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Star Controller 2&quot;</span>
+  <span class="p">,</span> <span class="nx">platform</span><span class="o">:</span> <span class="s2">&quot;pc&quot;</span>
+  <span class="p">,</span> <span class="nx">price</span><span class="o">:</span> <span class="mi">27</span>
+  <span class="p">,</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;pc&quot;</span><span class="p">,</span> <span class="s2">&quot;10+&quot;</span><span class="p">]</span>
+<span class="p">}]</span>
+</pre>
+<p>Let's select all games that have a price that's a multiple of 12.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="nx">price</span><span class="o">:</span> <span class="p">{</span><span class="nx">$mod</span><span class="o">:</span> <span class="p">[</span><span class="mi">12</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="p">}}</span>
+</pre>
+<p>The results returned are.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span>   <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="s2">&quot;title&quot;</span> <span class="o">:</span> <span class="s2">&quot;Wing Commander 72&quot;</span>
+  <span class="p">,</span> <span class="s2">&quot;platform&quot;</span> <span class="o">:</span> <span class="s2">&quot;steam&quot;</span>
+  <span class="p">,</span> <span class="s2">&quot;price&quot;</span> <span class="o">:</span> <span class="mi">12</span>
+  <span class="p">,</span> <span class="s2">&quot;tags&quot;</span> <span class="o">:</span> <span class="p">[</span> <span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;pc&quot;</span><span class="p">,</span> <span class="s2">&quot;13+&quot;</span> <span class="p">]</span> <span class="p">}</span>
+<span class="p">{</span>   <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="s2">&quot;title&quot;</span> <span class="o">:</span> <span class="s2">&quot;Dead space 15&quot;</span>
+  <span class="p">,</span> <span class="s2">&quot;platform&quot;</span> <span class="o">:</span> <span class="s2">&quot;ps2000&quot;</span>
+  <span class="p">,</span> <span class="s2">&quot;price&quot;</span> <span class="o">:</span> <span class="mi">24</span>
+  <span class="p">,</span> <span class="s2">&quot;tags&quot;</span> <span class="o">:</span> <span class="p">[</span> <span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;mac&quot;</span><span class="p">,</span> <span class="s2">&quot;18+&quot;</span> <span class="p">]</span> <span class="p">}</span>
+</pre>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">The <tt class="docutils literal">$mod</tt> operator cannot use an index so it will force <tt class="docutils literal">MongoDB</tt> to scan through all of your documents potentially causing slow queries if the collection contains a lot of documents.</p>
+</div>
+</div>
+<div class="section" id="type">
+<h1><tt class="docutils literal">$type</tt></h1>
+<p>The <tt class="docutils literal">$type</tt> operator let's us select documents based on what kind of BSON type it is. The BSON types are defined in the following table.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="46%" />
+<col width="54%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Type</th>
+<th class="head">Number</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>Double</td>
+<td>1</td>
+</tr>
+<tr><td>String</td>
+<td>2</td>
+</tr>
+<tr><td>Object</td>
+<td>3</td>
+</tr>
+<tr><td>Array</td>
+<td>4</td>
+</tr>
+<tr><td>Binary data</td>
+<td>5</td>
+</tr>
+<tr><td>Object id</td>
+<td>7</td>
+</tr>
+<tr><td>Boolean</td>
+<td>8</td>
+</tr>
+<tr><td>Date</td>
+<td>9</td>
+</tr>
+<tr><td>Null</td>
+<td>10</td>
+</tr>
+<tr><td>Regular Expression</td>
+<td>11</td>
+</tr>
+<tr><td>JavaScript</td>
+<td>13</td>
+</tr>
+<tr><td>Symbol</td>
+<td>14</td>
+</tr>
+<tr><td>JavaScript w/scope</td>
+<td>15</td>
+</tr>
+<tr><td>32 bit integer</td>
+<td>16</td>
+</tr>
+<tr><td>Timestamp</td>
+<td>17</td>
+</tr>
+<tr><td>64 bit integer</td>
+<td>18</td>
+</tr>
+<tr><td>Min key</td>
+<td>-1</td>
+</tr>
+<tr><td>Max key</td>
+<td>127</td>
+</tr>
+</tbody>
+</table>
+<p>Let's look at example using the following documents.</p>
+<pre class="code javascript literal-block">
+<span class="p">[</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Wing Commander 72&quot;</span>
+  <span class="p">,</span> <span class="nx">price</span><span class="o">:</span> <span class="mi">12</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Dead space 15&quot;</span>
+  <span class="p">,</span> <span class="nx">price</span><span class="o">:</span> <span class="mi">24</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">3</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Star Controller 2&quot;</span>
+  <span class="p">,</span> <span class="nx">price</span><span class="o">:</span> <span class="s2">&quot;27&quot;</span>
+<span class="p">}]</span>
+</pre>
+<p>Let's select all the documents where the file is a numeric type.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="nx">$or</span><span class="o">:</span> <span class="p">[</span> <span class="p">{</span><span class="nx">price</span><span class="o">:</span> <span class="p">{</span><span class="nx">$type</span><span class="o">:</span> <span class="mi">16</span><span class="p">}},</span> <span class="p">{</span><span class="nx">price</span><span class="o">:</span> <span class="p">{</span><span class="nx">$type</span><span class="o">:</span> <span class="mi">18</span><span class="p">}},</span> <span class="p">{</span><span class="nx">price</span><span class="o">:</span> <span class="p">{</span><span class="nx">$type</span><span class="o">:</span> <span class="mi">1</span><span class="p">}}]}</span>
+</pre>
+<p>The results returned are.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span>   <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="s2">&quot;title&quot;</span> <span class="o">:</span> <span class="s2">&quot;Wing Commander 72&quot;</span>
+  <span class="p">,</span> <span class="s2">&quot;price&quot;</span> <span class="o">:</span> <span class="mi">12</span> <span class="p">}</span>
+<span class="p">{</span>   <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="s2">&quot;title&quot;</span> <span class="o">:</span> <span class="s2">&quot;Dead space 15&quot;</span>
+  <span class="p">,</span> <span class="s2">&quot;price&quot;</span> <span class="o">:</span> <span class="mi">24</span> <span class="p">}</span>
+</pre>
+<p>Since <tt class="docutils literal">MongoDB</tt> allows a field to have any the <tt class="docutils literal">$type</tt> operator can be very useful to detect if you have documents that use a different field type than the one expected.</p>
+</div>
+<div class="section" id="javascript-operators">
+<h1>JavaScript operators</h1>
+<p>The <tt class="docutils literal">MongoDB</tt> query language also supports the use of JavaScript in queries in the form of the <tt class="docutils literal">$regexp</tt> and <tt class="docutils literal">$where</tt> operators. However its prudent to warn against using <tt class="docutils literal">$where</tt> in your queries as it will run the comparison over all of the documents in the collection as well as in the <tt class="docutils literal">MongoDB</tt> JavaScript runtime meaning performance leaves a lot to be desired.</p>
+</div>
+<div class="section" id="regexp-regular-expressions">
+<h1><tt class="docutils literal">$regexp</tt> (Regular expressions)</h1>
+<p>The <tt class="docutils literal">$regexp</tt> operator lets you perform string matches using the  (<a class="reference external" href="http://www.pcre.org/">http://www.pcre.org/</a>). The <tt class="docutils literal">MongoDB</tt> query language supports the following options.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="13%" />
+<col width="87%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Option</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>i</td>
+<td>allows case insensitive matches</td>
+</tr>
+<tr><td>m</td>
+<td>will match across multiple lines (otherwise stops at the first line)</td>
+</tr>
+<tr><td>x</td>
+<td>ignores all white space in the text</td>
+</tr>
+<tr><td>s</td>
+<td>allows dot character to match all characters</td>
+</tr>
+</tbody>
+</table>
+<p>Let's look at example using the following documents.</p>
+<pre class="code javascript literal-block">
+<span class="p">[</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Wing Commander 72&quot;</span>
+  <span class="p">,</span> <span class="nx">price</span><span class="o">:</span> <span class="mi">12</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Dead space 15&quot;</span>
+  <span class="p">,</span> <span class="nx">price</span><span class="o">:</span> <span class="mi">24</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">3</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Star Controller 2&quot;</span>
+  <span class="p">,</span> <span class="nx">price</span><span class="o">:</span> <span class="s2">&quot;27&quot;</span>
+<span class="p">}]</span>
+</pre>
+<p>Let's select all the documents starting with Wing.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="nx">title</span><span class="o">:</span> <span class="sr">/^Wing/</span> <span class="p">}</span>
+</pre>
+<p>The results returned are.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;title&quot;</span> <span class="o">:</span> <span class="s2">&quot;Wing Commander 72&quot;</span><span class="p">,</span> <span class="s2">&quot;price&quot;</span> <span class="o">:</span> <span class="mi">12</span> <span class="p">}</span>
+</pre>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">One of the problems with the <tt class="docutils literal">$regexp</tt> operator is that it needs to search through all of the documents in a collection do locate matches for most cases. The only case where it will use an index (and thus execute more rapidly) is if the regular expression is performing a case sensitive match from the start of the string such as <tt class="docutils literal">/^Wing</tt>.</p>
+</div>
+</div>
+<div class="section" id="where">
+<h1><tt class="docutils literal">$where</tt></h1>
+<p>The <tt class="docutils literal">$where</tt> operator lets you match documents using JavaScript expression. However it comes with a massive <tt class="docutils literal">Here lies dragons</tt> warning sign as it needs to scan the entire collection to match documents (using no indexes) and runs inside the <tt class="docutils literal">MongoDB</tt> JavaScript engine meaning it impacts the performance of the server and is fairly slow. Use with extreme caution. Give the dire warning let's look at an example. Given the following documents.</p>
+<pre class="code javascript literal-block">
+<span class="p">[</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Wing Commander 72&quot;</span>
+  <span class="p">,</span> <span class="nx">platform</span><span class="o">:</span> <span class="s2">&quot;steam&quot;</span>
+  <span class="p">,</span> <span class="nx">price</span><span class="o">:</span> <span class="mi">12</span>
+  <span class="p">,</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;pc&quot;</span><span class="p">,</span> <span class="s2">&quot;13+&quot;</span><span class="p">]</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Dead space 15&quot;</span>
+  <span class="p">,</span> <span class="nx">platform</span><span class="o">:</span> <span class="s2">&quot;ps2000&quot;</span>
+  <span class="p">,</span> <span class="nx">price</span><span class="o">:</span> <span class="mi">24</span>
+  <span class="p">,</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;mac&quot;</span><span class="p">,</span> <span class="s2">&quot;18+&quot;</span><span class="p">]</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">3</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Star Controller 2&quot;</span>
+  <span class="p">,</span> <span class="nx">platform</span><span class="o">:</span> <span class="s2">&quot;pc&quot;</span>
+  <span class="p">,</span> <span class="nx">price</span><span class="o">:</span> <span class="mi">27</span>
+  <span class="p">,</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;pc&quot;</span><span class="p">,</span> <span class="s2">&quot;10+&quot;</span><span class="p">,</span> <span class="s2">&quot;steam&quot;</span><span class="p">]</span>
+<span class="p">}]</span>
+</pre>
+<p>Let's select all the documents where the number of tags is more than four.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="nx">$where</span><span class="o">:</span> <span class="s2">&quot;this.tags.length &gt; 4&quot;</span> <span class="p">}</span>
+</pre>
+<p>The results returned are.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span>   <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">3</span>
+  <span class="p">,</span> <span class="s2">&quot;title&quot;</span> <span class="o">:</span> <span class="s2">&quot;Star Controller 2&quot;</span>
+  <span class="p">,</span> <span class="s2">&quot;platform&quot;</span> <span class="o">:</span> <span class="s2">&quot;pc&quot;</span>
+  <span class="p">,</span> <span class="s2">&quot;price&quot;</span> <span class="o">:</span> <span class="mi">27</span>
+  <span class="p">,</span> <span class="s2">&quot;tags&quot;</span> <span class="o">:</span> <span class="p">[</span> <span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;pc&quot;</span><span class="p">,</span> <span class="s2">&quot;10+&quot;</span><span class="p">,</span> <span class="s2">&quot;steam&quot;</span> <span class="p">]</span> <span class="p">}</span>
+</pre>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">As mentioned before use extreme caution when using <tt class="docutils literal">$where</tt> as it will impact your application performance.</p>
+</div>
+</div>
+<div class="section" id="array-operators">
+<h1>Array Operators</h1>
+<p>The last set of query operators we will cover in this exercise is the Array operator <tt class="docutils literal">$size</tt>.</p>
+</div>
+<div class="section" id="size">
+<h1><tt class="docutils literal">$size</tt></h1>
+<p>The <tt class="docutils literal">$size</tt> operator let's us match on the size of an array. Take the following documents.</p>
+<pre class="code javascript literal-block">
+<span class="p">[</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Wing Commander 72&quot;</span>
+  <span class="p">,</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;pc&quot;</span><span class="p">,</span> <span class="s2">&quot;13+&quot;</span><span class="p">]</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Dead space 15&quot;</span>
+  <span class="p">,</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;mac&quot;</span><span class="p">,</span> <span class="s2">&quot;18+&quot;</span><span class="p">]</span>
+<span class="p">},</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">3</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Star Controller 2&quot;</span>
+  <span class="p">,</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;pc&quot;</span><span class="p">,</span> <span class="s2">&quot;10+&quot;</span><span class="p">,</span> <span class="s2">&quot;steam&quot;</span><span class="p">]</span>
+<span class="p">}]</span>
+</pre>
+<p>Let's select all the documents where the number of tags is four.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="nx">tags</span><span class="o">:</span> <span class="p">{</span><span class="nx">$size</span><span class="o">:</span><span class="mi">4</span><span class="p">}}</span>
+</pre>
+<p>The results returned are.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span>   <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="s2">&quot;title&quot;</span> <span class="o">:</span> <span class="s2">&quot;Wing Commander 72&quot;</span>
+  <span class="p">,</span> <span class="s2">&quot;tags&quot;</span> <span class="o">:</span> <span class="p">[</span> <span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;pc&quot;</span><span class="p">,</span> <span class="s2">&quot;13+&quot;</span> <span class="p">]</span> <span class="p">}</span>
+<span class="p">{</span>   <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="s2">&quot;title&quot;</span> <span class="o">:</span> <span class="s2">&quot;Dead space 15&quot;</span>
+  <span class="p">,</span> <span class="s2">&quot;tags&quot;</span> <span class="o">:</span> <span class="p">[</span> <span class="s2">&quot;game&quot;</span><span class="p">,</span> <span class="s2">&quot;scifi&quot;</span><span class="p">,</span> <span class="s2">&quot;mac&quot;</span><span class="p">,</span> <span class="s2">&quot;18+&quot;</span> <span class="p">]</span> <span class="p">}</span>
+</pre>
+<p>This covers the query operators in <tt class="docutils literal">MongoDB</tt> that we wanted to cover in this exercise. We have intentionally skipped <tt class="docutils literal">Geospatial</tt> query operators as well as <tt class="docutils literal">Projection</tt> operators as we will introduce them in later exercises.</p>
+</div>
+    </div>
+
+    <div class="one columns" id="right-nav">
+        <center>
+        <p><a href="/book/"><img src="images/48_structure.png"></a></p>
+        <p><a href="#"><img src="images/48_email.png"></a></p>
+        <p><a href="#faq"><img src="images/48_faq.png"></a></p>
+        <p>
+        </p>
+        </center>
+    </div>
+
+  <!-- Included JS Files (Compressed) -->
+  <script src="javascripts/jquery.js"></script>
+  <script src="javascripts/foundation.min.js"></script>
+  
+  <!-- Initialize JS Plugins -->
+  <script src="javascripts/app.js"></script>
+
+</body>
+</html>

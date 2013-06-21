@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+    <!--[if gt IE 8]><!-->
+<html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8" />
+
+  <!-- Set the viewport width to device width for mobile -->
+  <meta name="viewport" content="width=device-width" />
+
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
+<title>Exercise 15: Index This</title>
+
+  <!-- Included CSS Files (Compressed) -->
+  <link rel="stylesheet" href="stylesheets/foundation.min.css">
+  <link rel="stylesheet" href="stylesheets/pygments.css">
+  <link rel="stylesheet" href="stylesheets/app.css">
+
+  <script src="javascripts/modernizr.foundation.js"></script>
+
+  <!-- IE Fix for HTML5 Tags -->
+  <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+</head>
+<body>
+
+  <div class="row">
+          <h1 class="title">Exercise 15: Index This</h1>
+      </div>
+  </div>
+
+  <div class="row">
+    <div class="eleven columns">
+        <p>Let's get a deeper understanding of how MongoDB looks up data when you issue it a query. Let's imagine a collection that contains 100 documents of the type <tt class="docutils literal">{a:i} where i = [0 to 100]</tt>. We issue a search to the server using <tt class="docutils literal">{a:5}</tt>. Think of all the documents as being on a chain, one connected to the next.</p>
+<img alt="code/ex15/ex1.png" src="code/ex15/ex1.png" />
+<p>Now when the query gets executes MongoDB will start from the top of the chain and check each document to see if it matches <tt class="docutils literal">a equals 5</tt>. If it does match it will add it to the result set otherwise it will skip to the next document. This is what is known as a <tt class="docutils literal">table scan</tt> in the database world. If you imagine the chain containing millions of documents you can see that this is not a very efficient way of querying data as we would have to check each document for each query meaning a lot of reading data from disk. Thus a better approach to searching is needed and this is where the concept of an index comes in.</p>
+<div class="section" id="index-magic">
+<h1>Index Magic</h1>
+<p>Now indexes are not truly magic and once you grasp the main concept you'll wonder why you never thought of them yourself. The main index used in MongoDB is what's called a BTree index (or more specifically a variation of a BTree+ index).</p>
+<p>So let's get into what a BTree index is. In very short it's a way to keep a list of values in a sorted order that's a tree structure and not a chain. What do you mean you might ask. Well it's easier to illustrate than explain.</p>
+<img alt="code/ex15/ex2.png" src="code/ex15/ex2.png" />
+<p>The tree above is an <tt class="docutils literal">index</tt> for the field <tt class="docutils literal">a</tt> in the documents above. Notice how it's a tree structure, instead of a chained list of documents. Each level of the tree contains a set of id's that correspond to a value that is stored in the <tt class="docutils literal">a</tt> field in a document. So say we need to find the document with the value <tt class="docutils literal">a equals 5</tt>. We grab the top node where we find the the first value to be <tt class="docutils literal">7</tt>. We know our value is less than <tt class="docutils literal">7</tt> so we decent into the left node of the tree and scan from left to right until we find the value <tt class="docutils literal">5</tt> and we can now return the correct document. So instead of having to scan all documents we can short-cut our search because we have split the search <tt class="docutils literal">space</tt> into smaller chunks of data to search through. So in this case given that we know that <tt class="docutils literal">a is less than 7</tt> we only need to search through the documents that are <tt class="docutils literal">larger than 0 and less than 7</tt> which are all contained in the left lower node.</p>
+<img alt="code/ex15/ex3.png" src="code/ex15/ex3.png" />
+<p>The main benefit comes from when our collections of documents grow very big as it allows MongoDB to limit the number of documents it needs to search through to find the correct matches to the query, thus speeding up the search massively compared to searching through all of the documents.</p>
+<p>An index like this lets us look up a document by an indexed value very quickly but it also lets us do what is called a <tt class="docutils literal">ranged query</tt>. A <tt class="docutils literal">ranged query</tt> is a query that looks like this in mongodb <tt class="docutils literal"><span class="pre">{a:{$gt:0,</span> $lt:10}}</tt>. This looks for all documents where <tt class="docutils literal">a is greater than 0 and less than 10</tt>. Because of the way the Btree index is structured it helps us limit the amount of documents we need to search as as can see from the first node that we only have to search the leftmost and middle node for all values that are less than 10. So we only need to search the results</p>
+<img alt="code/ex15/ex4.png" src="code/ex15/ex4.png" />
+<p>This is of course a very oversimplified way of explaining the way an index works but safe to say is that it allows you to search more efficiently for a value.</p>
+<p>The last item we will cover is what's called a <tt class="docutils literal">compound index</tt> and a beneficial side effect of <tt class="docutils literal">compound indexes</tt> called <tt class="docutils literal">covered indexes</tt>.</p>
+</div>
+<div class="section" id="compound-indexes">
+<h1>Compound indexes</h1>
+<p>Besides support a single value index MongoDB also supports what's called a <tt class="docutils literal">compound&nbsp; index</tt>. This type of index is made up of multiple values. Let's take an example of documents that look like this.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span>
+  <span class="nx">pid</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+  <span class="nx">name</span><span class="o">:</span> <span class="s1">'Steve'</span><span class="p">,</span>
+  <span class="nx">salary</span><span class="o">:</span> <span class="mi">10000</span>
+<span class="p">}</span>
+
+<span class="p">{</span>
+  <span class="nx">pid</span><span class="o">:</span> <span class="mi">2</span><span class="p">,</span>
+  <span class="nx">name</span><span class="o">:</span> <span class="s1">'John'</span><span class="p">,</span>
+  <span class="nx">salary</span><span class="o">:</span> <span class="mi">12000</span>
+<span class="p">}</span>
+
+<span class="p">{</span>
+  <span class="nx">pid</span><span class="o">:</span> <span class="mi">7</span><span class="p">,</span>
+  <span class="nx">name</span><span class="o">:</span> <span class="s1">'Peter'</span><span class="p">,</span>
+  <span class="nx">salary</span><span class="o">:</span> <span class="mi">7000</span>
+<span class="p">}</span>
+
+<span class="p">{</span>
+  <span class="nx">pid</span><span class="o">:</span> <span class="mi">18</span><span class="p">,</span>
+  <span class="nx">name</span><span class="o">:</span> <span class="s1">'Arnold'</span><span class="p">,</span>
+  <span class="nx">salary</span><span class="o">:</span> <span class="mi">32000</span>
+<span class="p">}</span>
+
+<span class="p">{</span>
+  <span class="nx">pid</span><span class="o">:</span> <span class="mi">23</span><span class="p">,</span>
+  <span class="nx">name</span><span class="o">:</span> <span class="s1">'Gandalf'</span><span class="p">,</span>
+  <span class="nx">salary</span><span class="o">:</span> <span class="mi">34000</span>
+<span class="p">}</span>
+</pre>
+<p>What if we want to efficiently search for documents where <tt class="docutils literal">pid is larger than 2 and the salary is less than 10000</tt>. This is where a compound index comes in and allows us to do this efficiently. <tt class="docutils literal">Compound</tt> means to combine and that what it is, an index that combines two or more fields. Let's look at an example of a compound index of <tt class="docutils literal">{pid, salary, name}</tt>.</p>
+<img alt="code/ex15/ex5.png" src="code/ex15/ex5.png" />
+<p>Now let's run our query against it. The first part of the query is the pid factor, so let's locate all the <tt class="docutils literal">pids larger than 2</tt></p>
+<img alt="code/ex15/ex6.png" src="code/ex15/ex6.png" />
+<p>As you can see we have identified 3 nodes (colored green) that fulfill the the criteria of <tt class="docutils literal">pid larger than 2</tt>. It's time to apply the second criteria to this new sub tree of results. Inside of the green nodes we locate the ones where <tt class="docutils literal">salary is less than 10000</tt></p>
+<img alt="code/ex15/ex7.png" src="code/ex15/ex7.png" />
+<p>This is awesome, we can use a single index to narrow down the number of documents we need to search to locate the values in the query even if the query covers two or more fields. This brings us to the last aspect of compound indexes, namely <tt class="docutils literal">covered indexes</tt>. Given that the data for <tt class="docutils literal">pid, salary, name</tt> is already in the index we can retrieve the data directly from the index if the query only requires the fields in the index to be returned. This means we will not have to load the actual documents into memory to satisfy a query.</p>
+<p>This covers the basics of how indexes work. We have not covered geo indexes or text indexes here on purpose as we will cover them in future exercises. Hopefully this introduction will be enough for you to grasp why indexes are one of the most important aspects of MongoDB and that they are vital to get maximum performance out your queries.</p>
+</div>
+    </div>
+
+    <div class="one columns" id="right-nav">
+        <center>
+        <p><a href="/book/"><img src="images/48_structure.png"></a></p>
+        <p><a href="#"><img src="images/48_email.png"></a></p>
+        <p><a href="#faq"><img src="images/48_faq.png"></a></p>
+        <p>
+        </p>
+        </center>
+    </div>
+
+  <!-- Included JS Files (Compressed) -->
+  <script src="javascripts/jquery.js"></script>
+  <script src="javascripts/foundation.min.js"></script>
+  
+  <!-- Initialize JS Plugins -->
+  <script src="javascripts/app.js"></script>
+
+</body>
+</html>

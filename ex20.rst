@@ -1,0 +1,590 @@
+{% import "macros/ork.jinja" as ork with context %}
+Exercise 20: A RESTFul Programming exercise
+===========================================
+
+Let's get cracking on the RESTful experience for our application. We are of course going to do this simply and from scratch so we won't be using such fancy things as express but instead keep it real with low level code (makes it easier to keep this exercise up to data aswell as we won't be tied to changes in Express.JS so much).
+
+We are of course ignoring any sort of concept of user security sessions and such trivial real world important features.
+
+.. NOTE::
+
+  What's a ``REST API`` you might ask. ``HTTP`` contains several verbs that make up what we call ``CRUD`` operations. These verbs are ``GET``, ``POST``, ``PUT`` and ``DELETE``. Think off them as basic verbs of modifying a document. So ``GET`` would be equivalent to a ``MongoDB find`` operation, ``POST`` would be an ``insert``, ``PUT`` an ``update`` and ``DELETE`` a remove. Bare with us as we will cover them in more detail as we implement our ``API``.
+
+It's alive
+----------
+
+Let's get the code up and running and let's print the most useless but also the most common greeting in all programming tutorial. I present the "Hello World step".
+
+Fire up the editor, open the file server.js and get cracking.
+
+{{ ork.code('code/ex20/ex1.js|pyg') }}
+
+The code will fire up an ``HTTP`` server and will listen to the ``9090`` socket port. Let's validate that the server is up and running. You can boot up the browser and point it to ``http://localhost:9090`` and you should see a web page that says ``Hello world!``. We are going to use a tool that comes with unixes called ``curl`` going forward for simplicities sake. But any ``url`` used with curl can be used in the browser aswell.
+
+.. code-block:: console
+
+    curl http://localhost:9090
+    hello world!
+
+Sweet our website is up and running (not that it does anything yet). Next it's time to connect to mongodb.
+
+We've got power
+---------------
+
+It's time to add some ``MongoDB`` to our little app. For simplicities sake we are going to just do a global ``MongoDB`` ``NPM`` install, later we will package up the code using a proper ``package.json`` file. Let's execute the following on the console.
+
+.. code-block:: console
+
+    npm install -g mongodb
+
+Let's modify the code slightly so we boot up our HTTP server and also connect to our ``MongoDB`` database.
+
+{{ ork.code('code/ex20/ex2.js|pyg') }}
+
+Booting up the application we should see
+
+.. code-block:: console
+
+    node server.js
+    connected to mongodb
+    listening on  9090
+
+This code ensures we have a live connection before we stat accepting any ``HTTP`` requests from users. It's time to get cracking on our ``REST API``. Let's look at what kind of operations we are going to be supporting for our library application.
+
+=========================================== ==========================================
+Method Url                                  Description
+=========================================== ==========================================
+POST    /book                               Add a new book to the library
+GET     /book/:id                           Get a specific book by id
+REMOVE  /book/:id                           Remove a specific book by id
+PUT     /book/:id/publisher/:publisher_id   Associate a publisher with this book
+GET     /book/search?query=?                Search for books by title
+GET     /author/search?query=?              Search for author
+GET     /author/:id                         Get an author
+POST    /author                             Add a new author
+DELETE  /author/:id                         Remove an existing author
+PUT     /book/:id/author/:author_id         Associate an author with this book
+GET     /author/:id/books                   Get books by author
+GET     /publisher/search?query=?           Search for publisher
+GET     /publisher/:id/books                Get the books by publisher
+GET     /publisher/:id                      Get a publisher
+POST    /publisher                          Add a new publisher
+DELETE  /publisher/:id                      Remove an existing publisher
+POST    /user                               Add a user to the library
+GET     /user/:id                           Get a user off the library
+REMOVE  /user/:id                           Remove a user from the library
+GET     /user/:id/loans                     Get all the books loaned by a specific user
+POST    /user/:id/loan/:book_id             Borrow a book
+DELETE  /user/:id/loan/:book_id             Return a book
+PUT     /user/:id/loan/:book_id             Extend a loan period / modify a loan period
+GET     /loan/overdue                       Get a list of all overdue books
+GET     /loan/overdue/:days                 Get a list of all overdue books in ?days days
+=========================================== ==========================================
+
+Let's get cracking on adding the initial book API support. The first step is to write a simple router for our application. Let's write it to support the initial book URL's. Fire up the editor and let's get cracking.
+
+{{ ork.code('code/ex20/ex3.js|pyg') }}
+
+So what's the point of the router. It simplifies our application by letting us use a string to match a ``URL`` pattern and ``route`` the request to the right function. The magic is in the ``compile`` function. What the function does is to rewrite a string like ``/book/:id`` to a regular expression that matches on URL's like ``/book/1``. After the regular expression is created it's stored with the available parameters. in an object looking like this.
+
+.. code-block:: javascript
+
+    {
+      route: {
+          regexp: "/book/([0-9|a-z|A-Z|_]+)"
+        , params: ["id"]
+      }
+      ,fn: function(req, res) {}
+    }
+
+.. NOTE::
+  
+  Notice if there is no ``params`` for a ``route`` we add it to the start of the list of routes. This is because we want to test the non parametrized ``routes`` first as ``routes`` that contain parameters could match fixed routes. That's to say ``/book/([0-9|a-z|A-Z|_]+`` will match on ``/book/1`` as well as ``/book/search``. By putting ``/book/search`` first we ensure we can match on specific version before falling back to the ``/book/([0-9|a-z|A-Z|_]+`` match.
+
+Each time a new HTTP request happens the incoming ``URL`` is decoded using the ``route`` method and if it matches a registered ``route`` any ``params`` are extracted and added to the ``request`` object under the ``params`` field. So in other words if we register the following method.
+
+.. code-block:: javascript
+
+    var getBook = function(req, res) { res.end('getBook'); }
+
+    router.get("/book/:id", getBook);
+
+The method ``getBook`` will receive a ``request`` object that will contain the ``params`` object containing ``id`` parameter. Let's say the we fetch ``http://localhost:9090/book/1``. How can we get to the ``id`` variable?.
+
+.. code-block:: javascript
+
+    var getBook = function(req, res) { 
+      var id = req.params.id;
+      res.end('getBook'); 
+    }
+
+    router.get("/book/:id", getBook);
+
+As you can see we have set up all the routes we mentioned above. So let's get started implementing them. Let's start with adding the author and publisher as books are depended on these entities.
+
+{{ ork.code('code/ex20/ex4.js|pyg') }}
+
+Let's try out to create a new book, fetch it and remove it. Notice that the ``_id`` field will vary for you so make sure to modify the curl commands to use the correct id.
+
+.. code-block:: console
+
+    curl -X POST -d "{\"name\":\"James Kirk\"}" http://localhost:9090/author
+    {"name":"James Kirk","_id":"51921ef8b67cc57333000001"}
+
+    curl -X GET http://localhost:9090/author/51921ef8b67cc57333000001
+    {"name":"James Kirk","_id":"51921ef8b67cc57333000001"}
+
+    curl -X DELETE http://localhost:9090/author/51921ef8b67cc57333000001
+    {"_id":"51921ef8b67cc57333000001"}
+
+Awesome we now have a couple of CRUD operations that we can use to add an author, fetch an existing author by id and delete an author by id. So let's look at the methods we have added starting with the ``createAuthor`` method.
+
+.. code-block:: javascript
+
+    // Methods for the author
+    // POST /author
+    var createAuthor = function(req, res) { 
+      postJSONHelper(req, function(err, object) {
+        if(err) 
+          return writeError(res, 406, 'Illegal JSON');
+
+        // Insert the user
+        dbInstance.collection('authors').insert(object, function(err, doc) {
+          if(err) 
+            return writeError(res, 500, 'Failed to insert document');
+
+          res.end(JSON.stringify(doc[0]));
+        });
+      });
+    }
+
+Notice the two helper methods called ``postJSONHelper`` and ``writeError``. Let's stop a moment and take a look at the code for those two methods.
+
+.. code-block:: javascript
+
+    var writeError = function(res, code, message) {
+      res.writeHead(code, message, {'content-type': 'text/plain'});
+      res.end(message);
+    }
+
+    var postJSONHelper = function(req, callback) {  
+      var data = '';
+      
+      req.on('data', function(chunk) {
+        data += chunk;
+      })
+
+      req.on('end', function() {
+        try {
+          var obj = JSON.parse(data);
+          callback(null, obj);
+        } catch(err) {
+          callback(err);      
+        }
+      })
+    }
+
+The ``postJSONHelper`` method is a simple utility method to deal with ``HTTP`` ``POST`` events as node.js actually reads in the body of a ``HTTP`` ``POST`` as a stream meaning we have to read in data an concatenate it until we received the ``end`` event. To avoid having to do this in each ``POST`` route we make a very simple helper function to do it for us so we can reduce the duplicated code.
+
+.. NOTE::
+
+  The reason the ``POST`` body is a stream is that it could be used to send a big file that you might not want to store in memory in it's entirety. An example could be if you wanted to save a large video file to ``GridFS``. In this case you would want to write the file into ``GridFS`` in ``chunks`` avoid having to store the entire file in memory while saving it.
+
+The ``writeError`` is a bit different. To understand why we decided to use it we have to understand what a ``HTTP`` code is. Have a look at the web page http://en.wikipedia.org/wiki/List_of_HTTP_status_codes. ``HTTP`` codes are numeric values that inform the calling application about the state of the http call. For example if an author does not exist we would use a ``404`` status code. Let's take a look at the ones we have used and what they mean.
+
+======== ======================
+CODE     Description
+======== ======================
+404      Not Found
+406      Not Acceptable
+500      Internal Server Error
+======== ======================
+
+As we can see we are using the ``404`` when we cannot find the document identified by the passed in ``id``. We use the ``406`` code to signal that the ``JSON`` document could not be parsed and ``500`` when there is a MongoDB error that is not related to the application logic. The codes lets us tell calling clients that an error has occurred in a more standardized way making it easy for the calling application to reason about the results being returned from our ``REST API``. 
+
+Returning to the ``createAuthor`` method we see that if we have a successful insert we return the document as JSON to the client with the newly added ``_id`` field that contains the unique identifier for this document.
+
+Let's look at the ``getAuthor`` method next.
+
+.. code-block:: javascript
+
+    // GET /author/:id
+    var getAuthor = function(req, res) { 
+      dbInstance.collection('authors')
+        .findOne({_id: new ObjectID(req.params.id)}, function(err, doc) {
+          if(err || doc == null) 
+            return writeError(res
+              , 404
+              , 'Failed to retrieve document from database for id ' + req.params.id);
+         
+          res.end(JSON.stringify(doc));
+      });
+    }
+
+The main thing here is that we take the incoming ``id`` field that's returned in the ``param`` object by the router and wrap it in an ``ObjectID``. This is because an ``ObjectID`` is a 12 byte binary value while the passed in id is a 24 byte hex decimal string representation. By creating a new ObjectID ``new ObjectID(req.params.id)`` we let the ``MongoDB`` driver parse the hex decimal string and convert it to a proper 12 byte ``ObjectID`` matching the ones we have in our documents.
+
+We then use the ``collection.findOne`` method to return the document or if none is available a ``404`` code response alerting the calling application that we have no such document.
+
+Finally let's have a look at how we allow for removing authors.
+
+.. code-block:: javascript
+
+    // DELETE /author/:id
+    var deleteAuthor = function(req, res) { 
+      dbInstance
+        .collection('authors')
+        .remove({_id: new ObjectID(req.params.id)}, function(err, deleted) {
+          if(err) 
+            return writeError(res
+              , 500
+              , 'Failed to delete document from database for id ' + req.params.id);
+          
+          if(deleted == 0)
+            return writeError(res
+              , 404
+              , 'No document with id ' + req.params.id + ' found in database');
+
+          res.end(JSON.stringify({_id: req.params.id}));
+      });
+    }
+
+Just as for ``getAuthor`` we convert the ``id`` value to a proper ``ObjectID`` and then use the ``collection.remove`` function to attempt to remove it. If the ``deleted`` value is ``1`` we know we removed the document and return a JSON object with the ``_id`` we just removed. Otherwise we notify the user setting code ``404`` that the document does not exist.
+
+.. NOTE::
+  
+  You might have a question. What if the author already has books entered into the system? Won't this leave Book records that don't have an author in the system associated with them ? The answer is yes. This would usually be solved in a relational database by creating foreign key relationship that would make it impossible to delete an ``Author`` if he had associated books. In ``MongoDB`` this integrity checking is left to the application itself. It's worth to notice however that most applications avoid foreign key relationship for the reason that they make the schema to rigid.
+
+So let's change the ``deleteAuthor`` method to ensure we can only delete ``Authors`` that do not have books associated with them yet.
+
+.. code-block:: javascript
+
+    // DELETE /author/:id
+    var deleteAuthor = function(req, res) { 
+      dbInstance.collection('books')
+        .count({"authors.id": new ObjectID(req.params.id)}, function(err, count) {
+          if(err) 
+            return writeError(res
+              , 500
+              , 'Failed to delete document from database for id ' + req.params.id);
+
+          if(count > 0)
+            return writeError(res
+              , 406
+              , 'Author with ' 
+                + req.params.id 
+                + " cannot be deleted as it's associated with existing books");
+
+          dbInstance.collection('authors')
+            .remove({_id: new ObjectID(req.params.id)}, function(err, deleted) {
+              if(err) 
+                return writeError(res
+                  , 500
+                  , 'Failed to delete document from database for id ' + req.params.id);
+              
+              if(deleted == 0)
+                return writeError(res
+                  , 404
+                  , 'No document with id ' + req.params.id + ' found in database');
+
+              res.end(JSON.stringify({_id: req.params.id}));
+          });
+        });
+    }
+
+The main difference is that we ``count`` the number of books that have the author with the passed in ``id``. If the ``count`` is larger than ``0`` it means we cannot delete the ``Author`` as it would break the data integrity.
+
+Next up is the publisher ``CRUD`` methods ``createPublisher``, ``getPublisher`` and ``deletePublisher``. These methods are very similar to the get authors. Let's start with the ``createPublisher`` method.
+
+.. code-block:: javascript
+
+  // POST /publisher
+  var createPublisher = function(req, res) {
+    postJSONHelper(req, function(err, object) {
+      if(err) 
+        return writeError(res, 406, 'Illegal JSON');
+
+      // Insert the user
+      dbInstance.collection('publishers').insert(object, function(err, doc) {
+        if(err) 
+          return writeError(res, 500, 'Failed to insert document');
+
+        res.end(JSON.stringify(doc[0]));
+      });
+    });
+  }
+
+The only main difference here is changing the collection we are using to the publisher one. Similarly the ``getPublisher`` method looks a lot like the ``getAuthor`` method.
+
+.. code-block:: javascript
+
+  // GET /publisher/:id
+  var getPublisher = function(req, res) {
+    dbInstance.collection('publishers')
+      .findOne({_id: new ObjectID(req.params.id)}, function(err, doc) {
+        if(err || doc == null) 
+          return writeError(res
+            , 404
+            , 'Failed to retrieve document from database for id ' + req.params.id);
+       
+        res.end(JSON.stringify(doc));
+    });
+  }
+
+The only main difference being that we are retrieving the documents from the ``publishers`` collection not the ``authors`` collection. Just as in the ``deleteAuthors`` method the ``deletePublisher`` method needs to enforce that we are not actually deleting a publisher that has books associated with it.
+
+.. code-block:: javascript
+
+  // DELETE /publisher/:id
+  var deletePublisher  = function(req, res) {
+    dbInstance.collection('books')
+      .count({"publisher_id": new ObjectID(req.params.id)}, function(err, count) {
+        if(err) 
+          return writeError(res
+            , 500
+            , 'Failed to delete document from database for id ' + req.params.id);
+
+        if(count > 0)
+          return writeError(res
+            , 406
+            , 'Publisher with ' 
+              + req.params.id 
+              + " cannot be deleted as it's associated with existing books");
+
+        dbInstance.collection('publishers')
+          .remove({_id: new ObjectID(req.params.id)}, function(err, deleted) {
+            if(err) 
+              return writeError(res
+                , 500
+                , 'Failed to delete document from database for id ' + req.params.id);
+            
+            if(deleted == 0)
+              return writeError(res
+                , 404
+                , 'No document with id ' + req.params.id + ' found in database');
+
+            res.end(JSON.stringify({_id: req.params.id}));
+        });
+      });
+  }
+
+Let's make sure the methods correctly by testing it from the command line using curl. ``Note`` that the id returned will vary on your system so make sure you change ``51921ef8b67cc57333000001`` where appropriate to your own id.
+
+.. code-block:: console
+
+    curl -X POST -d "{\"name\":\"T Books\"}" http://localhost:9090/publisher
+    {"name":"T Books","_id":"51921ef8b67cc57333000001"}
+
+    curl -X GET http://localhost:9090/publisher/51921ef8b67cc57333000001
+    {"name":"T Books","_id":"51921ef8b67cc57333000001"}
+
+    curl -X DELETE http://localhost:9090/publisher/51921ef8b67cc57333000001
+    {"_id":"51921ef8b67cc57333000001"}
+
+Awesome we only have two more sets of CRUD operations to implement, namely the ``User`` and ``Book`` related ``CRUD`` operations before we move on in the next chapter to the more advanced REST API method of managing the books.
+
+Let's do the user ones first. They consist off the ``createUser``, ``getUser`` and ``deleteUser`` methods and are very similar to the previous ``Author`` and ``Publisher`` methods. Let's look at them in turn starting with the ``createUser`` method.
+
+.. code-block:: javascript
+
+  // POST /user
+  var createUser = function(req, res) {
+    postJSONHelper(req, function(err, object) {
+      if(err) 
+        return writeError(res, 406, 'Illegal JSON');
+
+      // Insert the user
+      dbInstance.collection('users').insert(object, function(err, doc) {
+        if(err) 
+          return writeError(res, 500, 'Failed to insert document');
+
+        res.end(JSON.stringify(doc[0]));
+      });
+    });
+  }
+
+Just as in ``getAuthor`` and ``getPublisher`` the ``getUser`` method is very simple and just return the document from the collection if it finds it.
+
+.. code-block:: javascript
+
+  // GET /user/:id
+  var getUser = function(req, res) {
+    dbInstance.collection('users')
+      .findOne({_id: new ObjectID(req.params.id)}, function(err, doc) {
+        if(err || doc == null) 
+          return writeError(res
+            , 404
+            , 'Failed to retrieve document from database for id ' + req.params.id);
+       
+        res.end(JSON.stringify(doc));
+    });
+  }
+
+The main difference in the ``deleteUser`` method vs ``deleteAuthor`` or ``deletePublisher`` is that we can only remove a user if he has no outstanding books in the system. To ensure that we do a count of books in the library where the book is registered as loaned_out to the user with the ``id`` we wish to delete. If there are any books outstanding the ``API`` will fail and report that the user still has books out for loan.
+
+.. code-block:: javascript
+
+  // DELETE /user/:id
+  var deleteUser  = function(req, res) {
+    dbInstance.collection('books')
+      .count({"loaned_out_to.user_id": new ObjectID(req.params.id)}, function(err, count) {
+        if(err) 
+          return writeError(res
+            , 500
+            , 'Failed to delete document from database for id ' + req.params.id);
+
+        if(count > 0)
+          return writeError(res
+            , 406
+            , 'User with ' 
+              + req.params.id 
+              + " cannot be deleted as it's associated with existing books");
+
+        dbInstance.collection('users')
+          .remove({_id: new ObjectID(req.params.id)}, function(err, deleted) {
+            if(err) 
+              return writeError(res
+                , 500
+                , 'Failed to delete document from database for id ' + req.params.id);
+            
+            if(deleted == 0)
+              return writeError(res
+                , 404
+                , 'No document with id ' + req.params.id + ' found in database');
+
+            res.end(JSON.stringify({_id: req.params.id}));
+        });
+    });
+  }
+
+As before let's verify that the ``API`` work correctly by using ``curl``.
+
+.. code-block:: console
+
+    curl -X POST -d "{\"name\":\"James Bond\"}" http://localhost:9090/user
+    {"name":"James Bond","_id":"51921ef8b67cc57333000001"}
+
+    curl -X GET http://localhost:9090/user/51921ef8b67cc57333000001
+    {"name":"James Bond","_id":"51921ef8b67cc57333000001"}
+
+    curl -X DELETE http://localhost:9090/user/51921ef8b67cc57333000001
+    {"_id":"51921ef8b67cc57333000001"}
+
+We are nearly done. Let's look at the final ``Book`` ``CRUD`` operations ``createBook``, ``getBook`` and ``deleteBook``. If you've noticed there is a pattern to the CRUD operations and they look very similar with the exception being the ``deleteXXX`` methods. Let's take a quick look at the ``createBook`` method.
+
+.. code-block:: javascript
+
+  // POST /book
+  var createBook = function(req, res) {
+    postJSONHelper(req, function(err, object) {
+      if(err) 
+        return writeError(res, 406, 'Illegal JSON');
+
+      // Insert the user
+      dbInstance.collection('books').insert(object, function(err, doc) {
+        if(err) 
+          return writeError(res, 500, 'Failed to insert document');
+
+        res.end(JSON.stringify(doc[0]));
+      });
+    });
+  }
+
+Looks very similar to the previous ``createXXX`` methods for ``Author``, ``Publisher`` and ``User``. Let's look at the ``getBook`` method.
+
+.. code-block:: javascript
+
+  // GET /book/:id
+  var getBook = function(req, res) {
+    dbInstance.collection('books')
+      .findOne({_id: new ObjectID(req.params.id)}, function(err, doc) {
+        if(err || doc == null) 
+          return writeError(res
+            , 404
+            , 'Failed to retrieve document from database for id ' + req.params.id);
+       
+        res.end(JSON.stringify(doc));
+    });
+  }
+
+Again very similar to the previous ``getXXX`` methods. How about the ``deleteBook`` method ?
+
+.. code-block:: javascript
+
+  // DELETE /book/:id
+  var deleteBook  = function(req, res) {
+    dbInstance.collection('books')
+      .findOne({_id: new ObjectID(req.params.id)}, function(err, book) {
+        if(err) 
+          return writeError(res
+            , 500
+            , 'Failed to delete document from database for id ' + req.params.id);
+
+        if(!book)
+          return writeError(res
+            , 406
+            , 'Book with ' + req.params.id + " was not found");
+
+        if(book.loaned_out_to && book.loaned_out_to.length > 0)
+          return writeError(res
+            , 500
+            , 'Book with ' 
+              + req.params.id 
+              + " was not deleted as copies are currently loaned out");
+
+        dbInstance.collection('books')
+          .remove({_id: new ObjectID(req.params.id)}, function(err, deleted) {
+            if(err) 
+              return writeError(res
+                , 500
+                , 'Failed to delete document from database for id ' + req.params.id);
+            
+            if(deleted == 0)
+              return writeError(res
+                , 404
+                , 'No document with id ' + req.params.id + ' found in database');
+
+            res.end(JSON.stringify({_id: req.params.id}));
+        });
+      });
+  }
+
+As we can see the main difference here is that we don't let the book be deleted if there are any copies out for loan. This is ensured by checking the ``loaned_out_to`` array on the returned ``Book``. If it's empty we can go ahead and delete the ``Book`` as nobody is in possession of it. Notice that we are not checking the ``Authors`` or ``Publishers`` collections as they do not store any information directly associated with the ``Book`` so removing a Book does not cause ``Authors`` and ``Pulishers`` to link to non-existing books.
+
+Let's verify the correct behavior off the ``API`` by using ``Curl`` again to test the ``REST`` endpoints.
+
+.. code-block:: console
+
+    curl -X POST -d "{\"name\":\"Wizard of Oz\"}" http://localhost:9090/book
+    {"name":"Wizard of Oz","_id":"51921ef8b67cc57333000001"}
+
+    curl -X GET http://localhost:9090/book/51921ef8b67cc57333000001
+    {"name":"Wizard of Oz","_id":"51921ef8b67cc57333000001"}
+
+    curl -X DELETE http://localhost:9090/book/51921ef8b67cc57333000001
+    {"_id":"51921ef8b67cc57333000001"}
+
+We are now ready to move forward and add the remaining methods for our library API.
+
+=========================================== ==========================================
+Method Url                                  Description
+=========================================== ==========================================
+PUT     /book/:id/publisher/:publisher_id   Associate a publisher with this book
+PUT     /book/:id/author/:author_id         Associate an author with this book
+GET     /book/search?query=?                Search for books by title
+GET     /author/search?query=?              Search for author
+GET     /author/:id/books                   Get books by author
+GET     /publisher/search?query=?           Search for publisher
+GET     /publisher/:id/books                Get the books by publisher
+GET     /user/:id/loans                     Get all the books loaned by a specific user
+POST    /user/:id/loan/:book_id             Borrow a book
+DELETE  /user/:id/loan/:book_id             Return a book
+PUT     /user/:id/loan/:book_id             Extend a loan period / modify a loan period
+GET     /loan/overdue                       Get a list of all overdue books
+GET     /loan/overdue/:days                 Get a list of all overdue books in ?days days
+=========================================== ==========================================
+
+So let's move on and finish up our API.
+
+.. NOTE::
+
+  You might have noticed that we are not doing any validation on the documents as in checking if they have the minimum number of expected fields. We will touch on this briefly later but have chosen not to include it yet as it would complicate our example more than necessary.

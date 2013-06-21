@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+    <!--[if gt IE 8]><!-->
+<html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8" />
+
+  <!-- Set the viewport width to device width for mobile -->
+  <meta name="viewport" content="width=device-width" />
+
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
+<title>Exercise 13: Removing Documents</title>
+
+  <!-- Included CSS Files (Compressed) -->
+  <link rel="stylesheet" href="stylesheets/foundation.min.css">
+  <link rel="stylesheet" href="stylesheets/pygments.css">
+  <link rel="stylesheet" href="stylesheets/app.css">
+
+  <script src="javascripts/modernizr.foundation.js"></script>
+
+  <!-- IE Fix for HTML5 Tags -->
+  <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+</head>
+<body>
+
+  <div class="row">
+          <h1 class="title">Exercise 13: Removing Documents</h1>
+      </div>
+  </div>
+
+  <div class="row">
+    <div class="eleven columns">
+        <p>We've learned how to insert and update documents. But what if we want to remove documents from the database. Thankfully the <tt class="docutils literal">collection</tt> has a method called <tt class="docutils literal">remove</tt> that does exactly that. Let's see how it works.</p>
+<div class="highlight"><pre><a name="code--ex13--ex1.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex13--ex1.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex13--ex1.js-pyg.html-3"></a>
+<a name="code--ex13--ex1.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex13--ex1.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex13--ex1.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex13--ex1.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex13--ex1.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex13--ex1.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex13--ex1.js-pyg.html-10"></a>
+<a name="code--ex13--ex1.js-pyg.html-11"></a>  <span class="kd">var</span> <span class="nx">documents</span> <span class="o">=</span> <span class="p">[{</span>
+<a name="code--ex13--ex1.js-pyg.html-12"></a>        <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+<a name="code--ex13--ex1.js-pyg.html-13"></a>      <span class="p">,</span> <span class="nx">user</span><span class="o">:</span> <span class="mi">1</span>
+<a name="code--ex13--ex1.js-pyg.html-14"></a>      <span class="p">,</span> <span class="nx">read</span><span class="o">:</span><span class="kc">false</span>
+<a name="code--ex13--ex1.js-pyg.html-15"></a>    <span class="p">},</span> <span class="p">{</span>
+<a name="code--ex13--ex1.js-pyg.html-16"></a>        <span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span>
+<a name="code--ex13--ex1.js-pyg.html-17"></a>      <span class="p">,</span> <span class="nx">user</span><span class="o">:</span> <span class="mi">1</span>
+<a name="code--ex13--ex1.js-pyg.html-18"></a>      <span class="p">,</span> <span class="nx">read</span><span class="o">:</span><span class="kc">false</span>
+<a name="code--ex13--ex1.js-pyg.html-19"></a>    <span class="p">},</span> <span class="p">{</span>
+<a name="code--ex13--ex1.js-pyg.html-20"></a>        <span class="nx">_id</span><span class="o">:</span> <span class="mi">3</span>
+<a name="code--ex13--ex1.js-pyg.html-21"></a>      <span class="p">,</span> <span class="nx">user</span><span class="o">:</span> <span class="mi">2</span>
+<a name="code--ex13--ex1.js-pyg.html-22"></a>      <span class="p">,</span> <span class="nx">read</span><span class="o">:</span><span class="kc">false</span>
+<a name="code--ex13--ex1.js-pyg.html-23"></a>    <span class="p">}</span>
+<a name="code--ex13--ex1.js-pyg.html-24"></a>  <span class="p">];</span>
+<a name="code--ex13--ex1.js-pyg.html-25"></a>
+<a name="code--ex13--ex1.js-pyg.html-26"></a>  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;upserts&#39;</span><span class="p">);</span>
+<a name="code--ex13--ex1.js-pyg.html-27"></a>
+<a name="code--ex13--ex1.js-pyg.html-28"></a>  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex13--ex1.js-pyg.html-29"></a>
+<a name="code--ex13--ex1.js-pyg.html-30"></a>    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">(</span><span class="nx">documents</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex13--ex1.js-pyg.html-31"></a>      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;added document&quot;</span><span class="p">);</span>
+<a name="code--ex13--ex1.js-pyg.html-32"></a>
+<a name="code--ex13--ex1.js-pyg.html-33"></a>      <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">({</span><span class="nx">user</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex13--ex1.js-pyg.html-34"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;removed documents&quot;</span><span class="p">);</span>
+<a name="code--ex13--ex1.js-pyg.html-35"></a>
+<a name="code--ex13--ex1.js-pyg.html-36"></a>        <span class="nx">collection</span><span class="p">.</span><span class="nx">find</span><span class="p">().</span><span class="nx">toArray</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">docs</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex13--ex1.js-pyg.html-37"></a>          <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;documents&quot;</span><span class="p">);</span>
+<a name="code--ex13--ex1.js-pyg.html-38"></a>          <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">docs</span><span class="p">);</span>
+<a name="code--ex13--ex1.js-pyg.html-39"></a>          <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex13--ex1.js-pyg.html-40"></a>        <span class="p">});</span>
+<a name="code--ex13--ex1.js-pyg.html-41"></a>      <span class="p">});</span>
+<a name="code--ex13--ex1.js-pyg.html-42"></a>    <span class="p">});</span>
+<a name="code--ex13--ex1.js-pyg.html-43"></a>  <span class="p">});</span>
+<a name="code--ex13--ex1.js-pyg.html-44"></a><span class="p">});</span>
+</pre></div><p>The result will be</p>
+<pre class="code console literal-block">
+<span class="go">connected to database
+added document
+removed documents
+documents
+[ { _id: 3, user: 2, read: false } ]</span>
+</pre>
+<p>Notice that it removed all the documents that matched <tt class="docutils literal">{user:1}</tt>. The default behavior of <tt class="docutils literal">remove</tt> is to remove all the documents that match. But what if we only want to remove a single document. Luckily there is an option called <tt class="docutils literal">single</tt> that allows us to do this. Let's see how it works.</p>
+<div class="highlight"><pre><a name="code--ex13--ex2.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex13--ex2.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex13--ex2.js-pyg.html-3"></a>
+<a name="code--ex13--ex2.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex13--ex2.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex13--ex2.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex13--ex2.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex13--ex2.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex13--ex2.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex13--ex2.js-pyg.html-10"></a>
+<a name="code--ex13--ex2.js-pyg.html-11"></a>  <span class="kd">var</span> <span class="nx">documents</span> <span class="o">=</span> <span class="p">[{</span>
+<a name="code--ex13--ex2.js-pyg.html-12"></a>        <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+<a name="code--ex13--ex2.js-pyg.html-13"></a>      <span class="p">,</span> <span class="nx">user</span><span class="o">:</span> <span class="mi">1</span>
+<a name="code--ex13--ex2.js-pyg.html-14"></a>      <span class="p">,</span> <span class="nx">read</span><span class="o">:</span><span class="kc">false</span>
+<a name="code--ex13--ex2.js-pyg.html-15"></a>    <span class="p">},</span> <span class="p">{</span>
+<a name="code--ex13--ex2.js-pyg.html-16"></a>        <span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span>
+<a name="code--ex13--ex2.js-pyg.html-17"></a>      <span class="p">,</span> <span class="nx">user</span><span class="o">:</span> <span class="mi">1</span>
+<a name="code--ex13--ex2.js-pyg.html-18"></a>      <span class="p">,</span> <span class="nx">read</span><span class="o">:</span><span class="kc">false</span>
+<a name="code--ex13--ex2.js-pyg.html-19"></a>    <span class="p">},</span> <span class="p">{</span>
+<a name="code--ex13--ex2.js-pyg.html-20"></a>        <span class="nx">_id</span><span class="o">:</span> <span class="mi">3</span>
+<a name="code--ex13--ex2.js-pyg.html-21"></a>      <span class="p">,</span> <span class="nx">user</span><span class="o">:</span> <span class="mi">2</span>
+<a name="code--ex13--ex2.js-pyg.html-22"></a>      <span class="p">,</span> <span class="nx">read</span><span class="o">:</span><span class="kc">false</span>
+<a name="code--ex13--ex2.js-pyg.html-23"></a>    <span class="p">}</span>
+<a name="code--ex13--ex2.js-pyg.html-24"></a>  <span class="p">];</span>
+<a name="code--ex13--ex2.js-pyg.html-25"></a>
+<a name="code--ex13--ex2.js-pyg.html-26"></a>  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;upserts&#39;</span><span class="p">);</span>
+<a name="code--ex13--ex2.js-pyg.html-27"></a>
+<a name="code--ex13--ex2.js-pyg.html-28"></a>  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex13--ex2.js-pyg.html-29"></a>
+<a name="code--ex13--ex2.js-pyg.html-30"></a>    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">(</span><span class="nx">documents</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex13--ex2.js-pyg.html-31"></a>      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;added document&quot;</span><span class="p">);</span>
+<a name="code--ex13--ex2.js-pyg.html-32"></a>
+<a name="code--ex13--ex2.js-pyg.html-33"></a>      <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">({</span><span class="nx">user</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">single</span><span class="o">:</span><span class="kc">true</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex13--ex2.js-pyg.html-34"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;removed documents&quot;</span><span class="p">);</span>
+<a name="code--ex13--ex2.js-pyg.html-35"></a>
+<a name="code--ex13--ex2.js-pyg.html-36"></a>        <span class="nx">collection</span><span class="p">.</span><span class="nx">find</span><span class="p">().</span><span class="nx">toArray</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">docs</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex13--ex2.js-pyg.html-37"></a>          <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;documents&quot;</span><span class="p">);</span>
+<a name="code--ex13--ex2.js-pyg.html-38"></a>          <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">docs</span><span class="p">);</span>
+<a name="code--ex13--ex2.js-pyg.html-39"></a>          <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex13--ex2.js-pyg.html-40"></a>        <span class="p">});</span>
+<a name="code--ex13--ex2.js-pyg.html-41"></a>      <span class="p">});</span>
+<a name="code--ex13--ex2.js-pyg.html-42"></a>    <span class="p">});</span>
+<a name="code--ex13--ex2.js-pyg.html-43"></a>  <span class="p">});</span>
+<a name="code--ex13--ex2.js-pyg.html-44"></a><span class="p">});</span>
+</pre></div><p>The result will be</p>
+<pre class="code console literal-block">
+<span class="go">connected to database
+added document
+removed documents
+documents
+[ { _id: 2, user: 1, read: false },
+  { _id: 3, user: 2, read: false } ]</span>
+</pre>
+<p>That's all there is to removing document in <tt class="docutils literal">MongoDB</tt>. In the next couple of exercises we will start digging into how to query and use the data in <tt class="docutils literal">MongoDB</tt> using the <tt class="docutils literal">findOne</tt>, <tt class="docutils literal">find</tt> and <tt class="docutils literal">stream</tt> functions.</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">One thing you might wonder is how to remove all of the documents in a <tt class="docutils literal">collection</tt>. This is can be done in two ways. <tt class="docutils literal"><span class="pre">remove({},</span> function(err, result) {})</tt> or <tt class="docutils literal">remove(function(err, result) {})</tt>.</p>
+</div>
+    </div>
+
+    <div class="one columns" id="right-nav">
+        <center>
+        <p><a href="/book/"><img src="images/48_structure.png"></a></p>
+        <p><a href="#"><img src="images/48_email.png"></a></p>
+        <p><a href="#faq"><img src="images/48_faq.png"></a></p>
+        <p>
+        </p>
+        </center>
+    </div>
+
+  <!-- Included JS Files (Compressed) -->
+  <script src="javascripts/jquery.js"></script>
+  <script src="javascripts/foundation.min.js"></script>
+  
+  <!-- Initialize JS Plugins -->
+  <script src="javascripts/app.js"></script>
+
+</body>
+</html>

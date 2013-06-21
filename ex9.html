@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+    <!--[if gt IE 8]><!-->
+<html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8" />
+
+  <!-- Set the viewport width to device width for mobile -->
+  <meta name="viewport" content="width=device-width" />
+
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
+<title>Exercise 9: Update Basics</title>
+
+  <!-- Included CSS Files (Compressed) -->
+  <link rel="stylesheet" href="stylesheets/foundation.min.css">
+  <link rel="stylesheet" href="stylesheets/pygments.css">
+  <link rel="stylesheet" href="stylesheets/app.css">
+
+  <script src="javascripts/modernizr.foundation.js"></script>
+
+  <!-- IE Fix for HTML5 Tags -->
+  <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+</head>
+<body>
+
+  <div class="row">
+          <h1 class="title">Exercise 9: Update Basics</h1>
+      </div>
+  </div>
+
+  <div class="row">
+    <div class="eleven columns">
+        <p>In the previous exercises we learned how to insert documents into MongoDB and what a write concern is. We also learned why <tt class="docutils literal">.save()</tt> is not a good way of saving your documents and how bulk inserts work. We've managed to get all those documents into MongoDB but now we find we need to update some of the fields. In this exercise we will focus on the basic operations to change your documents in MongoDB and in the next exercise on the more advanced ways to modify your existing documents.</p>
+<p>Lets start with a simple insert and full document update and explain why this in general is a bad idea. Fire up the editor and type in the following code.</p>
+<div class="highlight"><pre><a name="code--ex9--ex1.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex9--ex1.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex9--ex1.js-pyg.html-3"></a>
+<a name="code--ex9--ex1.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex1.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex1.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex9--ex1.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex9--ex1.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex9--ex1.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex9--ex1.js-pyg.html-10"></a>
+<a name="code--ex9--ex1.js-pyg.html-11"></a>  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;my_basic_update_documents&#39;</span><span class="p">);</span>
+<a name="code--ex9--ex1.js-pyg.html-12"></a>
+<a name="code--ex9--ex1.js-pyg.html-13"></a>  <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">,</span> <span class="nx">a</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex1.js-pyg.html-14"></a>    <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex1.js-pyg.html-15"></a>      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>
+<a name="code--ex9--ex1.js-pyg.html-16"></a>    <span class="p">}</span>
+<a name="code--ex9--ex1.js-pyg.html-17"></a>
+<a name="code--ex9--ex1.js-pyg.html-18"></a>    <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">,</span> <span class="nx">b</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex1.js-pyg.html-19"></a>
+<a name="code--ex9--ex1.js-pyg.html-20"></a>      <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex9--ex1.js-pyg.html-21"></a>    <span class="p">});</span>
+<a name="code--ex9--ex1.js-pyg.html-22"></a>  <span class="p">});</span>
+<a name="code--ex9--ex1.js-pyg.html-23"></a><span class="p">});</span>
+</pre></div><p>We first insert a document with the values <tt class="docutils literal">{_id: 1, a:1}</tt> then after it inserted we do an update statement</p>
+<pre class="code javascript literal-block">
+<span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">,</span> <span class="nx">b</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+
+  <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">(</span><span class="p">);</span>
+<span class="p">});</span>
+</pre>
+<p>The update statement is made up of two different objects. The first part is the query to match locate the document we wish to change <tt class="docutils literal">{_id:1}</tt> and the second object is the way we wish to change the document. In this case we are passing in the document <tt class="docutils literal">{_id:1, b:1}</tt> which will replace the existing document with the new one. Let's see what's in the database. Let's fire up mongo.</p>
+<pre class="code console literal-block">
+<span class="go">~ $ mongo
+MongoDB shell version: 2.2
+connecting to: test
+</span><span class="gp">&gt;</span> use <span class="nb">test</span>
+<span class="go">switched to db test
+</span><span class="gp">&gt;</span> db.my_basic_update_documents.find<span class="o">()</span>
+<span class="go">{ &quot;_id&quot; : 1, &quot;b&quot; : 1 }</span>
+</pre>
+<p>As we can see the whole document <tt class="docutils literal">{_id: 1, a:1}</tt> was replaced. This can cause some issues. Imagine that there are several applications trying to modify the same document. Each <tt class="docutils literal">update</tt> would overwrite any changes in the document meaning we would loose all changes but the last update. This is what the <tt class="docutils literal">collection.save()</tt> function does. There is also a problem of efficiency. When we save the whole document we need to transfer the whole document to MongoDB even if we only want to change one field. This is less than optimial as we can imagine especially if we have a large document. Luckily we don't have to do that and we can also avoid the problem of overwritting any existing changes in a document. We do this using special operators called <tt class="docutils literal">atomic</tt> operators.</p>
+<div class="section" id="atomic-operators">
+<h1>Atomic Operators</h1>
+<p>Let's start with the basics of what an Atomic operator is. To do this let's imagine that we have a document that looks like this.</p>
+<pre class="code json literal-block">
+<span class="p">{</span>
+  <span class="nt">&quot;value&quot;</span> <span class="p">:</span> <span class="mi">1</span>
+<span class="p">}</span>
+</pre>
+<p>Now let's imagine that two different applications wish to change the value by incrementing it by one. The end result should be <tt class="docutils literal">3</tt>. To make sure that <tt class="docutils literal">value</tt> is incremented correctly we need to ensure that only one of the two applications can change the the <tt class="docutils literal">value</tt> at any given time. Otherwise both applications might read the <tt class="docutils literal">value</tt> to be incremented at the same time and increment it from <tt class="docutils literal">1</tt> to <tt class="docutils literal">2</tt>. The property of ensuring only one application can change the value at a time is called an atomic operation. The second benefit of atomic operators is that we are changing are only sending the changes to MongoDB not the whole document so the amount of information that needs to be sent over the network is smaller and MongoDB can in most cases update the document where it is in memory without having to move the document to a new location on the Database.</p>
+<p>So what kind of operators does MongoDB have that are atomic.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="9%" />
+<col width="7%" />
+<col width="84%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Operator</th>
+<th class="head">Operates On</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>$set</td>
+<td>Field</td>
+<td>Set a particular field in the document</td>
+</tr>
+<tr><td>$unset</td>
+<td>Field</td>
+<td>Remove a particular field from the document</td>
+</tr>
+<tr><td>$inc</td>
+<td>Field</td>
+<td>Increments a numeric field by the provided value and sets it to the provided value if the field does not exist</td>
+</tr>
+<tr><td>$rename</td>
+<td>Field</td>
+<td>Renames a field or overwrites the existing field with the new field</td>
+</tr>
+<tr><td>$</td>
+<td>Array</td>
+<td>Updates an element in an array field to update without specifiying the exact position. Acts as a placeholder for the first match.</td>
+</tr>
+<tr><td>$push</td>
+<td>Array</td>
+<td>Appends a value to an array, if the array does not exist it gets created.</td>
+</tr>
+<tr><td>$pushAll</td>
+<td>Array</td>
+<td>Works as $push but lets you push multiple values to the array</td>
+</tr>
+<tr><td>$addToSet</td>
+<td>Array</td>
+<td>Only adds the value to the array if it does not already exist</td>
+</tr>
+<tr><td>$pop</td>
+<td>Array</td>
+<td>Pop the last element off the array or shift the first element of the array</td>
+</tr>
+<tr><td>$pull</td>
+<td>Array</td>
+<td>Removes all instances of a value from an array</td>
+</tr>
+<tr><td>$pullAll</td>
+<td>Array</td>
+<td>Removes all instances of the list of values passed from an array</td>
+</tr>
+<tr><td>$bit</td>
+<td>Bitwise</td>
+<td>Perform a bitwise operation on a field, letting you do bitmapped files for compact storing of flags etc.</td>
+</tr>
+</tbody>
+</table>
+<p>Since <tt class="docutils literal">atomic</tt> operations are only guaranteed for one of these operations at a time MongoDB also has a special operator called <tt class="docutils literal">$isolated</tt> that will guarantee that multiple <tt class="docutils literal">atomic</tt> operations in an update happen without changes being applied by other applications during it's execution.</p>
+<p>That's a lot to take in so in this exercise we are going to just focus on the field and bitwise operators and leave the array operators for the next exercise.</p>
+</div>
+<div class="section" id="set-unset-operators">
+<h1>$set/$unset Operators</h1>
+<p>Let's have a look at the <tt class="docutils literal">$set</tt>. For this exercise we will also use a method called <tt class="docutils literal">collection.findOne()</tt> to retrieve the document and allow us to print it out to see the changes instead of using the <tt class="docutils literal">mongo</tt> console. Also notice that we are removing all the documents from the collection before starting using the <tt class="docutils literal">collection.remove()</tt> method. Fire up the editor and enter the code below.</p>
+<div class="highlight"><pre><a name="code--ex9--ex3.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex9--ex3.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex9--ex3.js-pyg.html-3"></a>
+<a name="code--ex9--ex3.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex3.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex3.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex9--ex3.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex9--ex3.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex9--ex3.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex9--ex3.js-pyg.html-10"></a>
+<a name="code--ex9--ex3.js-pyg.html-11"></a>  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;my_basic_update_documents&#39;</span><span class="p">);</span>
+<a name="code--ex9--ex3.js-pyg.html-12"></a>
+<a name="code--ex9--ex3.js-pyg.html-13"></a>  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex9--ex3.js-pyg.html-14"></a>
+<a name="code--ex9--ex3.js-pyg.html-15"></a>    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">2</span><span class="p">,</span> <span class="nx">value</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex3.js-pyg.html-16"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex3.js-pyg.html-17"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>
+<a name="code--ex9--ex3.js-pyg.html-18"></a>      <span class="p">}</span>
+<a name="code--ex9--ex3.js-pyg.html-19"></a>
+<a name="code--ex9--ex3.js-pyg.html-20"></a>      <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="p">{</span><span class="nx">$unset</span><span class="o">:</span> <span class="p">{</span><span class="nx">value</span><span class="o">:</span> <span class="s2">&quot;&quot;</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex3.js-pyg.html-21"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;updated &quot;</span> <span class="o">+</span> <span class="nx">result</span> <span class="o">+</span> <span class="s2">&quot; number of documents&quot;</span><span class="p">);</span>
+<a name="code--ex9--ex3.js-pyg.html-22"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">full_result</span><span class="p">);</span>
+<a name="code--ex9--ex3.js-pyg.html-23"></a>
+<a name="code--ex9--ex3.js-pyg.html-24"></a>        <span class="nx">collection</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex3.js-pyg.html-25"></a>
+<a name="code--ex9--ex3.js-pyg.html-26"></a>          <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+<a name="code--ex9--ex3.js-pyg.html-27"></a>
+<a name="code--ex9--ex3.js-pyg.html-28"></a>          <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex9--ex3.js-pyg.html-29"></a>        <span class="p">});</span>
+<a name="code--ex9--ex3.js-pyg.html-30"></a>      <span class="p">});</span>
+<a name="code--ex9--ex3.js-pyg.html-31"></a>    <span class="p">});</span>
+<a name="code--ex9--ex3.js-pyg.html-32"></a>  <span class="p">});</span>
+<a name="code--ex9--ex3.js-pyg.html-33"></a><span class="p">});</span>
+</pre></div><p>Run the code in the console and you should see the following ouput</p>
+<pre class="code console literal-block">
+<span class="go">connected to database
+updated 1 number of documents
+{ updatedExisting: true, n: 1, connectionId: 55, err: null, ok: 1 }
+{ _id: 2, value: 2 }</span>
+</pre>
+<p>Let's dissect the code we just ran. The <tt class="docutils literal">collection.remove()</tt> function does what name implies. It removes all the documents in the collection. This is just done so it will be a bit easier to run the example multiple times as we can avoid the duplicate document errors. The next operation <tt class="docutils literal">collection.insert()</tt> should be familiar by now. It inserts a document containing <tt class="docutils literal">{_id:2, value:1}</tt> in the collection. The following operation is what we are interested in here. <tt class="docutils literal"><span class="pre">collection.update({_id:</span> 2}, {$set: {value: <span class="pre">2}},</span> function(err, result) {})</tt>. The first part of the <tt class="docutils literal">update</tt> operation <tt class="docutils literal">{_id: 2}</tt> matches the first document where <tt class="docutils literal">_id: 2</tt>. Note <tt class="docutils literal">changes the first document matched</tt>, if you have two documents with the same field you are matching on it will not change both just the first one it finds which which might not be consistent. In the next exercise we will explain how to do multi document updates. The second part of the update is the bread and butter of this exercise namely the <tt class="docutils literal">atomic</tt> operator <tt class="docutils literal">$set</tt>. The statement <tt class="docutils literal">{$set: {value: 2}}</tt> sets the <tt class="docutils literal">value</tt> field of the matched document to 2.</p>
+<p>Once the update operation has finished the callback happens and returns the result. Notice that we have 3 return parameters in this case. The first <tt class="docutils literal">err</tt> is the normal error object, the second is the number of documents changed during the update and the last <tt class="docutils literal">full_result</tt> contains the whole update result including a special field called <tt class="docutils literal">updatedExisting</tt> that will contain the information if we updated an existing document or a new one was created. The secret of this field will be revealed in the next exercise.</p>
+<p>Let's move on and look at $unset. Enter the following code in your editor and run it.</p>
+<div class="highlight"><pre><a name="code--ex9--ex3.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex9--ex3.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex9--ex3.js-pyg.html-3"></a>
+<a name="code--ex9--ex3.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex3.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex3.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex9--ex3.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex9--ex3.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex9--ex3.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex9--ex3.js-pyg.html-10"></a>
+<a name="code--ex9--ex3.js-pyg.html-11"></a>  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;my_basic_update_documents&#39;</span><span class="p">);</span>
+<a name="code--ex9--ex3.js-pyg.html-12"></a>
+<a name="code--ex9--ex3.js-pyg.html-13"></a>  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex9--ex3.js-pyg.html-14"></a>
+<a name="code--ex9--ex3.js-pyg.html-15"></a>    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">2</span><span class="p">,</span> <span class="nx">value</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex3.js-pyg.html-16"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex3.js-pyg.html-17"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>
+<a name="code--ex9--ex3.js-pyg.html-18"></a>      <span class="p">}</span>
+<a name="code--ex9--ex3.js-pyg.html-19"></a>
+<a name="code--ex9--ex3.js-pyg.html-20"></a>      <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="p">{</span><span class="nx">$unset</span><span class="o">:</span> <span class="p">{</span><span class="nx">value</span><span class="o">:</span> <span class="s2">&quot;&quot;</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex3.js-pyg.html-21"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;updated &quot;</span> <span class="o">+</span> <span class="nx">result</span> <span class="o">+</span> <span class="s2">&quot; number of documents&quot;</span><span class="p">);</span>
+<a name="code--ex9--ex3.js-pyg.html-22"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">full_result</span><span class="p">);</span>
+<a name="code--ex9--ex3.js-pyg.html-23"></a>
+<a name="code--ex9--ex3.js-pyg.html-24"></a>        <span class="nx">collection</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex3.js-pyg.html-25"></a>
+<a name="code--ex9--ex3.js-pyg.html-26"></a>          <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+<a name="code--ex9--ex3.js-pyg.html-27"></a>
+<a name="code--ex9--ex3.js-pyg.html-28"></a>          <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex9--ex3.js-pyg.html-29"></a>        <span class="p">});</span>
+<a name="code--ex9--ex3.js-pyg.html-30"></a>      <span class="p">});</span>
+<a name="code--ex9--ex3.js-pyg.html-31"></a>    <span class="p">});</span>
+<a name="code--ex9--ex3.js-pyg.html-32"></a>  <span class="p">});</span>
+<a name="code--ex9--ex3.js-pyg.html-33"></a><span class="p">});</span>
+</pre></div><p>Your console output should look something like.</p>
+<pre class="code console literal-block">
+<span class="go">connected to database
+updated 1 number of documents
+{ updatedExisting: true, n: 1, connectionId: 75, err: null, ok: 1 }
+{ _id: 2 }</span>
+</pre>
+<p>The main difference from the previous example is that the second term of the update now reads like <tt class="docutils literal">{$unset: {value: <span class="pre">&quot;&quot;}}</span></tt>, this removes the field <tt class="docutils literal">value</tt> from the document. That's fairly straight forward.</p>
+</div>
+<div class="section" id="inc-operator">
+<h1>$inc Operator</h1>
+<p>Let's move on to the <tt class="docutils literal">$inc</tt> operator that lets us manipulate a numeric value. Fire up your editor and enter the code.</p>
+<div class="highlight"><pre><a name="code--ex9--ex4.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex9--ex4.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex9--ex4.js-pyg.html-3"></a>
+<a name="code--ex9--ex4.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex4.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex4.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex9--ex4.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex9--ex4.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex9--ex4.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex9--ex4.js-pyg.html-10"></a>
+<a name="code--ex9--ex4.js-pyg.html-11"></a>  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;my_basic_update_documents&#39;</span><span class="p">);</span>
+<a name="code--ex9--ex4.js-pyg.html-12"></a>
+<a name="code--ex9--ex4.js-pyg.html-13"></a>  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex9--ex4.js-pyg.html-14"></a>
+<a name="code--ex9--ex4.js-pyg.html-15"></a>    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">2</span><span class="p">,</span> <span class="nx">value</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex4.js-pyg.html-16"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex4.js-pyg.html-17"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>
+<a name="code--ex9--ex4.js-pyg.html-18"></a>      <span class="p">}</span>
+<a name="code--ex9--ex4.js-pyg.html-19"></a>
+<a name="code--ex9--ex4.js-pyg.html-20"></a>      <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="p">{</span><span class="nx">$inc</span><span class="o">:</span> <span class="p">{</span><span class="nx">value</span><span class="o">:</span> <span class="mi">1</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex4.js-pyg.html-21"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;updated &quot;</span> <span class="o">+</span> <span class="nx">result</span> <span class="o">+</span> <span class="s2">&quot; number of documents&quot;</span><span class="p">);</span>
+<a name="code--ex9--ex4.js-pyg.html-22"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">full_result</span><span class="p">);</span>
+<a name="code--ex9--ex4.js-pyg.html-23"></a>
+<a name="code--ex9--ex4.js-pyg.html-24"></a>        <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="p">{</span><span class="nx">$inc</span><span class="o">:</span> <span class="p">{</span><span class="nx">value2</span><span class="o">:</span> <span class="o">-</span><span class="mf">5.1</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex4.js-pyg.html-25"></a>          <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;updated &quot;</span> <span class="o">+</span> <span class="nx">result</span> <span class="o">+</span> <span class="s2">&quot; number of documents&quot;</span><span class="p">);</span>
+<a name="code--ex9--ex4.js-pyg.html-26"></a>          <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">full_result</span><span class="p">);</span>
+<a name="code--ex9--ex4.js-pyg.html-27"></a>
+<a name="code--ex9--ex4.js-pyg.html-28"></a>          <span class="nx">collection</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex4.js-pyg.html-29"></a>
+<a name="code--ex9--ex4.js-pyg.html-30"></a>            <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+<a name="code--ex9--ex4.js-pyg.html-31"></a>
+<a name="code--ex9--ex4.js-pyg.html-32"></a>            <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex9--ex4.js-pyg.html-33"></a>          <span class="p">});</span>
+<a name="code--ex9--ex4.js-pyg.html-34"></a>        <span class="p">});</span>
+<a name="code--ex9--ex4.js-pyg.html-35"></a>      <span class="p">});</span>
+<a name="code--ex9--ex4.js-pyg.html-36"></a>    <span class="p">});</span>
+<a name="code--ex9--ex4.js-pyg.html-37"></a>  <span class="p">});</span>
+<a name="code--ex9--ex4.js-pyg.html-38"></a><span class="p">});</span>
+</pre></div><p>Execute the code and your output should look something like.</p>
+<pre class="code console literal-block">
+<span class="go">connected to database
+updated 1 number of documents
+{ updatedExisting: true, n: 1, connectionId: 85, err: null, ok: 1 }
+updated 1 number of documents
+{ updatedExisting: true, n: 1, connectionId: 86, err: null, ok: 1 }
+{ _id: 2, value: 2, value2: -5.1 }</span>
+</pre>
+<p>The first update operation uses the update statement <tt class="docutils literal">{$inc: {value: 1}}</tt>, since the <tt class="docutils literal">value</tt> field already exists it gets incremented by 1. The operation translates to <tt class="docutils literal">new value = old value + increment value</tt>. The second update statement creates the field <tt class="docutils literal">value2</tt> as it does not already exist and sets it to <tt class="docutils literal"><span class="pre">-5.1</span></tt>. Pretty cool we can now do such things as keeping count of items. Also note that <tt class="docutils literal">$inc</tt> works with floating point values aswell as whole integers.</p>
+</div>
+<div class="section" id="bit-operator">
+<h1>$bit Operator</h1>
+<p>Sweet let's touch on the last field operator before we show how we can apply multiple updates to a single document. The last field operator is the <tt class="docutils literal">$bit</tt> operator. It's very useful for some situations. Imagine that you might want to store <tt class="docutils literal">8</tt> different status flags. You could do it like this.</p>
+<pre class="code console literal-block">
+<span class="go">{
+    flag1: true
+  , flag2: true
+  , flag3: true
+  , flag4: true
+  , flag5: true
+  , flag6: true
+  , flag7: true
+  , flag8: true
+}
+
+or maybe like this
+
+{
+  flags: [true, true, true, true, true, true, true, true]
+}</span>
+</pre>
+<p>But they take up quite a bit of memory space. So say you want to save space and want to pack all the <tt class="docutils literal">8</tt> flags into a single field. That's where bitwise operators come in (more information on bit fields at <a class="reference external" href="http://en.wikipedia.org/wiki/Bit_field">http://en.wikipedia.org/wiki/Bit_field</a>). Let's fire up the editor and enter the code below. Don't worry if bitwise operations are a bit difficult to understand, consider it priming you brain with an idea you can exploit at some later point in the future.</p>
+<div class="highlight"><pre><a name="code--ex9--ex5.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex9--ex5.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex9--ex5.js-pyg.html-3"></a>
+<a name="code--ex9--ex5.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex5.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex5.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex9--ex5.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex9--ex5.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex9--ex5.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex9--ex5.js-pyg.html-10"></a>
+<a name="code--ex9--ex5.js-pyg.html-11"></a>  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;my_basic_update_documents&#39;</span><span class="p">);</span>
+<a name="code--ex9--ex5.js-pyg.html-12"></a>
+<a name="code--ex9--ex5.js-pyg.html-13"></a>  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex9--ex5.js-pyg.html-14"></a>
+<a name="code--ex9--ex5.js-pyg.html-15"></a>    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">2</span><span class="p">,</span> <span class="nx">value</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex5.js-pyg.html-16"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex5.js-pyg.html-17"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>
+<a name="code--ex9--ex5.js-pyg.html-18"></a>      <span class="p">}</span>
+<a name="code--ex9--ex5.js-pyg.html-19"></a>
+<a name="code--ex9--ex5.js-pyg.html-20"></a>      <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="p">{</span><span class="nx">$bit</span><span class="o">:</span> <span class="p">{</span><span class="nx">value</span><span class="o">:</span> <span class="p">{</span><span class="nx">or</span><span class="o">:</span> <span class="mh">0x10</span><span class="p">}}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex5.js-pyg.html-21"></a>        <span class="nx">collection</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex5.js-pyg.html-22"></a>
+<a name="code--ex9--ex5.js-pyg.html-23"></a>          <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+<a name="code--ex9--ex5.js-pyg.html-24"></a>
+<a name="code--ex9--ex5.js-pyg.html-25"></a>          <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="p">{</span><span class="nx">$bit</span><span class="o">:</span> <span class="p">{</span><span class="nx">value</span><span class="o">:</span> <span class="p">{</span><span class="nx">and</span><span class="o">:</span> <span class="mh">0xEF</span><span class="p">}}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex5.js-pyg.html-26"></a>            <span class="nx">collection</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex5.js-pyg.html-27"></a>
+<a name="code--ex9--ex5.js-pyg.html-28"></a>              <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+<a name="code--ex9--ex5.js-pyg.html-29"></a>
+<a name="code--ex9--ex5.js-pyg.html-30"></a>              <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex9--ex5.js-pyg.html-31"></a>            <span class="p">});</span>
+<a name="code--ex9--ex5.js-pyg.html-32"></a>          <span class="p">});</span>
+<a name="code--ex9--ex5.js-pyg.html-33"></a>        <span class="p">});</span>
+<a name="code--ex9--ex5.js-pyg.html-34"></a>      <span class="p">});</span>
+<a name="code--ex9--ex5.js-pyg.html-35"></a>    <span class="p">});</span>
+<a name="code--ex9--ex5.js-pyg.html-36"></a>  <span class="p">});</span>
+<a name="code--ex9--ex5.js-pyg.html-37"></a><span class="p">});</span>
+</pre></div><p>You should see the following output</p>
+<pre class="code console literal-block">
+<span class="go">connected to database
+{ _id: 2, value: 17 }
+{ _id: 2, value: 1 }</span>
+</pre>
+<p>So what does this little example do. It first inserts a document with the field <tt class="docutils literal">value</tt> set to 1. The first update applies the value <tt class="docutils literal">0x10</tt> (hex value) against the field using the <tt class="docutils literal">$bit</tt> operator and an <tt class="docutils literal">or</tt>. First lets we need to understand how <tt class="docutils literal">or</tt> works. Let's look at the <tt class="docutils literal">or</tt> table.</p>
+<pre class="code console literal-block">
+<span class="go">    value: 0 0 1 1
+ or value: 0 1 0 1
+------------------
+   result: 0 1 1 1</span>
+</pre>
+<p>Basically if the bit position is not set it will be set if we <tt class="docutils literal">or</tt> with a <tt class="docutils literal">1</tt> while preserving existing flags.Let's see what happens to the value when we apply it.</p>
+<pre class="code console literal-block">
+<span class="go"> existing value:   0 0 0 0  0 0 0 1
+or value (0x10):   0 0 0 1  0 0 0 0
+-----------------------------------
+    final value:   0 0 0 1  0 0 0 1
+      hex value:   0x11
+  decimal value:   17</span>
+</pre>
+<p>Cool we flipped a single bit positon to 1 which we consider to be the true value. What if we want to flip it back. Normally you would use an operation called <tt class="docutils literal">xor</tt> to do this but as of now MongoDB does not support <tt class="docutils literal">xor</tt>. Luckily it does support an operation called <tt class="docutils literal">and</tt>. How does and work. Well let's look at the <tt class="docutils literal">and</tt> table.</p>
+<pre class="code console literal-block">
+<span class="go">    value: 0 0 1 1
+and value: 0 1 0 1
+------------------
+   result: 0 0 0 1</span>
+</pre>
+<p>If we <tt class="docutils literal">and</tt> a bit with the value <tt class="docutils literal">1</tt> it will preserve the existing bit value. If we <tt class="docutils literal">and</tt> it with <tt class="docutils literal">0</tt> it will set the corresponding bit to <tt class="docutils literal">0</tt> as well. This lets us flip a bit to <tt class="docutils literal">0</tt> as long as all the bits in our value are set to <tt class="docutils literal">1</tt>. Let's see what happens when we apply the value.</p>
+<pre class="code console literal-block">
+<span class="go">  existing value:   0 0 0 1  0 0 0 1
+and value (0xEF):   1 1 1 0  1 1 1 1
+------------------------------------
+     final value:   0 0 0 0  0 0 0 1
+       hex value:   0x01
+   decimal value:   1</span>
+</pre>
+<p>Perfect we just flipped the value back to <tt class="docutils literal">0</tt> setting our flag to <tt class="docutils literal">false</tt>. In short <tt class="docutils literal">bit fields</tt> can be very useful to compress values into a smaller space in the database. As an example a <tt class="docutils literal">32bit</tt> integer can contain <tt class="docutils literal">32</tt> binary flags and will take up very little space in comparision to 32 indidvidual fields or 32 entries in an array.</p>
+</div>
+<div class="section" id="isolated-or-how-i-came-to-love-the-bomb">
+<h1>$isolated or how I came to love the bomb</h1>
+<p>Let's start right off the bat in the editor, fire it up and enter the code below.</p>
+<div class="highlight"><pre><a name="code--ex9--ex6.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex9--ex6.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex9--ex6.js-pyg.html-3"></a>
+<a name="code--ex9--ex6.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex6.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex6.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex9--ex6.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex9--ex6.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex9--ex6.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex9--ex6.js-pyg.html-10"></a>
+<a name="code--ex9--ex6.js-pyg.html-11"></a>  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;my_basic_update_documents&#39;</span><span class="p">);</span>
+<a name="code--ex9--ex6.js-pyg.html-12"></a>
+<a name="code--ex9--ex6.js-pyg.html-13"></a>  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex9--ex6.js-pyg.html-14"></a>
+<a name="code--ex9--ex6.js-pyg.html-15"></a>    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">2</span><span class="p">,</span> <span class="nx">value</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex6.js-pyg.html-16"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex6.js-pyg.html-17"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>
+<a name="code--ex9--ex6.js-pyg.html-18"></a>      <span class="p">}</span>
+<a name="code--ex9--ex6.js-pyg.html-19"></a>
+<a name="code--ex9--ex6.js-pyg.html-20"></a>      <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">,</span> <span class="nx">$isolated</span><span class="o">:</span> <span class="mi">1</span><span class="p">}</span>
+<a name="code--ex9--ex6.js-pyg.html-21"></a>        <span class="p">,</span> <span class="p">{</span><span class="nx">$set</span><span class="o">:</span> <span class="p">{</span><span class="nx">value2</span><span class="o">:</span> <span class="s1">&#39;hello&#39;</span><span class="p">},</span> <span class="nx">$inc</span><span class="o">:</span> <span class="p">{</span><span class="nx">value</span><span class="o">:</span> <span class="o">-</span><span class="mi">5</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex6.js-pyg.html-22"></a>
+<a name="code--ex9--ex6.js-pyg.html-23"></a>          <span class="nx">collection</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex9--ex6.js-pyg.html-24"></a>
+<a name="code--ex9--ex6.js-pyg.html-25"></a>            <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+<a name="code--ex9--ex6.js-pyg.html-26"></a>
+<a name="code--ex9--ex6.js-pyg.html-27"></a>            <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex9--ex6.js-pyg.html-28"></a>          <span class="p">});</span>
+<a name="code--ex9--ex6.js-pyg.html-29"></a>      <span class="p">});</span>
+<a name="code--ex9--ex6.js-pyg.html-30"></a>    <span class="p">});</span>
+<a name="code--ex9--ex6.js-pyg.html-31"></a>  <span class="p">});</span>
+<a name="code--ex9--ex6.js-pyg.html-32"></a><span class="p">});</span>
+</pre></div><p>Your output should look like.</p>
+<pre class="code console literal-block">
+<span class="go">connected to database
+{ _id: 2, value: -4, value2: 'hello' }</span>
+</pre>
+<p>So as you might have suspected you can make multiple changes on a document in a single update. However by default each operation is atomic by itself but not all of them together as MongoDB will let other update operations on the same document happen at the same time. What does that mean? Well easier said with an example. Say we have to updates executing at the same time.</p>
+<pre class="code console literal-block">
+<span class="go">  initial document state: {value: 5}
+ first update operations: $set: {value2: 'hello'} and $inc: {value: -5}
+second update operations: $inc: {value: -1}
+
+possible ordering of operations:
+-----------------------------------------
+    first update: $set: {value2: 'hello'}
+   second update: $inc: {value: -1}
+    first update: $inc: {value: -5}</span>
+</pre>
+<p>MongoDB will interleave the operations. In this particular this might cause a problem. Imagine if the matcher for the document is <tt class="docutils literal">only update document if value &gt; 0</tt>. Since both of them match correctly but get intermixed the end value of <tt class="docutils literal">value</tt> could potentially be <tt class="docutils literal"><span class="pre">-1</span></tt> not <tt class="docutils literal">0</tt> as we expect.</p>
+<p>To avoid this in the example above we use the <tt class="docutils literal">$isolated</tt> operator as part of the update matching. This tells MongoDB to not let anyone else modify the document until the current operation is done and forces the ordering to look like.</p>
+<pre class="code console literal-block">
+<span class="go">  initial document state: {value: 5}
+ first update operations: $set: {value2: 'hello'} and $inc: {value: -5}
+second update operations: $inc: {value: -1}
+
+possible ordering of operations:
+----------------------------------------------------------
+    first update: $set: {value2: 'hello'}
+    first update: $inc: {value: -5}
+   second update: $inc: {value: -1} (failes as value is 0)</span>
+</pre>
+<p>So as we can see <tt class="docutils literal">$isolated</tt> can be quite useful. With this we are ready to take the tackle the next step of dealing with arrays when performing updates.</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">You might be tempted to always use <tt class="docutils literal">$isolated</tt> but you should not fall into this temptation. Only use it where appropriate as you are losing out on the benefit of concurrent writes to MongoDB forcing all updates to be serial. But keep it in mind when doing multiple field updates in a document if you are unsure something else could be changing the field while your application is executing a complex update.</p>
+</div>
+</div>
+    </div>
+
+    <div class="one columns" id="right-nav">
+        <center>
+        <p><a href="/book/"><img src="images/48_structure.png"></a></p>
+        <p><a href="#"><img src="images/48_email.png"></a></p>
+        <p><a href="#faq"><img src="images/48_faq.png"></a></p>
+        <p>
+        </p>
+        </center>
+    </div>
+
+  <!-- Included JS Files (Compressed) -->
+  <script src="javascripts/jquery.js"></script>
+  <script src="javascripts/foundation.min.js"></script>
+  
+  <!-- Initialize JS Plugins -->
+  <script src="javascripts/app.js"></script>
+
+</body>
+</html>

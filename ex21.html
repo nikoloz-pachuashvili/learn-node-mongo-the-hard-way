@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+    <!--[if gt IE 8]><!-->
+<html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8" />
+
+  <!-- Set the viewport width to device width for mobile -->
+  <meta name="viewport" content="width=device-width" />
+
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
+<title>Exercise 21: Let's Loan Out Some Books</title>
+
+  <!-- Included CSS Files (Compressed) -->
+  <link rel="stylesheet" href="stylesheets/foundation.min.css">
+  <link rel="stylesheet" href="stylesheets/pygments.css">
+  <link rel="stylesheet" href="stylesheets/app.css">
+
+  <script src="javascripts/modernizr.foundation.js"></script>
+
+  <!-- IE Fix for HTML5 Tags -->
+  <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+</head>
+<body>
+
+  <div class="row">
+          <h1 class="title">Exercise 21: Let's Loan Out Some Books</h1>
+      </div>
+  </div>
+
+  <div class="row">
+    <div class="eleven columns">
+        <p>In the last Exercise we looked at how to establish the basic <tt class="docutils literal">routing</tt> infrastructure in our application as well as looking at writing the <tt class="docutils literal">CRUD</tt> operations for the <tt class="docutils literal">Author</tt>, <tt class="docutils literal">Publisher</tt>, <tt class="docutils literal">User</tt> and <tt class="docutils literal">Book</tt> entities for our <tt class="docutils literal">REST</tt> <tt class="docutils literal">API</tt>. It's now time to actually add the business functionality to our <tt class="docutils literal">API</tt> that lets a user borrow some books as well as to look for a specific book. Let's look at the remaining <tt class="docutils literal">API</tt> calls.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="49%" />
+<col width="51%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Method Url</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>PUT     /book/:id/publisher/:publisher_id</td>
+<td>Associate a publisher with this book</td>
+</tr>
+<tr><td>PUT     /book/:id/author/:author_id</td>
+<td>Associate an author with this book</td>
+</tr>
+<tr><td>GET     /author/:id/books</td>
+<td>Get books by author</td>
+</tr>
+<tr><td>GET     /publisher/:id/books</td>
+<td>Get the books by publisher</td>
+</tr>
+<tr><td>GET     /book/search?query=?</td>
+<td>Search for books by title</td>
+</tr>
+<tr><td>GET     /author/search?query=?</td>
+<td>Search for author</td>
+</tr>
+<tr><td>GET     /publisher/search?query=?</td>
+<td>Search for publisher</td>
+</tr>
+<tr><td>GET     /user/:id/loans</td>
+<td>Get all the books loaned by a specific user</td>
+</tr>
+<tr><td>POST    /user/:id/loan/:book_id</td>
+<td>Borrow a book</td>
+</tr>
+<tr><td>DELETE  /user/:id/loan/:book_id</td>
+<td>Return a book</td>
+</tr>
+<tr><td>PUT     /user/:id/loan/:book_id</td>
+<td>Extend a loan period / modify a loan period</td>
+</tr>
+<tr><td>GET     /loan/overdue</td>
+<td>Get a list of all overdue books</td>
+</tr>
+<tr><td>GET     /loan/overdue/:days</td>
+<td>Get a list of all overdue books in ?days days</td>
+</tr>
+</tbody>
+</table>
+<p>The two first API calls we need to implement is the ability to <tt class="docutils literal">associate</tt> a <tt class="docutils literal">Publisher</tt> or <tt class="docutils literal">Author</tt> to a specific book. Let's take a look at the method <tt class="docutils literal">associatePublisher</tt> first.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// PUT /book/:id/publisher/:publisher_id
+</span><span class="kd">var</span> <span class="nx">associatePublisher</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">findOne</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">book</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">500</span>
+          <span class="p">,</span> <span class="s1">'Failed to retrieve book with id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+      <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">book</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">406</span>
+          <span class="p">,</span> <span class="s1">'Book with '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span> <span class="o">+</span> <span class="s2">&quot; was not found&quot;</span><span class="p">);</span>
+
+      <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'publishers'</span><span class="p">)</span>
+        <span class="p">.</span><span class="nx">findOne</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">publisher_id</span><span class="p">)}</span>
+          <span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">publisher</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+              <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+                <span class="p">,</span> <span class="mi">500</span>
+                <span class="p">,</span> <span class="s1">'Failed to retrieve publisher with id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">publisher_id</span><span class="p">);</span>
+
+            <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">publisher</span><span class="p">)</span>
+              <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+                <span class="p">,</span> <span class="mi">406</span>
+                <span class="p">,</span> <span class="s1">'Publisher with '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">publisher_id</span> <span class="o">+</span> <span class="s2">&quot; was not found&quot;</span><span class="p">);</span>
+
+            <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">)</span>
+              <span class="p">.</span><span class="nx">update</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)}</span>
+                <span class="p">,</span> <span class="p">{</span>
+                  <span class="nx">$set</span><span class="o">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;publisher.publisher_id&quot;</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">publisher_id</span><span class="p">)</span>
+                  <span class="p">}</span>
+                <span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">updated</span><span class="p">)</span> <span class="p">{</span>
+
+                  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+                      <span class="p">,</span> <span class="mi">500</span>
+                      <span class="p">,</span> <span class="s1">'Failed to update publisher for book with id '</span>
+                        <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+                  <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">}));</span>
+            <span class="p">});</span>
+        <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>Notice a couple of things. First off all we verify that both the indicated <tt class="docutils literal">Book</tt> and <tt class="docutils literal">Publisher</tt> exists in the system. Once we established that we update the field <tt class="docutils literal">publisher.publisher_id</tt> to set it with the value of the associated <tt class="docutils literal">Publisher</tt>. Notice that we are not adding the other specifics of the <tt class="docutils literal">Published</tt> edition of the <tt class="docutils literal">Book</tt>. We are assuming this was stored as part of the actual original storing of the <tt class="docutils literal">Book</tt> information. What we are ensuring is that this <tt class="docutils literal">Book</tt> is now correctly associated with a <tt class="docutils literal">Publisher</tt> entity in our system. If the field <tt class="docutils literal">publisher.publisher_id</tt> does not exist it will automatically be created and added to the document by <tt class="docutils literal">MongoDB</tt>. Now let's look at how the <tt class="docutils literal">associateAuthor</tt> method works in comparison considering a book can have <tt class="docutils literal">one</tt> or <tt class="docutils literal">more</tt> authors associated with it.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// PUT /book/:id/author/:publisher_id
+</span><span class="kd">var</span> <span class="nx">associateAuthor</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">findOne</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">book</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">500</span>
+          <span class="p">,</span> <span class="s1">'Failed to retrieve book with id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+      <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">book</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">406</span>
+          <span class="p">,</span> <span class="s1">'Book with '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span> <span class="o">+</span> <span class="s2">&quot; was not found&quot;</span><span class="p">);</span>
+
+      <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'authors'</span><span class="p">)</span>
+        <span class="p">.</span><span class="nx">findOne</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">author_id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">author</span><span class="p">)</span> <span class="p">{</span>
+          <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+              <span class="p">,</span> <span class="mi">500</span>
+              <span class="p">,</span> <span class="s1">'Failed to retrieve publisher with id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">author_id</span><span class="p">);</span>
+
+          <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">author</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+              <span class="p">,</span> <span class="mi">406</span>
+              <span class="p">,</span> <span class="s1">'Author with '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">author_id</span> <span class="o">+</span> <span class="s2">&quot; was not found&quot;</span><span class="p">);</span>
+
+          <span class="kd">var</span> <span class="nx">author</span> <span class="o">=</span> <span class="p">{</span>
+              <span class="nx">id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">author_id</span><span class="p">)</span>
+            <span class="p">,</span> <span class="nx">name</span><span class="o">:</span> <span class="nx">author</span><span class="p">.</span><span class="nx">name</span>
+          <span class="p">}</span>
+
+          <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">)</span>
+            <span class="p">.</span><span class="nx">update</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)}</span>
+              <span class="p">,</span> <span class="p">{</span><span class="nx">$addToSet</span><span class="o">:</span> <span class="p">{</span><span class="s2">&quot;authors&quot;</span><span class="o">:</span> <span class="nx">author</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">updated</span><span class="p">)</span> <span class="p">{</span>
+
+              <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+                <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+                  <span class="p">,</span> <span class="mi">500</span>
+                  <span class="p">,</span> <span class="s1">'Failed to update publisher for book with id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+              <span class="k">if</span><span class="p">(</span><span class="nx">updated</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+                <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+                  <span class="p">,</span> <span class="mi">500</span>
+                  <span class="p">,</span> <span class="s1">'Author already associated with the book with id '</span>
+                    <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+              <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">}));</span>
+            <span class="p">});</span>
+        <span class="p">});</span>
+    <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">The <tt class="docutils literal">$addToSet</tt> only adds a value to an array if the value does not already exist. Let's see how we can use this in practice. Remember the meeting. Well let's use <tt class="docutils literal">$addToSet</tt> and attempt to add a duplicate document. Open up your editor and type in.</p>
+</div>
+<p>It looks very similar to the previous <tt class="docutils literal">associatePublisher</tt> method but with one important difference. As we have an array of <tt class="docutils literal">authors</tt> for a book we want to ensure that we do not have duplicate <tt class="docutils literal">Author</tt> entries. Luckily <tt class="docutils literal">MongoDB</tt> provides an <tt class="docutils literal">update</tt> operated called <tt class="docutils literal">$addToSet</tt>. Let's go look at what the operator does briefly.</p>
+<div class="highlight"><pre><a name="code--ex10--ex4.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex10--ex4.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex10--ex4.js-pyg.html-3"></a>
+<a name="code--ex10--ex4.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex4.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex4.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex10--ex4.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex10--ex4.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex10--ex4.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex10--ex4.js-pyg.html-10"></a>
+<a name="code--ex10--ex4.js-pyg.html-11"></a>  <span class="kd">var</span> <span class="nx">meeting</span> <span class="o">=</span> <span class="p">{</span>
+<a name="code--ex10--ex4.js-pyg.html-12"></a>      <span class="nx">_id</span> <span class="o">:</span> <span class="mi">1</span>
+<a name="code--ex10--ex4.js-pyg.html-13"></a>    <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Let&#39;s buy a widget&quot;</span>
+<a name="code--ex10--ex4.js-pyg.html-14"></a>    <span class="p">,</span> <span class="nx">description</span><span class="o">:</span> <span class="s2">&quot;We need to buy the ACME widget and need budget approval&quot;</span>
+<a name="code--ex10--ex4.js-pyg.html-15"></a>    <span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">()</span>
+<a name="code--ex10--ex4.js-pyg.html-16"></a>    <span class="p">,</span> <span class="nx">endTime</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">()</span>
+<a name="code--ex10--ex4.js-pyg.html-17"></a>  <span class="p">}</span>
+<a name="code--ex10--ex4.js-pyg.html-18"></a>
+<a name="code--ex10--ex4.js-pyg.html-19"></a>  <span class="kd">var</span> <span class="nx">users</span> <span class="o">=</span> <span class="p">[</span>
+<a name="code--ex10--ex4.js-pyg.html-20"></a>      <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;April&#39;</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">&#39;april@inc.com&#39;</span><span class="p">}</span>
+<a name="code--ex10--ex4.js-pyg.html-21"></a>    <span class="p">,</span> <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;John&#39;</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">&#39;john@inc.com&#39;</span><span class="p">}</span>
+<a name="code--ex10--ex4.js-pyg.html-22"></a>  <span class="p">]</span>
+<a name="code--ex10--ex4.js-pyg.html-23"></a>
+<a name="code--ex10--ex4.js-pyg.html-24"></a>  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;meetings&#39;</span><span class="p">);</span>
+<a name="code--ex10--ex4.js-pyg.html-25"></a>
+<a name="code--ex10--ex4.js-pyg.html-26"></a>  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex10--ex4.js-pyg.html-27"></a>
+<a name="code--ex10--ex4.js-pyg.html-28"></a>    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">(</span><span class="nx">meeting</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex4.js-pyg.html-29"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex4.js-pyg.html-30"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>
+<a name="code--ex10--ex4.js-pyg.html-31"></a>      <span class="p">}</span>
+<a name="code--ex10--ex4.js-pyg.html-32"></a>
+<a name="code--ex10--ex4.js-pyg.html-33"></a>      <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span> <span class="nx">_id</span><span class="o">:</span> <span class="nx">meeting</span><span class="p">.</span><span class="nx">_id</span> <span class="p">}</span>
+<a name="code--ex10--ex4.js-pyg.html-34"></a>        <span class="p">,</span> <span class="p">{</span><span class="nx">$pushAll</span><span class="o">:</span> <span class="p">{</span><span class="nx">participants</span><span class="o">:</span> <span class="nx">users</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex4.js-pyg.html-35"></a>
+<a name="code--ex10--ex4.js-pyg.html-36"></a>          <span class="kd">var</span> <span class="nx">april</span> <span class="o">=</span> <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;April&#39;</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">&#39;april@inc.com&#39;</span><span class="p">};</span>
+<a name="code--ex10--ex4.js-pyg.html-37"></a>
+<a name="code--ex10--ex4.js-pyg.html-38"></a>          <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="nx">meeting</span><span class="p">.</span><span class="nx">_id</span><span class="p">}</span>
+<a name="code--ex10--ex4.js-pyg.html-39"></a>            <span class="p">,</span> <span class="p">{</span><span class="nx">$addToSet</span><span class="o">:</span> <span class="p">{</span><span class="nx">participants</span><span class="o">:</span> <span class="nx">april</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex4.js-pyg.html-40"></a>
+<a name="code--ex10--ex4.js-pyg.html-41"></a>            <span class="nx">collection</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span> <span class="nx">_id</span><span class="o">:</span> <span class="nx">meeting</span><span class="p">.</span><span class="nx">_id</span> <span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex4.js-pyg.html-42"></a>
+<a name="code--ex10--ex4.js-pyg.html-43"></a>              <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+<a name="code--ex10--ex4.js-pyg.html-44"></a>
+<a name="code--ex10--ex4.js-pyg.html-45"></a>              <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex10--ex4.js-pyg.html-46"></a>            <span class="p">});</span>
+<a name="code--ex10--ex4.js-pyg.html-47"></a>        <span class="p">});</span>
+<a name="code--ex10--ex4.js-pyg.html-48"></a>      <span class="p">});</span>
+<a name="code--ex10--ex4.js-pyg.html-49"></a>    <span class="p">});</span>
+<a name="code--ex10--ex4.js-pyg.html-50"></a>  <span class="p">});</span>
+<a name="code--ex10--ex4.js-pyg.html-51"></a><span class="p">});</span>
+</pre></div><p>Your output should look like the following.</p>
+<pre class="code console literal-block">
+<span class="go">connected to database
+{ _id: 1,
+  description: 'We need to buy the ACME widget and need budget approval',
+  endTime: Wed Jan 23 2013 15:35:03 GMT+0100 (CET),
+  participants:
+   [ { name: 'April', email: 'april&#64;inc.com' },
+     { name: 'John', email: 'john&#64;inc.com' } ],
+  startTime: Wed Jan 23 2013 15:35:03 GMT+0100 (CET),
+  title: 'Let\'s buy a widget' }</span>
+</pre>
+<p>As you can see there was no duplicate entries of the user <tt class="docutils literal">April</tt> in the participants field when using <tt class="docutils literal">$addToSet</tt>. But what if we want to modify a document inside an array, not remove it from the array but set a value on it. Luckily there are a couple of ways we can go about doing this.</p>
+<p>This is perfect for our method. We create a new embedded document.</p>
+<pre class="code javascript literal-block">
+<span class="kd">var</span> <span class="nx">author</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">author_id</span><span class="p">)</span>
+  <span class="p">,</span> <span class="nx">name</span><span class="o">:</span> <span class="nx">author</span><span class="p">.</span><span class="nx">name</span>
+<span class="p">}</span>
+</pre>
+<p>and then perform an update using <tt class="docutils literal">{$addToSet: {&quot;authors&quot;: author}}</tt>. As we read about the <tt class="docutils literal">$addToSet</tt> operator the new <tt class="docutils literal">author</tt> document will only be added to the <tt class="docutils literal">authors</tt> array if it does not already exists thus neatly avoiding duplicated entries.</p>
+<p>Now let's test our new methods using <tt class="docutils literal">Curl</tt> from the command line.</p>
+<pre class="code console literal-block">
+<span class="go">curl -X POST -d &quot;{\&quot;name\&quot;:\&quot;L. Frank Baum\&quot;}&quot; http://localhost:9090/author
+{&quot;name&quot;:&quot;L. Frank Baum&quot;,&quot;_id&quot;:&quot;51921ef8b67cc57333000001&quot;}
+
+curl -X POST -d &quot;{\&quot;name\&quot;:\&quot;Penguin Books\&quot;}&quot; http://localhost:9090/publisher
+{&quot;name&quot;:&quot;Penguin Books&quot;,&quot;_id&quot;:&quot;51921ef8b67cc57333000002&quot;}
+
+curl -X POST -d &quot;{\&quot;title\&quot;:\&quot;Wizard of Oz\&quot;}&quot; http://localhost:9090/book
+{&quot;name&quot;:&quot;Wizard of Oz&quot;,&quot;_id&quot;:&quot;51921ef8b67cc57333000003&quot;}
+
+curl -X POST -d &quot;{\&quot;name\&quot;:\&quot;James Bond\&quot;}&quot; http://localhost:9090/user
+{&quot;name&quot;:&quot;James Bond&quot;,&quot;_id&quot;:&quot;51921ef8b67cc57333000004&quot;}
+
+curl -X PUT http://localhost:9090/book/51921ef8b67cc57333000003/publisher
+/51921ef8b67cc57333000002
+{&quot;name&quot;:&quot;Wizard of Oz&quot;,&quot;_id&quot;:&quot;51921ef8b67cc57333000004&quot;}
+
+curl -X PUT http://localhost:9090/book/51921ef8b67cc57333000003/author
+/51921ef8b67cc57333000001
+{&quot;name&quot;:&quot;Wizard of Oz&quot;,&quot;_id&quot;:&quot;51921ef8b67cc57333000004&quot;}</span>
+</pre>
+<p>What if we want to look up books by a <tt class="docutils literal">Publisher</tt> or <tt class="docutils literal">Author</tt>. Now that we have books associated with both a <tt class="docutils literal">Publisher</tt> or <tt class="docutils literal">Author</tt> we can implement the two methods that let us do exactly this, namely <tt class="docutils literal">getBooksByPublisher</tt> and <tt class="docutils literal">getBooksByAuthor</tt>.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// GET /publisher/:id/books
+</span><span class="kd">var</span> <span class="nx">getBooksByPublisher</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'publishers'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">findOne</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">publisher</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">500</span>
+          <span class="p">,</span> <span class="s1">'Failed to retrieve publisher with id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+      <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">publisher</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">406</span>
+          <span class="p">,</span> <span class="s1">'Publisher with '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span> <span class="o">+</span> <span class="s2">&quot; was not found&quot;</span><span class="p">);</span>
+
+      <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">)</span>
+        <span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="p">{</span><span class="s2">&quot;publisher.publisher_id&quot;</span><span class="o">:</span> <span class="nx">publisher</span><span class="p">.</span><span class="nx">_id</span><span class="p">},</span> <span class="p">{</span><span class="nx">loaned_out_to</span><span class="o">:</span> <span class="mi">0</span><span class="p">})</span>
+        <span class="p">.</span><span class="nx">toArray</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">books</span><span class="p">)</span> <span class="p">{</span>
+          <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+              <span class="p">,</span> <span class="mi">500</span>
+              <span class="p">,</span> <span class="s1">'Failed to retrieve books for publisher with id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+          <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">books</span><span class="p">));</span>
+      <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>As a <tt class="docutils literal">Book</tt> is now associated to a <tt class="docutils literal">Publisher</tt> through the <tt class="docutils literal">publisher.publisher_id</tt> field we can now easily look up all <tt class="docutils literal">Books</tt> for a particular known <tt class="docutils literal">Publisher</tt>. The <tt class="docutils literal">getBooksByAuthor</tt> method perform the same action but for looking up books by a known system <tt class="docutils literal">Author</tt> instead.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// GET /author/:id/books
+</span><span class="kd">var</span> <span class="nx">getBooksByAuthor</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'authors'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">findOne</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">author</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">500</span>
+          <span class="p">,</span> <span class="s1">'Failed to retrieve author with id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+      <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">author</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">406</span>
+          <span class="p">,</span> <span class="s1">'Author with '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span> <span class="o">+</span> <span class="s2">&quot; was not found&quot;</span><span class="p">);</span>
+
+      <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">)</span>
+        <span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="p">{</span><span class="s2">&quot;authors.id&quot;</span><span class="o">:</span> <span class="nx">author</span><span class="p">.</span><span class="nx">_id</span><span class="p">},</span> <span class="p">{</span><span class="nx">loaned_out_to</span><span class="o">:</span> <span class="mi">0</span><span class="p">})</span>
+        <span class="p">.</span><span class="nx">toArray</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">books</span><span class="p">)</span> <span class="p">{</span>
+          <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+              <span class="p">,</span> <span class="mi">500</span>
+              <span class="p">,</span> <span class="s1">'Failed to retrieve books for author with id '</span>
+                <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+          <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">books</span><span class="p">));</span>
+      <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>In <tt class="docutils literal">getBooksByAuthor</tt> we look up any book where there is an embedded document in the array off <tt class="docutils literal">authors</tt> that contains the <tt class="docutils literal">id</tt> equivalent to the given <tt class="docutils literal">Author</tt> id. Did you maybe notice the <tt class="docutils literal">{loaned_out_to: 0}</tt> part of the <tt class="docutils literal">find</tt> and wonder what that means. <tt class="docutils literal">{loaned_out_to: 0}</tt> is what's called a <tt class="docutils literal">projection</tt> in <tt class="docutils literal">MongoDB</tt>. Basically it means we are filtering out the field <tt class="docutils literal">loaned_out_to</tt> from the documents returned from the database as this is non-needed information. <tt class="docutils literal">Projection</tt> let's you avoid returning all the document when it's not strictly needed, when you want to reduce the size of the document results sent to your application from the server or there are parts that needs to be filtered out as in this case where the <tt class="docutils literal">loaned_out_to</tt> is an internal state of the <tt class="docutils literal">API</tt>.</p>
+<p>Let's try out the new search methods by firing up <tt class="docutils literal">Curl</tt> and retrieving the <tt class="docutils literal">Books</tt> by <tt class="docutils literal">Publisher</tt> and <tt class="docutils literal">Author</tt>.</p>
+<pre class="code console literal-block">
+<span class="go">curl -X GET http://localhost:9090/publisher/51921ef8b67cc57333000002/books
+[{&quot;_id&quot;:&quot;51921ef8b67cc57333000003&quot;,&quot;authors&quot;:[{&quot;id&quot;:&quot;51921ef8b67cc57333000001&quot;
+,&quot;name&quot;:&quot;L. Frank Baum&quot;}],&quot;name&quot;:&quot;Wizard of Oz&quot;
+,&quot;publisher&quot;:{&quot;publisher_id&quot;:&quot;51921ef8b67cc57333000002&quot;}}]
+
+curl -X GET http://localhost:9090/author/51921ef8b67cc57333000001/books
+[{&quot;_id&quot;:&quot;51921ef8b67cc57333000003&quot;,&quot;authors&quot;:[{&quot;id&quot;:&quot;51921ef8b67cc57333000001&quot;
+,&quot;name&quot;:&quot;L. Frank Baum&quot;}],&quot;name&quot;:&quot;Wizard of Oz&quot;
+,&quot;publisher&quot;:{&quot;publisher_id&quot;:&quot;51921ef8b67cc57333000002&quot;}}]</span>
+</pre>
+<p>We need to provide a couple of ways for the users of our <tt class="docutils literal">API</tt> to search for <tt class="docutils literal">Books</tt>. These are embodied in the methods <tt class="docutils literal">searchByAuthor</tt>, <tt class="docutils literal">searchByPublisher</tt> and <tt class="docutils literal">searchByBook</tt>. We are going to use a new experimental index introduced in <tt class="docutils literal">MongoDB</tt> 2.4 to allow us to perform full text search on documents.</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">Full text search is a beta feature in <tt class="docutils literal">MongoDB</tt> 2.4 and will most likely change a lot in forthcoming versions as it get moved from beta into a fully supported feature.</p>
+</div>
+<p>Let's start with a slight modification to the connection code to create our index.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// Connect to MongoDB
+</span><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/library&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">err</span><span class="p">;</span>
+  <span class="nx">dbInstance</span> <span class="o">=</span> <span class="nx">db</span><span class="p">;</span>
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to mongodb&quot;</span><span class="p">)</span>
+
+  <span class="nx">db</span><span class="p">.</span><span class="nx">admin</span><span class="p">(</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">command</span><span class="p">(</span><span class="p">{</span> <span class="nx">setParameter</span> <span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">textSearchEnabled</span> <span class="o">:</span> <span class="kc">true</span> <span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+
+      <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">).</span><span class="nx">ensureIndex</span><span class="p">(</span><span class="p">{</span><span class="nx">title</span><span class="o">:</span><span class="s2">&quot;text&quot;</span><span class="p">},</span> <span class="p">{</span><span class="nx">w</span><span class="o">:</span><span class="mi">0</span><span class="p">});</span>
+      <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'authors'</span><span class="p">).</span><span class="nx">ensureIndex</span><span class="p">(</span><span class="p">{</span><span class="nx">name</span><span class="o">:</span><span class="s2">&quot;text&quot;</span><span class="p">},</span> <span class="p">{</span><span class="nx">w</span><span class="o">:</span><span class="mi">0</span><span class="p">});</span>
+      <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'publishers'</span><span class="p">).</span><span class="nx">ensureIndex</span><span class="p">(</span><span class="p">{</span><span class="nx">name</span><span class="o">:</span><span class="s2">&quot;text&quot;</span><span class="p">},</span> <span class="p">{</span><span class="nx">w</span><span class="o">:</span><span class="mi">0</span><span class="p">});</span>
+
+      <span class="nx">server</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">9090</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="p">)</span> <span class="p">{</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;listening on &quot;</span><span class="p">,</span> <span class="mi">9090</span><span class="p">);</span>
+      <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">});</span>
+</pre>
+<p>The first part of the change is to execute a command against the <tt class="docutils literal">admin</tt> database to enable the <tt class="docutils literal">BETA</tt> text search capabilities in <tt class="docutils literal">MongoDB</tt> 2.4. We then create a text index for each of the collections <tt class="docutils literal">books</tt>, <tt class="docutils literal">authors</tt> and <tt class="docutils literal">publishers</tt>. The only difference between the three indexes is that the <tt class="docutils literal">books</tt> index is on the <tt class="docutils literal">title</tt> field of books.</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p>You might want to extend the book model with a <tt class="docutils literal">description</tt> or <tt class="docutils literal">summary</tt> field in the future. To index this field you might want to drop the existing text index and then reindex by changing the book index creation command to db.``collection('books').ensureIndex({title:&quot;text&quot;, summary:&quot;text&quot;}, {w:0})``</p>
+<p class="last">More indepth information about the text index is available in a future exercise.</p>
+</div>
+<p>Now when we reboot our <tt class="docutils literal">API</tt> it will automatically create the right text indexes. It's now time to implement the first search method <tt class="docutils literal">searchByAuthor</tt>. But first let's create a little helper method to be able to access the <tt class="docutils literal">query</tt> parameter at the end of the <tt class="docutils literal">url</tt>.</p>
+<pre class="code javascript literal-block">
+<span class="kd">var</span> <span class="nx">queryHelper</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">url_parts</span> <span class="o">=</span> <span class="nx">url</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">url</span><span class="p">,</span> <span class="kc">true</span><span class="p">);</span>
+  <span class="k">return</span> <span class="nx">url_parts</span><span class="p">.</span><span class="nx">query</span><span class="p">;</span>
+<span class="p">}</span>
+</pre>
+<p>Also ensure you add the <tt class="docutils literal">var url = <span class="pre">require('url');</span></tt> line at the top of your script. So what does <tt class="docutils literal">queryHelper</tt> do?. It's fairly simple it takes the <tt class="docutils literal"><span class="pre">?query=xxx</span></tt> and parses it into form we can more easily work with. If you pass it a request for the url <tt class="docutils literal"><span class="pre">http://localhost:9090/author/search?query=test</span></tt> it will return an object that looks like <tt class="docutils literal">{query: &quot;test&quot;}</tt> making it easy for us to get hold of the query the user is performing. Now that we have this method it's time to write the <tt class="docutils literal">searchByAuthor</tt> method.</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">What if you want to use more than a single word?. Well you have to <tt class="docutils literal">URL</tt> encode your query. What does that mean? Well there are certain characters that are not allowed in a query string such as a blank space. If you wanted to encode the query <tt class="docutils literal">oz wizard</tt> you would need to convert the space so that the query looked like <tt class="docutils literal">oz%20wizard</tt>. So a query for a book would look like <tt class="docutils literal"><span class="pre">http://localhost:9090/author/search?query=oz%20wizard</span></tt>.</p>
+</div>
+<pre class="code javascript literal-block">
+<span class="c1">// GET /author/search?query=?
+</span><span class="kd">var</span> <span class="nx">searchByAuthor</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">queryStringParams</span> <span class="o">=</span> <span class="nx">queryHelper</span><span class="p">(</span><span class="nx">req</span><span class="p">);</span>
+  <span class="kd">var</span> <span class="nx">query</span> <span class="o">=</span> <span class="nx">queryStringParams</span><span class="p">.</span><span class="nx">query</span> <span class="o">||</span> <span class="s1">''</span><span class="p">;</span>
+
+  <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">command</span><span class="p">(</span><span class="p">{</span><span class="nx">text</span><span class="o">:</span> <span class="s2">&quot;authors&quot;</span><span class="p">,</span> <span class="nx">search</span><span class="o">:</span> <span class="nx">query</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">results</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+      <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+        <span class="p">,</span> <span class="mi">500</span>
+        <span class="p">,</span> <span class="s1">'Failed to search by author with search '</span> <span class="o">+</span> <span class="nx">query</span><span class="p">);</span>
+
+    <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">results</span><span class="p">.</span><span class="nx">results</span><span class="p">));</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>The code is not very difficult to understand, we execute the <tt class="docutils literal">text</tt> search command and it returns a document.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span>
+  <span class="s2">&quot;queryDebugString&quot;</span> <span class="o">:</span> <span class="s2">&quot;oz||||||&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;language&quot;</span> <span class="o">:</span> <span class="s2">&quot;english&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;results&quot;</span> <span class="o">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+      <span class="s2">&quot;score&quot;</span> <span class="o">:</span> <span class="mf">0.75</span><span class="p">,</span>
+      <span class="s2">&quot;obj&quot;</span> <span class="o">:</span> <span class="p">{</span>
+        <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="nx">ObjectId</span><span class="p">(</span><span class="s2">&quot;51921ef8b67cc57333000003&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;authors&quot;</span> <span class="o">:</span> <span class="p">[</span>
+          <span class="p">{</span>
+            <span class="s2">&quot;id&quot;</span> <span class="o">:</span> <span class="nx">ObjectId</span><span class="p">(</span><span class="s2">&quot;51921ef8b67cc57333000001&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;name&quot;</span> <span class="o">:</span> <span class="s2">&quot;L. Frank Baum&quot;</span>
+          <span class="p">}</span>
+        <span class="p">],</span>
+        <span class="s2">&quot;publisher&quot;</span> <span class="o">:</span> <span class="p">{</span>
+          <span class="s2">&quot;publisher_id&quot;</span> <span class="o">:</span> <span class="nx">ObjectId</span><span class="p">(</span><span class="s2">&quot;51921ef8b67cc57333000002&quot;</span><span class="p">)</span>
+        <span class="p">},</span>
+        <span class="s2">&quot;title&quot;</span> <span class="o">:</span> <span class="s2">&quot;Wizard of Oz&quot;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">],</span>
+  <span class="s2">&quot;stats&quot;</span> <span class="o">:</span> <span class="p">{</span>
+    <span class="s2">&quot;nscanned&quot;</span> <span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;nscannedObjects&quot;</span> <span class="o">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s2">&quot;n&quot;</span> <span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;nfound&quot;</span> <span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">&quot;timeMicros&quot;</span> <span class="o">:</span> <span class="mi">107</span>
+  <span class="p">},</span>
+  <span class="s2">&quot;ok&quot;</span> <span class="o">:</span> <span class="mi">1</span>
+<span class="p">}</span>
+</pre>
+<p>The actual search results are in the <tt class="docutils literal">results</tt> field and the code turns the results into <tt class="docutils literal">JSON</tt> and returns it. Due to text search being a <tt class="docutils literal">command</tt> in <tt class="docutils literal">MongoDB</tt> 2.4 it's limited to a maximum result set of <tt class="docutils literal">16 MB</tt>. It's very likely this will change going forward with the text search returning a cursor that lets you iterate over the returned results. Nice not very hard right. Let's take a look at the <tt class="docutils literal">searchByPublisher</tt> method.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// GET /publisher/search?query=?
+</span><span class="kd">var</span> <span class="nx">searchByPublisher</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">queryStringParams</span> <span class="o">=</span> <span class="nx">queryHelper</span><span class="p">(</span><span class="nx">req</span><span class="p">);</span>
+  <span class="kd">var</span> <span class="nx">query</span> <span class="o">=</span> <span class="nx">queryStringParams</span><span class="p">.</span><span class="nx">query</span> <span class="o">||</span> <span class="s1">''</span><span class="p">;</span>
+
+  <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">command</span><span class="p">(</span><span class="p">{</span><span class="nx">text</span><span class="o">:</span> <span class="s2">&quot;publishers&quot;</span><span class="p">,</span> <span class="nx">search</span><span class="o">:</span> <span class="nx">query</span><span class="p">}</span>
+    <span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">results</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">500</span>
+          <span class="p">,</span> <span class="s1">'Failed to search by author with search '</span> <span class="o">+</span> <span class="nx">query</span><span class="p">);</span>
+
+      <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">results</span><span class="p">.</span><span class="nx">results</span><span class="p">));</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>Pretty much the same as the <tt class="docutils literal">searchByAuthor</tt> method with the difference being that we are searching the <tt class="docutils literal">publishers</tt> pages. Finally let's allow to search for books using the method <tt class="docutils literal">searchByBook</tt>.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// GET /book/search?query=?
+</span><span class="kd">var</span> <span class="nx">searchByBook</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">queryStringParams</span> <span class="o">=</span> <span class="nx">queryHelper</span><span class="p">(</span><span class="nx">req</span><span class="p">);</span>
+  <span class="kd">var</span> <span class="nx">query</span> <span class="o">=</span> <span class="nx">queryStringParams</span><span class="p">.</span><span class="nx">query</span> <span class="o">||</span> <span class="s1">''</span><span class="p">;</span>
+
+  <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">command</span><span class="p">(</span><span class="p">{</span><span class="nx">text</span><span class="o">:</span> <span class="s2">&quot;books&quot;</span>
+    <span class="p">,</span> <span class="nx">search</span><span class="o">:</span> <span class="nx">query</span>
+    <span class="p">,</span> <span class="nx">project</span><span class="o">:</span> <span class="p">{</span><span class="nx">loaned_out_to</span><span class="o">:</span> <span class="mi">0</span><span class="p">}}</span>
+    <span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">results</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">500</span>
+          <span class="p">,</span> <span class="s1">'Failed to search by author with search '</span> <span class="o">+</span> <span class="nx">query</span><span class="p">);</span>
+
+      <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">results</span><span class="p">.</span><span class="nx">results</span><span class="p">));</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>Notice the single difference? Yeah you are right it's the <tt class="docutils literal">project: {loaned_out_to: 0}</tt> field we passed into the command. This works exactly the same as the field projection parameter in a normal <tt class="docutils literal">find</tt> allowing you to filter out fields that you do not want to return. In our case we don't want to return the <tt class="docutils literal">loaned_out_to</tt> field as it's internal state for the <tt class="docutils literal">API</tt> and should not be available outside. So let's test out the new <tt class="docutils literal">API's</tt> using the <tt class="docutils literal">curl</tt> commands.</p>
+<pre class="code console literal-block">
+<span class="go">curl -X GET http://localhost:9090/author/search?query=james
+[{&quot;score&quot;:0.75,&quot;obj&quot;:{&quot;name&quot;:&quot;James Kirk&quot;,&quot;_id&quot;:&quot;51921ef8b67cc57333000001&quot;}}]
+
+curl -X GET http://localhost:9090/publisher/search?query=books
+[{&quot;score&quot;:0.75,&quot;obj&quot;:{&quot;name&quot;:&quot;Penguin Books&quot;,&quot;_id&quot;:&quot;51921ef8b67cc57333000002&quot;}}]
+
+http://localhost:9090/book/search?query=oz
+[{&quot;score&quot;:0.75,&quot;obj&quot;:{&quot;_id&quot;:&quot;51921ef8b67cc57333000003&quot;
+,&quot;authors&quot;:[{&quot;id&quot;:&quot;51921ef8b67cc57333000001&quot;,&quot;name&quot;:&quot;L. Frank Baum&quot;}]
+,&quot;name&quot;:&quot;Wizard of Oz&quot;,&quot;publisher&quot;:{&quot;publisher_id&quot;:&quot;51921ef8b67cc57333000002&quot;}
+,&quot;title&quot;:&quot;Wizard of Oz&quot;}}]</span>
+</pre>
+<p>Alright it's time to add the ability to borrow books from our library. Let's look at the <tt class="docutils literal">borrowABook</tt> function.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// POST /user/:id/loan/:book_id
+</span><span class="kd">var</span> <span class="nx">borrowABook</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">findOne</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">book_id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">book</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">500</span>
+          <span class="p">,</span> <span class="s1">'Failed to retrieve Book for id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+      <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">book</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">406</span>
+          <span class="p">,</span> <span class="s1">'Book with '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">book_id</span> <span class="o">+</span> <span class="s2">&quot; was not found&quot;</span><span class="p">);</span>
+
+      <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'users'</span><span class="p">)</span>
+        <span class="p">.</span><span class="nx">findOne</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">user</span><span class="p">)</span> <span class="p">{</span>
+          <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+              <span class="p">,</span> <span class="mi">500</span>
+              <span class="p">,</span> <span class="s1">'Failed to retrieve User for id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+          <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">user</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+              <span class="p">,</span> <span class="mi">406</span>
+              <span class="p">,</span> <span class="s1">'User with '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span> <span class="o">+</span> <span class="s2">&quot; was not found&quot;</span><span class="p">);</span>
+
+          <span class="k">if</span><span class="p">(</span><span class="nx">book</span><span class="p">.</span><span class="nx">loaned_out_to</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+              <span class="p">,</span> <span class="mi">406</span>
+              <span class="p">,</span> <span class="s1">'Book with '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">book_id</span> <span class="o">+</span> <span class="s2">&quot; already loaned out&quot;</span><span class="p">);</span>
+
+          <span class="kd">var</span> <span class="nx">currentDate</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">(</span><span class="p">);</span>
+          <span class="kd">var</span> <span class="nx">dueOn</span> <span class="o">=</span> <span class="nx">currentDate</span><span class="p">;</span>
+          <span class="kd">var</span> <span class="nx">dueOnTime</span> <span class="o">=</span> <span class="nx">currentDate</span><span class="p">.</span><span class="nx">getTime</span><span class="p">(</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="mi">14</span> <span class="o">*</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">);</span>
+          <span class="nx">dueOn</span><span class="p">.</span><span class="nx">setTime</span><span class="p">(</span><span class="nx">dueOnTime</span><span class="p">);</span>
+
+          <span class="kd">var</span> <span class="nx">loanedOutTo</span> <span class="o">=</span> <span class="p">{</span>
+              <span class="nx">user_id</span><span class="o">:</span> <span class="nx">user</span><span class="p">.</span><span class="nx">_id</span>
+            <span class="p">,</span> <span class="nx">loaned_on</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">(</span><span class="p">)</span>
+            <span class="p">,</span> <span class="nx">due_on</span><span class="o">:</span> <span class="nx">dueOn</span>
+          <span class="p">}</span>
+
+          <span class="kd">var</span> <span class="nx">loanedBook</span> <span class="o">=</span> <span class="p">{</span>
+              <span class="nx">id</span><span class="o">:</span> <span class="nx">book</span><span class="p">.</span><span class="nx">_id</span>
+            <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="nx">book</span><span class="p">.</span><span class="nx">title</span>
+            <span class="p">,</span> <span class="nx">loaned_out</span><span class="o">:</span> <span class="nx">loanedOutTo</span><span class="p">.</span><span class="nx">loaned_on</span>
+            <span class="p">,</span> <span class="nx">due_on</span><span class="o">:</span> <span class="nx">loanedOutTo</span><span class="p">.</span><span class="nx">due_on</span>
+          <span class="p">}</span>
+
+          <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">)</span>
+            <span class="p">.</span><span class="nx">update</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">book_id</span><span class="p">)</span>
+              <span class="p">,</span> <span class="nx">loaned_out_to</span><span class="o">:</span> <span class="p">{</span><span class="nx">$exists</span><span class="o">:</span> <span class="kc">false</span><span class="p">}}</span>
+              <span class="p">,</span> <span class="p">{</span><span class="nx">$set</span><span class="o">:</span>
+                  <span class="p">{</span>
+                      <span class="nx">loaned_out</span><span class="o">:</span><span class="kc">true</span>
+                    <span class="p">,</span> <span class="nx">loaned_out_to</span><span class="o">:</span> <span class="nx">loanedOutTo</span> <span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">updated</span><span class="p">)</span> <span class="p">{</span>
+
+                <span class="k">if</span><span class="p">(</span><span class="nx">err</span> <span class="o">||</span> <span class="nx">updated</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+                  <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+                    <span class="p">,</span> <span class="mi">500</span>
+                    <span class="p">,</span> <span class="s1">'Failed to loan Book with id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">book_id</span><span class="p">);</span>
+
+                <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'users'</span><span class="p">)</span>
+                  <span class="p">.</span><span class="nx">update</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)}</span>
+                  <span class="p">,</span> <span class="p">{</span><span class="nx">$push</span><span class="o">:</span>
+                      <span class="p">{</span> <span class="nx">loaned_books</span><span class="o">:</span> <span class="nx">loanedBook</span> <span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">updated</span><span class="p">)</span> <span class="p">{</span>
+
+                    <span class="k">if</span><span class="p">(</span><span class="nx">err</span> <span class="o">||</span> <span class="nx">updated</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+                      <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+                        <span class="p">,</span> <span class="mi">500</span>
+                        <span class="p">,</span> <span class="s1">'Failed to update User with id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+                    <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">loanedBook</span><span class="p">));</span>
+                  <span class="p">});</span>
+              <span class="p">});</span>
+      <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>Alright we got quite a bit more code than the other methods we have implemented so far, but not to worry it's much simpler than what it looks. Remember two exercises ago we defined the operations we needed to perform when borrowing a book? Let's take a look.</p>
+<ol class="arabic simple">
+<li>Add a new loan to the user document</li>
+</ol>
+<pre class="code javascript literal-block">
+<span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'users'</span><span class="p">).</span><span class="nx">update</span><span class="p">(</span>
+    <span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">}</span>
+  <span class="p">,</span> <span class="p">{</span>
+      <span class="nx">$push</span><span class="o">:</span> <span class="p">{</span><span class="nx">loaned_books</span><span class="o">:</span> <span class="p">{</span>
+          <span class="nx">id</span><span class="o">:</span> <span class="mi">2</span>
+        <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Wizard of Oz&quot;</span>
+        <span class="p">,</span> <span class="nx">loaned_on</span><span class="o">:</span> <span class="nx">start_date</span>
+        <span class="p">,</span> <span class="nx">due_on</span><span class="o">:</span> <span class="nx">due_date</span>
+      <span class="p">}}</span>
+    <span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span><span class="p">})</span>
+</pre>
+<ol class="arabic simple" start="2">
+<li>Mark the <tt class="docutils literal">Wizard of Oz</tt> book as borrowed.</li>
+</ol>
+<pre class="code javascript literal-block">
+<span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">).</span><span class="nx">update</span><span class="p">(</span><span class="p">{</span>
+  <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">loaned_out_to</span><span class="o">:</span> <span class="p">{</span><span class="nx">$exists</span><span class="o">:</span> <span class="kc">false</span><span class="p">}</span>
+<span class="p">},</span> <span class="p">{</span>
+    <span class="nx">$set</span><span class="o">:</span> <span class="p">{</span>
+      <span class="nx">loaned_out</span><span class="o">:</span> <span class="kc">true</span>
+    <span class="p">,</span> <span class="nx">loaned_out_to</span><span class="o">:</span> <span class="p">{</span>
+          <span class="nx">user_id</span><span class="o">:</span> <span class="mi">1</span>
+        <span class="p">,</span> <span class="nx">loaned_on</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">(</span><span class="p">)</span>
+        <span class="p">,</span> <span class="nx">due_on</span><span class="o">:</span> <span class="nx">due_date_variable</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span><span class="p">});</span>
+</pre>
+<p>With this in mind the first part of the <tt class="docutils literal">borrowABook</tt> method is just to ensure the passed in <tt class="docutils literal">User</tt> and <tt class="docutils literal">Book</tt> exist in our library. The next line is.</p>
+<pre class="code javascript literal-block">
+<span class="k">if</span><span class="p">(</span><span class="nx">book</span><span class="p">.</span><span class="nx">loaned_out_to</span><span class="p">)</span>
+  <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span><span class="p">,</span> <span class="mi">406</span><span class="p">,</span> <span class="s1">'Book with '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">book_id</span> <span class="o">+</span> <span class="s2">&quot; already loaned out&quot;</span><span class="p">);</span>
+</pre>
+<p>We check if the returned <tt class="docutils literal">Book</tt> document is already loaned to another <tt class="docutils literal">User</tt>. If the field <tt class="docutils literal">loaned_out_to</tt> exists it's been marked as loaned out.</p>
+<p>Next wee need to calculate the due date that in this library is hardcoded to 14 days and then build the embedded documents for the loan.</p>
+<pre class="code javascript literal-block">
+<span class="kd">var</span> <span class="nx">currentDate</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">(</span><span class="p">);</span>
+<span class="kd">var</span> <span class="nx">dueOn</span> <span class="o">=</span> <span class="nx">currentDate</span><span class="p">;</span>
+<span class="kd">var</span> <span class="nx">dueOnTime</span> <span class="o">=</span> <span class="nx">currentDate</span><span class="p">.</span><span class="nx">getTime</span><span class="p">(</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="mi">14</span> <span class="o">*</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">);</span>
+<span class="nx">dueOn</span><span class="p">.</span><span class="nx">setTime</span><span class="p">(</span><span class="nx">dueOnTime</span><span class="p">);</span>
+
+<span class="kd">var</span> <span class="nx">loanedOutTo</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">user_id</span><span class="o">:</span> <span class="nx">user</span><span class="p">.</span><span class="nx">_id</span>
+  <span class="p">,</span> <span class="nx">loaned_on</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">(</span><span class="p">)</span>
+  <span class="p">,</span> <span class="nx">due_on</span><span class="o">:</span> <span class="nx">dueOn</span>
+<span class="p">}</span>
+
+<span class="kd">var</span> <span class="nx">loanedBook</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">id</span><span class="o">:</span> <span class="nx">book</span><span class="p">.</span><span class="nx">_id</span>
+  <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="nx">book</span><span class="p">.</span><span class="nx">title</span>
+  <span class="p">,</span> <span class="nx">loaned_out</span><span class="o">:</span> <span class="nx">loanedOutTo</span><span class="p">.</span><span class="nx">loaned_on</span>
+  <span class="p">,</span> <span class="nx">due_on</span><span class="o">:</span> <span class="nx">loanedOutTo</span><span class="p">.</span><span class="nx">due_on</span>
+<span class="p">}</span>
+</pre>
+<p>To calculate a due date <tt class="docutils literal">14</tt> days in the future we take the current time in <tt class="docutils literal">milliseconds</tt> and add (14 days * 24 hours * 60 minutes * 60 seconds * 1000 miliseconds in a second) to the date. We then prepare the <tt class="docutils literal">loaned_out_to</tt> document that will set on the <tt class="docutils literal">Book</tt> document indicating that it's loaned out. Likewise we set up the <tt class="docutils literal">loanedBook</tt> document that will be added to the list of books borrowed by a specific <tt class="docutils literal">User</tt>.</p>
+<p>Now comes the trick. We need to ensure we only loan out the book if nobody has borrowed while we were setting up our loan details. We do this by only updating the <tt class="docutils literal">Book</tt> <tt class="docutils literal">loaned_out_to</tt> field if it does not exist when the <tt class="docutils literal">update</tt> is performed. This is done with.</p>
+<pre class="code javascript literal-block">
+<span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">)</span>
+  <span class="p">.</span><span class="nx">update</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">book_id</span><span class="p">)</span>
+    <span class="p">,</span> <span class="nx">loaned_out_to</span><span class="o">:</span> <span class="p">{</span><span class="nx">$exists</span><span class="o">:</span> <span class="kc">false</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">updated</span><span class="p">)</span> <span class="p">{</span>
+<span class="p">});</span>
+</pre>
+<p>notice the <tt class="docutils literal">loaned_out_to: {$exists:false}</tt>. This part of the <tt class="docutils literal">find</tt> part of the <tt class="docutils literal">update</tt> operation ensure that we will only match on a <tt class="docutils literal">Book</tt> that has not been loaned out (meaning the <tt class="docutils literal">loaned_out_to</tt> is not set).</p>
+<p>Awesome so if the first <tt class="docutils literal">update</tt> succeeds we now need to add the book to the <tt class="docutils literal">User</tt> documents under the array in the field <tt class="docutils literal">loaned_books</tt>. That's simpler than the previous update as we don't need to worry about concurrent updates adding the book multiple times. Let's look at the <tt class="docutils literal">update</tt> statement.</p>
+<pre class="code javascript literal-block">
+<span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'users'</span><span class="p">)</span>
+  <span class="p">.</span><span class="nx">update</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)}</span>
+        <span class="p">,</span> <span class="p">{</span><span class="nx">$push</span><span class="o">:</span> <span class="p">{</span> <span class="nx">loaned_books</span><span class="o">:</span> <span class="nx">loanedBook</span> <span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">updated</span><span class="p">)</span> <span class="p">{</span>
+<span class="p">});</span>
+</pre>
+<p>Notice how we use the <tt class="docutils literal">$push</tt> operator. It will create the array field <tt class="docutils literal">loaned_books</tt> if none already exists. Test out the ability to borrow a book using <tt class="docutils literal">curl</tt>.</p>
+<pre class="code console literal-block">
+<span class="go">curl -X POST http://localhost:9090/user/51921ef8b67cc57333000004/loan
+/51921ef8b67cc57333000003
+{&quot;id&quot;:&quot;51921ef8b67cc57333000003&quot;,&quot;title&quot;:&quot;Wizard of Oz&quot;
+,&quot;loaned_out&quot;:&quot;2013-05-28T11:18:02.795Z&quot;,&quot;due_on&quot;:&quot;2013-06-11T11:18:02.795Z&quot;}</span>
+</pre>
+<p>Now let's get to the other important aspect of a library, namely being able to return a borrowed book. In our case this is the <tt class="docutils literal">returnAABook</tt> method. Let's have a look at the code</p>
+<pre class="code javascript literal-block">
+<span class="c1">// DELETE  /user/:id/loan/:book_id
+</span><span class="kd">var</span> <span class="nx">returnAABook</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">findOne</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">book_id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">book</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">500</span>
+          <span class="p">,</span> <span class="s1">'Failed to retrieve Book for id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+      <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">book</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">406</span>
+          <span class="p">,</span> <span class="s1">'Book with '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">book_id</span> <span class="o">+</span> <span class="s2">&quot; was not found&quot;</span><span class="p">);</span>
+
+      <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'users'</span><span class="p">)</span>
+        <span class="p">.</span><span class="nx">findOne</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">user</span><span class="p">)</span> <span class="p">{</span>
+          <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+              <span class="p">,</span> <span class="mi">500</span>
+              <span class="p">,</span> <span class="s1">'Failed to retrieve User for id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+          <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">user</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+              <span class="p">,</span> <span class="mi">406</span>
+              <span class="p">,</span> <span class="s1">'User with '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span> <span class="o">+</span> <span class="s2">&quot; was not found&quot;</span><span class="p">);</span>
+
+          <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">)</span>
+            <span class="p">.</span><span class="nx">update</span><span class="p">(</span><span class="p">{</span>
+                <span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">book_id</span><span class="p">)</span>
+              <span class="p">,</span> <span class="nx">loaned_out</span><span class="o">:</span> <span class="kc">true</span><span class="p">}</span>
+            <span class="p">,</span> <span class="p">{</span>   <span class="nx">$set</span><span class="o">:</span> <span class="p">{</span> <span class="nx">loaned_out</span><span class="o">:</span><span class="kc">false</span><span class="p">}</span>
+                <span class="p">,</span> <span class="nx">$unset</span><span class="o">:</span> <span class="p">{</span><span class="nx">loaned_out_to</span><span class="o">:</span> <span class="kc">null</span><span class="p">}</span> <span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">updated</span><span class="p">)</span> <span class="p">{</span>
+
+            <span class="k">if</span><span class="p">(</span><span class="nx">err</span> <span class="o">||</span> <span class="nx">updated</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+              <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+                <span class="p">,</span> <span class="mi">500</span>
+                <span class="p">,</span> <span class="s1">'Failed to return Book with id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">book_id</span><span class="p">);</span>
+
+            <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'users'</span><span class="p">)</span>
+              <span class="p">.</span><span class="nx">update</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)}</span>
+              <span class="p">,</span> <span class="p">{</span><span class="nx">$pop</span><span class="o">:</span> <span class="p">{</span> <span class="nx">loaned_books</span><span class="o">:</span> <span class="p">{</span><span class="nx">id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">book_id</span><span class="p">)</span> <span class="p">}}}</span>
+              <span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">updated</span><span class="p">)</span> <span class="p">{</span>
+
+                <span class="k">if</span><span class="p">(</span><span class="nx">err</span> <span class="o">||</span> <span class="nx">updated</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+                  <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+                    <span class="p">,</span> <span class="mi">500</span>
+                    <span class="p">,</span> <span class="s1">'Failed to update User with id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+                <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">book</span><span class="p">.</span><span class="nx">loaned_out_to</span><span class="p">));</span>
+            <span class="p">});</span>
+          <span class="p">});</span>
+      <span class="p">});</span>
+    <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>Just as in the previous method we first check if the <tt class="docutils literal">User</tt> and <tt class="docutils literal">Book</tt> are valid before we update the state. Since race conditions don't matter in this case we can do a much simpler update scheme. Let's look at the two <tt class="docutils literal">update</tt> statements.</p>
+<pre class="code javascript literal-block">
+<span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">)</span>
+  <span class="p">.</span><span class="nx">update</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">book_id</span><span class="p">),</span> <span class="nx">loaned_out</span><span class="o">:</span> <span class="kc">true</span><span class="p">}</span>
+    <span class="p">,</span> <span class="p">{</span>   <span class="nx">$set</span><span class="o">:</span> <span class="p">{</span> <span class="nx">loaned_out</span><span class="o">:</span><span class="kc">false</span><span class="p">}</span>
+        <span class="p">,</span> <span class="nx">$unset</span><span class="o">:</span> <span class="p">{</span><span class="nx">loaned_out_to</span><span class="o">:</span> <span class="kc">null</span><span class="p">}</span> <span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">updated</span><span class="p">)</span> <span class="p">{</span><span class="p">});</span>
+</pre>
+<p>The first update statement takes the passed in boko and removes the <tt class="docutils literal">loaned_out_to</tt> field using <tt class="docutils literal">$unset</tt>. This makes the <tt class="docutils literal">Book</tt> available for borrowing again.</p>
+<pre class="code javascript literal-block">
+<span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'users'</span><span class="p">)</span>
+  <span class="p">.</span><span class="nx">update</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)}</span>
+  <span class="p">,</span> <span class="p">{</span><span class="nx">$pop</span><span class="o">:</span> <span class="p">{</span> <span class="nx">loaned_books</span><span class="o">:</span> <span class="p">{</span><span class="nx">id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">book_id</span><span class="p">)</span> <span class="p">}}}</span>
+  <span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">updated</span><span class="p">)</span> <span class="p">{</span><span class="p">});</span>
+</pre>
+<p>The second update statement removed the borrowed book from the list of <tt class="docutils literal">loaned_books</tt> in the <tt class="docutils literal">User</tt> document using the <tt class="docutils literal">$pop</tt> operator matching on the document in the <tt class="docutils literal">loaned_books</tt> array that has the <tt class="docutils literal">id</tt> field equivalent to the Book that was returned to the library. Let's exercise the new <tt class="docutils literal">API</tt> using <tt class="docutils literal">curl</tt>.</p>
+<pre class="code console literal-block">
+<span class="go">curl -X DELETE http://localhost:9090/user/51921ef8b67cc57333000004/loan
+/51921ef8b67cc57333000003
+{&quot;id&quot;:&quot;51921ef8b67cc57333000003&quot;,&quot;title&quot;:&quot;Wizard of Oz&quot;
+,&quot;loaned_out&quot;:&quot;2013-05-28T11:18:02.795Z&quot;,&quot;due_on&quot;:&quot;2013-06-11T11:18:02.795Z&quot;}</span>
+</pre>
+<p>Awesome we now have the ability to borrow and return books. We just have a couple of more features for our <tt class="docutils literal">API</tt> before we wrap it up in our next exercise with some refactorings (changing the code to make it simpler) as well as adding some validation.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="49%" />
+<col width="51%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Method Url</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>GET     /user/:id/loans</td>
+<td>Get all the books loaned by a specific user</td>
+</tr>
+<tr><td>PUT     /user/:id/loan/:book_id</td>
+<td>Extend a loan period / modify a loan period</td>
+</tr>
+<tr><td>GET     /loan/overdue</td>
+<td>Get a list of all overdue books</td>
+</tr>
+<tr><td>GET     /loan/overdue/:days</td>
+<td>Get a list of all overdue books in ?days days</td>
+</tr>
+</tbody>
+</table>
+<p>Let's look at the first method which allows the <tt class="docutils literal">API</tt> to return the list of books borrowed by a specific user <tt class="docutils literal">getLoansByUser</tt>.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// GET /user/:id/loans
+</span><span class="kd">var</span> <span class="nx">getLoansByUser</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'users'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">findOne</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">user</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">500</span>
+          <span class="p">,</span> <span class="s1">'Failed to retrieve User for id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+      <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">user</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">406</span>
+          <span class="p">,</span> <span class="s1">'User with '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span> <span class="o">+</span> <span class="s2">&quot; was not found&quot;</span><span class="p">);</span>
+
+      <span class="kd">var</span> <span class="nx">loaned_books</span> <span class="o">=</span> <span class="nx">user</span><span class="p">.</span><span class="nx">loaned_books</span> <span class="o">||</span> <span class="p">[</span><span class="p">];</span>
+      <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">loaned_books</span><span class="p">));</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>It's a very simple method all we do is return the books the <tt class="docutils literal">User</tt> has currently lent (notice the <tt class="docutils literal">||</tt>, that makes sure we return an empty array if the <tt class="docutils literal">User</tt> has not borrowed any books). Let's try it using <tt class="docutils literal">curl</tt>. The first <tt class="docutils literal">curl</tt> command is to ensure the <tt class="docutils literal">User</tt> has borrowed a book so we can get a result.</p>
+<pre class="code console literal-block">
+<span class="go">curl -X POST http://localhost:9090/user/51921ef8b67cc57333000004/loan
+/51921ef8b67cc57333000003
+{&quot;id&quot;:&quot;51921ef8b67cc57333000003&quot;,&quot;title&quot;:&quot;Wizard of Oz&quot;
+,&quot;loaned_out&quot;:&quot;2013-05-28T11:18:02.795Z&quot;,&quot;due_on&quot;:&quot;2013-06-11T11:18:02.795Z&quot;}
+
+curl -X GET http://localhost:9090/user/51921ef8b67cc57333000004/loans
+[{&quot;id&quot;:&quot;51921ef8b67cc57333000003&quot;,&quot;title&quot;:&quot;Wizard of Oz&quot;
+,&quot;loaned_out&quot;:&quot;2013-05-28T12:35:52.330Z&quot;,&quot;due_on&quot;:&quot;2013-06-11T12:35:52.330Z&quot;}]</span>
+</pre>
+<p>So what if the user wants to renew the book for another 14 day period. For this we have the method <tt class="docutils literal">modifyLoan</tt>. Let's take a look.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// PUT /user/:id/loan/:book_id
+</span><span class="kd">var</span> <span class="nx">modifyLoan</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">findOne</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">book_id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">book</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">500</span>
+          <span class="p">,</span> <span class="s1">'Failed to retrieve Book for id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+      <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">book</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">406</span>
+          <span class="p">,</span> <span class="s1">'Book with '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">book_id</span> <span class="o">+</span> <span class="s2">&quot; was not found&quot;</span><span class="p">);</span>
+
+      <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'users'</span><span class="p">)</span>
+        <span class="p">.</span><span class="nx">findOne</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">user</span><span class="p">)</span> <span class="p">{</span>
+          <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+              <span class="p">,</span> <span class="mi">500</span>
+              <span class="p">,</span> <span class="s1">'Failed to retrieve User for id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+          <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">user</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+              <span class="p">,</span> <span class="mi">406</span>
+              <span class="p">,</span> <span class="s1">'User with '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span> <span class="o">+</span> <span class="s2">&quot; was not found&quot;</span><span class="p">);</span>
+
+          <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">user</span><span class="p">.</span><span class="nx">loaned_books</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+              <span class="p">,</span> <span class="mi">406</span>
+              <span class="p">,</span> <span class="s1">'User with '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span> <span class="o">+</span> <span class="s2">&quot; has not borrowed any books&quot;</span><span class="p">);</span>
+
+          <span class="c1">// Let's locate the book
+</span>          <span class="kd">var</span> <span class="nx">loaned_book</span><span class="p">;</span>
+
+          <span class="k">for</span><span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">user</span><span class="p">.</span><span class="nx">loaned_books</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">if</span><span class="p">(</span><span class="nx">user</span><span class="p">.</span><span class="nx">loaned_books</span><span class="p">[</span><span class="nx">i</span><span class="p">].</span><span class="nx">id</span><span class="p">.</span><span class="nx">toString</span><span class="p">(</span><span class="p">)</span> <span class="o">==</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">book_id</span><span class="p">)</span> <span class="p">{</span>
+              <span class="nx">loaned_book</span> <span class="o">=</span> <span class="nx">user</span><span class="p">.</span><span class="nx">loaned_books</span><span class="p">[</span><span class="nx">i</span><span class="p">];</span>
+              <span class="k">break</span><span class="p">;</span>
+            <span class="p">}</span>
+          <span class="p">}</span>
+
+          <span class="k">if</span><span class="p">(</span><span class="nx">loaned_book</span> <span class="o">==</span> <span class="kc">null</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+              <span class="p">,</span> <span class="mi">406</span>
+              <span class="p">,</span> <span class="s1">'User with '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span>
+                <span class="o">+</span> <span class="s2">&quot; has not borrowed the book with id &quot;</span>
+                <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">book_id</span><span class="p">);</span>
+
+          <span class="kd">var</span> <span class="nx">currentDate</span> <span class="o">=</span> <span class="nx">loaned_book</span><span class="p">.</span><span class="nx">due_on</span><span class="p">;</span>
+          <span class="kd">var</span> <span class="nx">dueOn</span> <span class="o">=</span> <span class="nx">currentDate</span><span class="p">;</span>
+          <span class="kd">var</span> <span class="nx">dueOnTime</span> <span class="o">=</span> <span class="nx">currentDate</span><span class="p">.</span><span class="nx">getTime</span><span class="p">(</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="mi">14</span> <span class="o">*</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">);</span>
+          <span class="nx">dueOn</span><span class="p">.</span><span class="nx">setTime</span><span class="p">(</span><span class="nx">dueOnTime</span><span class="p">);</span>
+
+          <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'users'</span><span class="p">)</span>
+            <span class="p">.</span><span class="nx">update</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)</span>
+              <span class="p">,</span> <span class="s2">&quot;loaned_books.id&quot;</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">book_id</span><span class="p">)}</span>
+              <span class="p">,</span> <span class="p">{</span><span class="nx">$set</span><span class="o">:</span> <span class="p">{</span><span class="s2">&quot;loaned_books.$.due_on&quot;</span><span class="o">:</span> <span class="nx">dueOn</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">updated</span><span class="p">)</span> <span class="p">{</span>
+
+                <span class="k">if</span><span class="p">(</span><span class="nx">err</span> <span class="o">||</span> <span class="nx">updated</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+                  <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+                    <span class="p">,</span> <span class="mi">500</span>
+                    <span class="p">,</span> <span class="s1">'Failed to update User with id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+                <span class="nx">loaned_book</span><span class="p">.</span><span class="nx">due_on</span> <span class="o">=</span> <span class="nx">dueOn</span><span class="p">;</span>
+                <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">loaned_book</span><span class="p">));</span>
+            <span class="p">});</span>
+        <span class="p">});</span>
+    <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>Quite a mouthful right. But not to worry it's not as hard as it seems. Let's break it down. Just as in previous methods we ensure that the passed in <tt class="docutils literal">User</tt> and <tt class="docutils literal">Book</tt> exists before getting to the meat of the method. The first thing you might notice is that we check if the <tt class="docutils literal">User</tt> has the field <tt class="docutils literal">loaned_books</tt> set. If it does not then obviously we cannot renew the loan as the user never borrowed the book. If they have books out we iterate over the list of <tt class="docutils literal">loaned_books</tt> and attempt to locate the <tt class="docutils literal">Book</tt> we wish to renew. If no <tt class="docutils literal">Book</tt> is found <tt class="docutils literal">loaned_book == null</tt> we return an error as the <tt class="docutils literal">User</tt> has not borrowed this <tt class="docutils literal">Book</tt> and we cannot renew a non existing <tt class="docutils literal">Book</tt>. If he has borrowed the <tt class="docutils literal">Book</tt> we calculate a new due date 14 days in the future from the existing due date. We then update the <tt class="docutils literal">loan</tt> due date. Let's have a look at the update statement.</p>
+<pre class="code javascript literal-block">
+<span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'users'</span><span class="p">)</span>
+  <span class="p">.</span><span class="nx">update</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)</span>
+      <span class="p">,</span> <span class="s2">&quot;loaned_books.id&quot;</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">book_id</span><span class="p">)}</span>
+      <span class="p">,</span> <span class="p">{</span><span class="nx">$set</span><span class="o">:</span> <span class="p">{</span><span class="s2">&quot;loaned_books.$.due_on&quot;</span><span class="o">:</span> <span class="nx">dueOn</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">updated</span><span class="p">)</span> <span class="p">{</span>
+    <span class="p">});</span>
+</pre>
+<p>The <tt class="docutils literal">{_id: new ObjectID(req.params.id), &quot;loaned_books.id&quot;: new ObjectID(req.params.book_id)</tt> selector will match on the right <tt class="docutils literal">User</tt> and then the correct borrowed <tt class="docutils literal">Book</tt> in the <tt class="docutils literal">loaned_books</tt> array. The <tt class="docutils literal">{$set: <span class="pre">{&quot;loaned_books.$.due_on&quot;:</span> dueOn}}</tt> update statement used the positional operator <tt class="docutils literal">$</tt> to change the <tt class="docutils literal">due_on</tt> field in the first matched embedded document in the <tt class="docutils literal">loaned_books</tt> array which will be the <tt class="docutils literal">Book</tt> we want to renew.</p>
+<p>Great now we have a possibility to renew a <tt class="docutils literal">Book</tt>. We now need to be able to discover what <tt class="docutils literal">Books</tt> are passed their due date and also what <tt class="docutils literal">Books</tt> are due in the next <tt class="docutils literal">X</tt> days so we can send reminders to <tt class="docutils literal">Users</tt> that their <tt class="docutils literal">Books</tt> are due soon. Let's start with the list of <tt class="docutils literal">Books</tt> that are due, namely the method <tt class="docutils literal">overdueLoans</tt>.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// GET /loan/overdue
+</span><span class="kd">var</span> <span class="nx">overdueLoans</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'users'</span><span class="p">).</span><span class="nx">aggregate</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="p">{</span> <span class="nx">$match</span><span class="o">:</span> <span class="p">{</span><span class="s2">&quot;loaned_books.due_on&quot;</span><span class="o">:</span> <span class="p">{</span> <span class="nx">$lte</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">(</span><span class="p">)</span> <span class="p">}</span> <span class="p">}</span> <span class="p">}</span>
+      <span class="p">,</span> <span class="p">{</span> <span class="nx">$unwind</span><span class="o">:</span> <span class="s2">&quot;$loaned_books&quot;</span> <span class="p">}</span>
+      <span class="p">,</span> <span class="p">{</span> <span class="nx">$project</span><span class="o">:</span> <span class="p">{</span>
+              <span class="nx">_id</span><span class="o">:</span> <span class="s2">&quot;$loaned_books.id&quot;</span>
+            <span class="p">,</span> <span class="nx">user_id</span><span class="o">:</span> <span class="s2">&quot;$_id&quot;</span>
+            <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;$loaned_books.title&quot;</span>
+            <span class="p">,</span> <span class="nx">loaned_out</span><span class="o">:</span> <span class="s2">&quot;$loaned_books.loaned_out&quot;</span>
+            <span class="p">,</span> <span class="nx">due_on</span><span class="o">:</span> <span class="s2">&quot;$loaned_books.due_on&quot;</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">],</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">results</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="s1">'Failed to locate overdue books'</span><span class="p">);</span>
+
+      <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">results</span><span class="p">));</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>Remember how the borrowed <tt class="docutils literal">Books</tt> are inside the <tt class="docutils literal">User</tt> document?. We want to just return the matching <tt class="docutils literal">Books</tt> for all users that are overdue as a single list of <tt class="docutils literal">Books</tt> that are overdue with the <tt class="docutils literal">user_id</tt> of the user who borrowed that particular overdue <tt class="docutils literal">Book</tt>; For this we will use the <tt class="docutils literal">Aggregation Framework</tt> introduced in <tt class="docutils literal">MongoDB</tt> 2.2. In a later exercise we will into all the intricacies of the Application Framework for now we will skim and just look at the little subset off operations we are using.</p>
+<p>The Aggregation Framework works as a set of transformations where each stage does some action on the data provided. In this case it's broken up into 3 different stages.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="nx">$match</span><span class="o">:</span> <span class="p">{</span><span class="s2">&quot;loaned_books.due_on&quot;</span><span class="o">:</span> <span class="p">{</span> <span class="nx">$lte</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">(</span><span class="p">)</span> <span class="p">}</span> <span class="p">}</span> <span class="p">}</span>
+</pre>
+<p>The <tt class="docutils literal">$match</tt> operator is the equivalent to the <tt class="docutils literal">find</tt> operation in that it will look for a set of documents in the collection that matches the passed in operators. Fairly simple and straight forward. The next operator is.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="nx">$unwind</span><span class="o">:</span> <span class="s2">&quot;$loaned_books&quot;</span> <span class="p">}</span>
+</pre>
+<p>The <tt class="docutils literal">$unwind</tt> operator is a little harder to grasp but what it does is simple. It takes the array in the <tt class="docutils literal">User</tt> document <tt class="docutils literal">loaned_books</tt> and <tt class="docutils literal">unwinds</tt> it by creating an individual document for each item in the array. Better to show by example. Lets take the following document.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span>
+  <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="nx">loaned_books</span><span class="o">:</span> <span class="p">[</span>
+      <span class="p">{</span><span class="nx">id</span><span class="o">:</span> <span class="mi">2</span><span class="p">}</span>
+    <span class="p">,</span> <span class="p">{</span><span class="nx">id</span><span class="o">:</span> <span class="mi">3</span><span class="p">}</span>
+  <span class="p">]</span>
+<span class="p">}</span>
+</pre>
+<p>After we do <tt class="docutils literal">{ $unwind: &quot;$loaned_books&quot; }</tt> we get the following documents.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span>
+  <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="nx">loaned_books</span><span class="o">:</span> <span class="p">{</span><span class="nx">id</span><span class="o">:</span> <span class="mi">2</span><span class="p">}</span>
+<span class="p">}</span>
+
+<span class="p">{</span>
+  <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="nx">loaned_books</span><span class="o">:</span> <span class="p">{</span><span class="nx">id</span><span class="o">:</span> <span class="mi">3</span><span class="p">}</span>
+<span class="p">}</span>
+</pre>
+<p>So as we can see we have expanded the array into a set of documents where each element in the array is mapped to a copy of the original document under the <tt class="docutils literal">loaned_books</tt> field. Finally we want to make the embedded document under <tt class="docutils literal">loaned_books</tt> be at the top level of the document. We execute the last step in our aggregation.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="nx">$project</span><span class="o">:</span> <span class="p">{</span>
+      <span class="nx">_id</span><span class="o">:</span> <span class="s2">&quot;$loaned_books.id&quot;</span>
+    <span class="p">,</span> <span class="nx">user_id</span><span class="o">:</span> <span class="s2">&quot;$_id&quot;</span>
+    <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;$loaned_books.title&quot;</span>
+    <span class="p">,</span> <span class="nx">loaned_out</span><span class="o">:</span> <span class="s2">&quot;$loaned_books.loaned_out&quot;</span>
+    <span class="p">,</span> <span class="nx">due_on</span><span class="o">:</span> <span class="s2">&quot;$loaned_books.due_on&quot;</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre>
+<p>What we actually are doing is transforming (or rewriting) the documents from the <tt class="docutils literal">$unwind</tt> step. <tt class="docutils literal">user_id: &quot;$_id&quot;</tt> moves the <tt class="docutils literal">_id</tt> field into the new field <tt class="docutils literal">user_id</tt> while the field <tt class="docutils literal">$loaned_books.id</tt> becomes the new <tt class="docutils literal">_id</tt> field. Similarly we move the <tt class="docutils literal">title</tt>, <tt class="docutils literal">`loaned_out</tt> and <tt class="docutils literal">due_on</tt> up from <tt class="docutils literal">loaned_books</tt>. The result is a brand new document. Given that we have a book passed it's due date (creating or modifying a <tt class="docutils literal">User</tt> document for this is left to you as an exercise. A hint is to look at the update code above and use the mongo console).</p>
+<pre class="code console literal-block">
+<span class="go">curl -X GET http://localhost:9090/loan/overdue
+[{&quot;_id&quot;:&quot;51921ef8b67cc57333000003&quot;,&quot;user_id&quot;:&quot;51921ef8b67cc57333000004&quot;
+,&quot;title&quot;:&quot;Wizard of Oz&quot;,&quot;loaned_out&quot;:&quot;2013-05-28T12:35:52.330Z&quot;
+,&quot;due_on&quot;:&quot;2013-05-23T13:22:15.568Z&quot;}]</span>
+</pre>
+<p>We will get deeper into the Aggregation framework in a later exercise but it's quite useful as you can see and a lot more powerful. At the moment however it's limited as it's a command thus limiting it to a maximum result size of 16MB.</p>
+<p>We only have one more method to implement <tt class="docutils literal">overdueLoansByDays</tt>. Let's have a look at the code.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// GET /loan/overdue/:days
+</span><span class="kd">var</span> <span class="nx">overdueLoansByDays</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">days</span> <span class="o">=</span> <span class="nb">parseInt</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">days</span><span class="p">,</span> <span class="mi">10</span><span class="p">);</span>
+  <span class="kd">var</span> <span class="nx">currentDate</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">(</span><span class="p">);</span>
+  <span class="kd">var</span> <span class="nx">time</span> <span class="o">=</span> <span class="nx">currentDate</span><span class="p">.</span><span class="nx">getTime</span><span class="p">(</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="nx">days</span> <span class="o">*</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">);</span>
+  <span class="nx">currentDate</span><span class="p">.</span><span class="nx">setTime</span><span class="p">(</span><span class="nx">time</span><span class="p">);</span>
+
+  <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'users'</span><span class="p">).</span><span class="nx">aggregate</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="p">{</span> <span class="nx">$match</span><span class="o">:</span> <span class="p">{</span><span class="s2">&quot;loaned_books.due_on&quot;</span><span class="o">:</span> <span class="p">{</span> <span class="nx">$lte</span><span class="o">:</span> <span class="nx">currentDate</span> <span class="p">}</span> <span class="p">}</span> <span class="p">}</span>
+      <span class="p">,</span> <span class="p">{</span> <span class="nx">$unwind</span><span class="o">:</span> <span class="s2">&quot;$loaned_books&quot;</span> <span class="p">}</span>
+      <span class="p">,</span> <span class="p">{</span> <span class="nx">$project</span><span class="o">:</span> <span class="p">{</span>
+              <span class="nx">_id</span><span class="o">:</span> <span class="s2">&quot;$loaned_books.id&quot;</span>
+            <span class="p">,</span> <span class="nx">user_id</span><span class="o">:</span> <span class="s2">&quot;$_id&quot;</span>
+            <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;$loaned_books.title&quot;</span>
+            <span class="p">,</span> <span class="nx">loaned_out</span><span class="o">:</span> <span class="s2">&quot;$loaned_books.loaned_out&quot;</span>
+            <span class="p">,</span> <span class="nx">due_on</span><span class="o">:</span> <span class="s2">&quot;$loaned_books.due_on&quot;</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">],</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">results</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="s1">'Failed to locate overdue books'</span><span class="p">);</span>
+
+      <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">results</span><span class="p">));</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>As we can see the only difference is in the date we pass in <tt class="docutils literal">days</tt> that lets us check for books that validate <tt class="docutils literal">x</tt> days in the future. Let's try it out using <tt class="docutils literal">curl</tt>.</p>
+<pre class="code console literal-block">
+<span class="go">curl -X GET http://localhost:9090/loan/overdue/1
+[{&quot;_id&quot;:&quot;51921ef8b67cc57333000003&quot;,&quot;user_id&quot;:&quot;51921ef8b67cc57333000004&quot;
+,&quot;title&quot;:&quot;Wizard of Oz&quot;,&quot;loaned_out&quot;:&quot;2013-05-28T12:35:52.330Z&quot;
+,&quot;due_on&quot;:&quot;2013-05-23T13:22:15.568Z&quot;}]</span>
+</pre>
+<p>Awesome that wraps up the <tt class="docutils literal">API</tt> methods.</p>
+<p>There are several improvements you could do to this code. This is left as an exercise for you. But to point you in the right direction I'll make some observations.</p>
+<ol class="arabic simple">
+<li>There is a fair bit of duplicated code for validating the existence of Documents for <tt class="docutils literal">User</tt>, <tt class="docutils literal">Author</tt> and <tt class="docutils literal">Publisher</tt> that you might be able to simplify by extracting some new methods.</li>
+<li>There is no document validation for the <tt class="docutils literal">POST</tt> methods. It would be useful if the <tt class="docutils literal">User</tt>, <tt class="docutils literal">Author</tt>, <tt class="docutils literal">Publisher</tt> and <tt class="docutils literal">Book</tt> creation methods contained validation of the new documents to ensure no illegal documents are inserted.</li>
+<li>You might consider breaking the application up into modules, moving the router into a separate file for example.</li>
+<li>What indexes are missing? Add any missing indexes to ensure you don't force MongoDB to scan entire collections.</li>
+</ol>
+<p>That wraps up the exercise.</p>
+    </div>
+
+    <div class="one columns" id="right-nav">
+        <center>
+        <p><a href="/book/"><img src="images/48_structure.png"></a></p>
+        <p><a href="#"><img src="images/48_email.png"></a></p>
+        <p><a href="#faq"><img src="images/48_faq.png"></a></p>
+        <p>
+        </p>
+        </center>
+    </div>
+
+  <!-- Included JS Files (Compressed) -->
+  <script src="javascripts/jquery.js"></script>
+  <script src="javascripts/foundation.min.js"></script>
+  
+  <!-- Initialize JS Plugins -->
+  <script src="javascripts/app.js"></script>
+
+</body>
+</html>

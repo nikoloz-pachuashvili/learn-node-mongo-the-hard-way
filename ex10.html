@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+    <!--[if gt IE 8]><!-->
+<html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8" />
+
+  <!-- Set the viewport width to device width for mobile -->
+  <meta name="viewport" content="width=device-width" />
+
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
+<title>Exercise 10: Update Basics</title>
+
+  <!-- Included CSS Files (Compressed) -->
+  <link rel="stylesheet" href="stylesheets/foundation.min.css">
+  <link rel="stylesheet" href="stylesheets/pygments.css">
+  <link rel="stylesheet" href="stylesheets/app.css">
+
+  <script src="javascripts/modernizr.foundation.js"></script>
+
+  <!-- IE Fix for HTML5 Tags -->
+  <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+</head>
+<body>
+
+  <div class="row">
+          <h1 class="title">Exercise 10: Update Basics</h1>
+      </div>
+  </div>
+
+  <div class="row">
+    <div class="eleven columns">
+        <p>In the previous exercises we learned how to insert document into MongoDB and what a write concern is. We also learned why <tt class="docutils literal">.save()</tt> is not a good way of saving your documents and how bulk inserts work. Having covered the basics we will spend this exercise looking at how to use the <tt class="docutils literal">update</tt> array operators to manipulate document level arrays.</p>
+<div class="section" id="push-operator">
+<h1>$push Operator</h1>
+<p>The <tt class="docutils literal">$push</tt> operator lets you add a document to the end of an array inside a <tt class="docutils literal">MongoDB</tt> document. If the array does not exist it will create the array and then add the document to the newly created array. Let's put some code in showing the usage of the <tt class="docutils literal">$push</tt> operator.</p>
+<div class="highlight"><pre><a name="code--ex10--ex1.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex10--ex1.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex10--ex1.js-pyg.html-3"></a>
+<a name="code--ex10--ex1.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex1.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex1.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex10--ex1.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex10--ex1.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex10--ex1.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex10--ex1.js-pyg.html-10"></a>
+<a name="code--ex10--ex1.js-pyg.html-11"></a>  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;my_basic_update_documents&#39;</span><span class="p">);</span>
+<a name="code--ex10--ex1.js-pyg.html-12"></a>
+<a name="code--ex10--ex1.js-pyg.html-13"></a>  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex10--ex1.js-pyg.html-14"></a>
+<a name="code--ex10--ex1.js-pyg.html-15"></a>    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">2</span><span class="p">,</span> <span class="nx">value</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex1.js-pyg.html-16"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex1.js-pyg.html-17"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>
+<a name="code--ex10--ex1.js-pyg.html-18"></a>      <span class="p">}</span>
+<a name="code--ex10--ex1.js-pyg.html-19"></a>
+<a name="code--ex10--ex1.js-pyg.html-20"></a>      <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">}</span>
+<a name="code--ex10--ex1.js-pyg.html-21"></a>        <span class="p">,</span> <span class="p">{</span><span class="nx">$push</span><span class="o">:</span> <span class="p">{</span><span class="nx">array</span><span class="o">:</span> <span class="mi">1</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex1.js-pyg.html-22"></a>
+<a name="code--ex10--ex1.js-pyg.html-23"></a>          <span class="nx">collection</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex1.js-pyg.html-24"></a>
+<a name="code--ex10--ex1.js-pyg.html-25"></a>            <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+<a name="code--ex10--ex1.js-pyg.html-26"></a>
+<a name="code--ex10--ex1.js-pyg.html-27"></a>            <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex10--ex1.js-pyg.html-28"></a>          <span class="p">});</span>
+<a name="code--ex10--ex1.js-pyg.html-29"></a>      <span class="p">});</span>
+<a name="code--ex10--ex1.js-pyg.html-30"></a>    <span class="p">});</span>
+<a name="code--ex10--ex1.js-pyg.html-31"></a>  <span class="p">});</span>
+<a name="code--ex10--ex1.js-pyg.html-32"></a><span class="p">});</span>
+</pre></div><p>The output from running the script with <tt class="docutils literal">node</tt> should look like.</p>
+<pre class="code console literal-block">
+<span class="go">connected to database
+{ _id: 2, array: [ 1 ], value: 1 }</span>
+</pre>
+<p>If we look at the code we you'll notice that the <tt class="docutils literal">update</tt> statement looks like.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span><span class="nx">$push</span><span class="o">:</span> <span class="p">{</span><span class="nx">array</span><span class="o">:</span> <span class="mi">1</span><span class="p">}}</span>
+</pre>
+<p>The way the <tt class="docutils literal">$push</tt> operator works is that it will attempt to locate the field named <tt class="docutils literal">array</tt> in the document with <tt class="docutils literal">_id</tt> equal to <tt class="docutils literal">2</tt>. Since there is no field named <tt class="docutils literal">array</tt> in the document it will create a new field <tt class="docutils literal">array</tt> that is an empty array and then will add the value <tt class="docutils literal">1</tt> to the array. The value added to the array can be of any type. It's thus possible to do things like.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span><span class="nx">$push</span><span class="o">:</span> <span class="p">{</span><span class="nx">array</span><span class="o">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]}}</span>
+</pre>
+<p>that will return a document looking like this.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;array&quot;</span> <span class="o">:</span> <span class="p">[</span> <span class="p">[</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span> <span class="p">]</span> <span class="p">]</span> <span class="p">}</span>
+</pre>
+<p>Or even adding a document to the array.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span><span class="nx">$push</span><span class="o">:</span> <span class="p">{</span><span class="nx">array</span><span class="o">:</span> <span class="p">{</span><span class="nx">a</span><span class="o">:</span> <span class="mi">1</span><span class="p">}}}</span>
+</pre>
+<p>that will return a document looking like this.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;array&quot;</span> <span class="o">:</span> <span class="p">[</span> <span class="p">{</span><span class="nx">a</span><span class="o">:</span> <span class="mi">1</span><span class="p">}</span> <span class="p">]</span> <span class="p">}</span>
+</pre>
+<p>The only time the <tt class="docutils literal">$push</tt> operation will fail is if the document already contains a field named <tt class="docutils literal">array</tt> that is not an array. So what if we want to push a series of documents to an array all at the same time ? Well there is an operator for that too.</p>
+</div>
+<div class="section" id="pushall-operator">
+<h1>$pushAll Operator</h1>
+<p>Let's consider a document that represents a meeting. The first part of the meeting might be a simple one line title outlining the reason for the meeting and it might also have some sort of description as well as a start time and end time. We also have an array of users that we want to add as participants to the meeting in question. Let's enter the code.</p>
+<div class="highlight"><pre><a name="code--ex10--ex2.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex10--ex2.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex10--ex2.js-pyg.html-3"></a>
+<a name="code--ex10--ex2.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex2.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex2.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex10--ex2.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex10--ex2.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex10--ex2.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex10--ex2.js-pyg.html-10"></a>
+<a name="code--ex10--ex2.js-pyg.html-11"></a>  <span class="kd">var</span> <span class="nx">meeting</span> <span class="o">=</span> <span class="p">{</span>
+<a name="code--ex10--ex2.js-pyg.html-12"></a>      <span class="nx">_id</span> <span class="o">:</span> <span class="mi">1</span>
+<a name="code--ex10--ex2.js-pyg.html-13"></a>    <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Let&#39;s buy a widget&quot;</span>
+<a name="code--ex10--ex2.js-pyg.html-14"></a>    <span class="p">,</span> <span class="nx">description</span><span class="o">:</span> <span class="s2">&quot;We need to buy the ACME widget and need budget approval&quot;</span>
+<a name="code--ex10--ex2.js-pyg.html-15"></a>    <span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">()</span>
+<a name="code--ex10--ex2.js-pyg.html-16"></a>    <span class="p">,</span> <span class="nx">endTime</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">()</span>
+<a name="code--ex10--ex2.js-pyg.html-17"></a>  <span class="p">}</span>
+<a name="code--ex10--ex2.js-pyg.html-18"></a>
+<a name="code--ex10--ex2.js-pyg.html-19"></a>  <span class="kd">var</span> <span class="nx">users</span> <span class="o">=</span> <span class="p">[</span>
+<a name="code--ex10--ex2.js-pyg.html-20"></a>      <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;April&#39;</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">&#39;april@inc.com&#39;</span><span class="p">}</span>
+<a name="code--ex10--ex2.js-pyg.html-21"></a>    <span class="p">,</span> <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;John&#39;</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">&#39;john@inc.com&#39;</span><span class="p">}</span>
+<a name="code--ex10--ex2.js-pyg.html-22"></a>  <span class="p">]</span>
+<a name="code--ex10--ex2.js-pyg.html-23"></a>
+<a name="code--ex10--ex2.js-pyg.html-24"></a>  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;meetings&#39;</span><span class="p">);</span>
+<a name="code--ex10--ex2.js-pyg.html-25"></a>
+<a name="code--ex10--ex2.js-pyg.html-26"></a>  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex10--ex2.js-pyg.html-27"></a>
+<a name="code--ex10--ex2.js-pyg.html-28"></a>    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">(</span><span class="nx">meeting</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex2.js-pyg.html-29"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex2.js-pyg.html-30"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>
+<a name="code--ex10--ex2.js-pyg.html-31"></a>      <span class="p">}</span>
+<a name="code--ex10--ex2.js-pyg.html-32"></a>
+<a name="code--ex10--ex2.js-pyg.html-33"></a>      <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span> <span class="nx">_id</span><span class="o">:</span> <span class="nx">meeting</span><span class="p">.</span><span class="nx">_id</span> <span class="p">}</span>
+<a name="code--ex10--ex2.js-pyg.html-34"></a>        <span class="p">,</span> <span class="p">{</span><span class="nx">$pushAll</span><span class="o">:</span> <span class="p">{</span><span class="nx">participants</span><span class="o">:</span> <span class="nx">users</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex2.js-pyg.html-35"></a>
+<a name="code--ex10--ex2.js-pyg.html-36"></a>          <span class="nx">collection</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span> <span class="nx">_id</span><span class="o">:</span> <span class="nx">meeting</span><span class="p">.</span><span class="nx">_id</span> <span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex2.js-pyg.html-37"></a>
+<a name="code--ex10--ex2.js-pyg.html-38"></a>            <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+<a name="code--ex10--ex2.js-pyg.html-39"></a>
+<a name="code--ex10--ex2.js-pyg.html-40"></a>            <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex10--ex2.js-pyg.html-41"></a>          <span class="p">});</span>
+<a name="code--ex10--ex2.js-pyg.html-42"></a>      <span class="p">});</span>
+<a name="code--ex10--ex2.js-pyg.html-43"></a>    <span class="p">});</span>
+<a name="code--ex10--ex2.js-pyg.html-44"></a>  <span class="p">});</span>
+<a name="code--ex10--ex2.js-pyg.html-45"></a><span class="p">});</span>
+</pre></div><p>the output should look like this.</p>
+<pre class="code console literal-block">
+<span class="go">connected to database
+{ _id: 1,
+  description: 'We need to buy the ACME widget and need budget approval',
+  endTime: Wed Jan 23 2013 14:18:21 GMT+0100 (CET),
+  participants:
+   [ { name: 'April', email: 'april&#64;inc.com' },
+     { name: 'John', email: 'john&#64;inc.com' } ],
+  startTime: Wed Jan 23 2013 14:18:21 GMT+0100 (CET),
+  title: 'Let\'s buy a widget' }</span>
+</pre>
+<p>As you can see the <tt class="docutils literal">$pushAll</tt> operator added both of the documents in the <tt class="docutils literal">user</tt> array to the <tt class="docutils literal">meeting</tt> document under the field name <tt class="docutils literal">participants</tt>. Just as with <tt class="docutils literal">$push</tt> the <tt class="docutils literal">$pushAll</tt> operator will fail if there is an existing field that is not an array. If the field does exist and is an array the documents will be added to the end of the array. But what if we wish to remove documents from an Array ?</p>
+</div>
+<div class="section" id="pull-operator">
+<h1>$pull Operator</h1>
+<p>Let's imagine that <tt class="docutils literal">April</tt> no longer can attend the meeting. How do we remove her from the list ? Let's fire up our editor and enter some code and then have a look at how it works.</p>
+<div class="highlight"><pre><a name="code--ex10--ex3.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex10--ex3.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex10--ex3.js-pyg.html-3"></a>
+<a name="code--ex10--ex3.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex3.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex3.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex10--ex3.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex10--ex3.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex10--ex3.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex10--ex3.js-pyg.html-10"></a>
+<a name="code--ex10--ex3.js-pyg.html-11"></a>  <span class="kd">var</span> <span class="nx">meeting</span> <span class="o">=</span> <span class="p">{</span>
+<a name="code--ex10--ex3.js-pyg.html-12"></a>      <span class="nx">_id</span> <span class="o">:</span> <span class="mi">1</span>
+<a name="code--ex10--ex3.js-pyg.html-13"></a>    <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Let&#39;s buy a widget&quot;</span>
+<a name="code--ex10--ex3.js-pyg.html-14"></a>    <span class="p">,</span> <span class="nx">description</span><span class="o">:</span> <span class="s2">&quot;We need to buy the ACME widget and need budget approval&quot;</span>
+<a name="code--ex10--ex3.js-pyg.html-15"></a>    <span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">()</span>
+<a name="code--ex10--ex3.js-pyg.html-16"></a>    <span class="p">,</span> <span class="nx">endTime</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">()</span>
+<a name="code--ex10--ex3.js-pyg.html-17"></a>  <span class="p">}</span>
+<a name="code--ex10--ex3.js-pyg.html-18"></a>
+<a name="code--ex10--ex3.js-pyg.html-19"></a>  <span class="kd">var</span> <span class="nx">users</span> <span class="o">=</span> <span class="p">[</span>
+<a name="code--ex10--ex3.js-pyg.html-20"></a>      <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;April&#39;</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">&#39;april@inc.com&#39;</span><span class="p">}</span>
+<a name="code--ex10--ex3.js-pyg.html-21"></a>    <span class="p">,</span> <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;John&#39;</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">&#39;john@inc.com&#39;</span><span class="p">}</span>
+<a name="code--ex10--ex3.js-pyg.html-22"></a>  <span class="p">]</span>
+<a name="code--ex10--ex3.js-pyg.html-23"></a>
+<a name="code--ex10--ex3.js-pyg.html-24"></a>  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;meetings&#39;</span><span class="p">);</span>
+<a name="code--ex10--ex3.js-pyg.html-25"></a>
+<a name="code--ex10--ex3.js-pyg.html-26"></a>  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex10--ex3.js-pyg.html-27"></a>
+<a name="code--ex10--ex3.js-pyg.html-28"></a>    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">(</span><span class="nx">meeting</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex3.js-pyg.html-29"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex3.js-pyg.html-30"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>
+<a name="code--ex10--ex3.js-pyg.html-31"></a>      <span class="p">}</span>
+<a name="code--ex10--ex3.js-pyg.html-32"></a>
+<a name="code--ex10--ex3.js-pyg.html-33"></a>      <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span> <span class="nx">_id</span><span class="o">:</span> <span class="nx">meeting</span><span class="p">.</span><span class="nx">_id</span> <span class="p">}</span>
+<a name="code--ex10--ex3.js-pyg.html-34"></a>        <span class="p">,</span> <span class="p">{</span><span class="nx">$pushAll</span><span class="o">:</span> <span class="p">{</span><span class="nx">participants</span><span class="o">:</span> <span class="nx">users</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex3.js-pyg.html-35"></a>
+<a name="code--ex10--ex3.js-pyg.html-36"></a>          <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="nx">meeting</span><span class="p">.</span><span class="nx">_id</span><span class="p">},</span> <span class="p">{</span><span class="nx">$pull</span><span class="o">:</span> <span class="p">{</span> <span class="nx">participants</span><span class="o">:</span> <span class="p">{</span><span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;April&#39;</span><span class="p">}}}</span>
+<a name="code--ex10--ex3.js-pyg.html-37"></a>            <span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex3.js-pyg.html-38"></a>
+<a name="code--ex10--ex3.js-pyg.html-39"></a>              <span class="nx">collection</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span> <span class="nx">_id</span><span class="o">:</span> <span class="nx">meeting</span><span class="p">.</span><span class="nx">_id</span> <span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex3.js-pyg.html-40"></a>
+<a name="code--ex10--ex3.js-pyg.html-41"></a>                <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+<a name="code--ex10--ex3.js-pyg.html-42"></a>
+<a name="code--ex10--ex3.js-pyg.html-43"></a>                <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex10--ex3.js-pyg.html-44"></a>              <span class="p">});</span>
+<a name="code--ex10--ex3.js-pyg.html-45"></a>          <span class="p">})</span>
+<a name="code--ex10--ex3.js-pyg.html-46"></a>      <span class="p">});</span>
+<a name="code--ex10--ex3.js-pyg.html-47"></a>    <span class="p">});</span>
+<a name="code--ex10--ex3.js-pyg.html-48"></a>  <span class="p">});</span>
+<a name="code--ex10--ex3.js-pyg.html-49"></a><span class="p">});</span>
+</pre></div><p>the output should look like this.</p>
+<pre class="code console literal-block">
+<span class="go">{ _id: 1,
+  description: 'We need to buy the ACME widget and need budget approval',
+  endTime: Wed Jan 23 2013 14:30:29 GMT+0100 (CET),
+  participants: [ { name: 'John', email: 'john&#64;inc.com' } ],
+  startTime: Wed Jan 23 2013 14:30:29 GMT+0100 (CET),
+  title: 'Let\'s buy a widget' }</span>
+</pre>
+<p>The <tt class="docutils literal">$pull</tt> operator removes all instances of a value from an existing array. Given the update statement.</p>
+<pre class="code javascript literal-block">
+<span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="nx">meeting</span><span class="p">.</span><span class="nx">_id</span><span class="p">},</span> <span class="p">{</span><span class="nx">$pull</span><span class="o">:</span> <span class="p">{</span> <span class="nx">participants</span><span class="o">:</span> <span class="p">{</span><span class="nx">name</span><span class="o">:</span> <span class="s1">'April'</span><span class="p">}}}</span> <span class="p">....</span>
+</pre>
+<p><tt class="docutils literal">MongoDB</tt> will first locate the document that matches the initial query of <tt class="docutils literal">{_id: meeting._id}</tt> and then the <tt class="docutils literal">$pull</tt> operator will traverse the array <tt class="docutils literal">participants</tt> looking for any values that contains the field <tt class="docutils literal">name</tt> with the value set to <tt class="docutils literal">April</tt> and if found will remove them from the <tt class="docutils literal">participants</tt> array.</p>
+<p>The <tt class="docutils literal">$pull</tt> operator and the <tt class="docutils literal">$push</tt> operator make it easy to operate on arrays inside of <tt class="docutils literal">MongoDB</tt> documents.</p>
+</div>
+<div class="section" id="pop-operator">
+<h1>$pop Operator</h1>
+<p>The <tt class="docutils literal">$pop</tt> operator let's you remove the first or the last document from an array in a document.</p>
+<p>Give a document that looks like this.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">a</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">b</span><span class="o">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]}</span>
+</pre>
+<p>the update statement</p>
+<pre class="code javascript literal-block">
+<span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">$pop</span><span class="o">:</span> <span class="p">{</span> <span class="nx">b</span><span class="o">:</span> <span class="mi">1</span><span class="p">}}</span> <span class="p">....</span>
+</pre>
+<p>would remove the element <tt class="docutils literal">3</tt> from the array in field <tt class="docutils literal">b</tt>. leaving you with a document looking like this.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">a</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">b</span><span class="o">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]}</span>
+</pre>
+<p>similarly the statement.</p>
+<pre class="code javascript literal-block">
+<span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">$pop</span><span class="o">:</span> <span class="p">{</span> <span class="nx">b</span><span class="o">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">}}</span> <span class="p">....</span>
+</pre>
+<p>would remove the element <tt class="docutils literal">1</tt> from the array in field <tt class="docutils literal">b</tt>, leaving you with a document looking like this.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">a</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">b</span><span class="o">:</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]}</span>
+</pre>
+<p>Unfortunately the <tt class="docutils literal">$pop</tt> operator does not actually return the value that was removed. There is a special command for this called <tt class="docutils literal">findAndModify</tt> that we will cover in the next exercise. What if we need to guarantee that there is only a single instance of a specific document in an array.</p>
+</div>
+<div class="section" id="addtoset-operator">
+<h1>$addToSet Operator</h1>
+<p>The <tt class="docutils literal">$addToSet</tt> only adds a value to an array if the value does not already exist. Let's see how we can use this in practice. Remember the meeting. Well let's use <tt class="docutils literal">$addToSet</tt> and attempt to add a duplicate document. Open up your editor and type in.</p>
+<div class="highlight"><pre><a name="code--ex10--ex4.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex10--ex4.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex10--ex4.js-pyg.html-3"></a>
+<a name="code--ex10--ex4.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex4.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex4.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex10--ex4.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex10--ex4.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex10--ex4.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex10--ex4.js-pyg.html-10"></a>
+<a name="code--ex10--ex4.js-pyg.html-11"></a>  <span class="kd">var</span> <span class="nx">meeting</span> <span class="o">=</span> <span class="p">{</span>
+<a name="code--ex10--ex4.js-pyg.html-12"></a>      <span class="nx">_id</span> <span class="o">:</span> <span class="mi">1</span>
+<a name="code--ex10--ex4.js-pyg.html-13"></a>    <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Let&#39;s buy a widget&quot;</span>
+<a name="code--ex10--ex4.js-pyg.html-14"></a>    <span class="p">,</span> <span class="nx">description</span><span class="o">:</span> <span class="s2">&quot;We need to buy the ACME widget and need budget approval&quot;</span>
+<a name="code--ex10--ex4.js-pyg.html-15"></a>    <span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">()</span>
+<a name="code--ex10--ex4.js-pyg.html-16"></a>    <span class="p">,</span> <span class="nx">endTime</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">()</span>
+<a name="code--ex10--ex4.js-pyg.html-17"></a>  <span class="p">}</span>
+<a name="code--ex10--ex4.js-pyg.html-18"></a>
+<a name="code--ex10--ex4.js-pyg.html-19"></a>  <span class="kd">var</span> <span class="nx">users</span> <span class="o">=</span> <span class="p">[</span>
+<a name="code--ex10--ex4.js-pyg.html-20"></a>      <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;April&#39;</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">&#39;april@inc.com&#39;</span><span class="p">}</span>
+<a name="code--ex10--ex4.js-pyg.html-21"></a>    <span class="p">,</span> <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;John&#39;</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">&#39;john@inc.com&#39;</span><span class="p">}</span>
+<a name="code--ex10--ex4.js-pyg.html-22"></a>  <span class="p">]</span>
+<a name="code--ex10--ex4.js-pyg.html-23"></a>
+<a name="code--ex10--ex4.js-pyg.html-24"></a>  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;meetings&#39;</span><span class="p">);</span>
+<a name="code--ex10--ex4.js-pyg.html-25"></a>
+<a name="code--ex10--ex4.js-pyg.html-26"></a>  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex10--ex4.js-pyg.html-27"></a>
+<a name="code--ex10--ex4.js-pyg.html-28"></a>    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">(</span><span class="nx">meeting</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex4.js-pyg.html-29"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex4.js-pyg.html-30"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>
+<a name="code--ex10--ex4.js-pyg.html-31"></a>      <span class="p">}</span>
+<a name="code--ex10--ex4.js-pyg.html-32"></a>
+<a name="code--ex10--ex4.js-pyg.html-33"></a>      <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span> <span class="nx">_id</span><span class="o">:</span> <span class="nx">meeting</span><span class="p">.</span><span class="nx">_id</span> <span class="p">}</span>
+<a name="code--ex10--ex4.js-pyg.html-34"></a>        <span class="p">,</span> <span class="p">{</span><span class="nx">$pushAll</span><span class="o">:</span> <span class="p">{</span><span class="nx">participants</span><span class="o">:</span> <span class="nx">users</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex4.js-pyg.html-35"></a>
+<a name="code--ex10--ex4.js-pyg.html-36"></a>          <span class="kd">var</span> <span class="nx">april</span> <span class="o">=</span> <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;April&#39;</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">&#39;april@inc.com&#39;</span><span class="p">};</span>
+<a name="code--ex10--ex4.js-pyg.html-37"></a>
+<a name="code--ex10--ex4.js-pyg.html-38"></a>          <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="nx">meeting</span><span class="p">.</span><span class="nx">_id</span><span class="p">}</span>
+<a name="code--ex10--ex4.js-pyg.html-39"></a>            <span class="p">,</span> <span class="p">{</span><span class="nx">$addToSet</span><span class="o">:</span> <span class="p">{</span><span class="nx">participants</span><span class="o">:</span> <span class="nx">april</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">,</span> <span class="nx">full_result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex4.js-pyg.html-40"></a>
+<a name="code--ex10--ex4.js-pyg.html-41"></a>            <span class="nx">collection</span><span class="p">.</span><span class="nx">findOne</span><span class="p">({</span> <span class="nx">_id</span><span class="o">:</span> <span class="nx">meeting</span><span class="p">.</span><span class="nx">_id</span> <span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex10--ex4.js-pyg.html-42"></a>
+<a name="code--ex10--ex4.js-pyg.html-43"></a>              <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+<a name="code--ex10--ex4.js-pyg.html-44"></a>
+<a name="code--ex10--ex4.js-pyg.html-45"></a>              <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex10--ex4.js-pyg.html-46"></a>            <span class="p">});</span>
+<a name="code--ex10--ex4.js-pyg.html-47"></a>        <span class="p">});</span>
+<a name="code--ex10--ex4.js-pyg.html-48"></a>      <span class="p">});</span>
+<a name="code--ex10--ex4.js-pyg.html-49"></a>    <span class="p">});</span>
+<a name="code--ex10--ex4.js-pyg.html-50"></a>  <span class="p">});</span>
+<a name="code--ex10--ex4.js-pyg.html-51"></a><span class="p">});</span>
+</pre></div><p>Your output should look like the following.</p>
+<pre class="code console literal-block">
+<span class="go">connected to database
+{ _id: 1,
+  description: 'We need to buy the ACME widget and need budget approval',
+  endTime: Wed Jan 23 2013 15:35:03 GMT+0100 (CET),
+  participants:
+   [ { name: 'April', email: 'april&#64;inc.com' },
+     { name: 'John', email: 'john&#64;inc.com' } ],
+  startTime: Wed Jan 23 2013 15:35:03 GMT+0100 (CET),
+  title: 'Let\'s buy a widget' }</span>
+</pre>
+<p>As you can see there was no duplicate entries of the user <tt class="docutils literal">April</tt> in the participants field when using <tt class="docutils literal">$addToSet</tt>. But what if we want to modify a document inside an array, not remove it from the array but set a value on it. Luckily there are a couple of ways we can go about doing this.</p>
+</div>
+<div class="section" id="updating-a-document-in-an-array">
+<h1>Updating a document in an array</h1>
+<p>If we know the where in the array a particular document is we can specify to update that particular document. Let's take our sample meetings document.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+  <span class="nx">description</span><span class="o">:</span> <span class="s1">'We need to buy the ACME widget and need budget approval'</span><span class="p">,</span>
+  <span class="nx">endTime</span><span class="o">:</span> <span class="nx">Wed</span> <span class="nx">Jan</span> <span class="mi">23</span> <span class="mi">2013</span> <span class="mi">15</span><span class="o">:</span><span class="mi">35</span><span class="o">:</span><span class="mi">03</span> <span class="nx">GMT</span><span class="o">+</span><span class="mi">0100</span> <span class="p">(</span><span class="nx">CET</span><span class="p">),</span>
+  <span class="nx">participants</span><span class="o">:</span>
+   <span class="p">[</span> <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">'April'</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">'april&#64;inc.com'</span> <span class="p">},</span>
+     <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">'John'</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">'john&#64;inc.com'</span> <span class="p">}</span> <span class="p">],</span>
+  <span class="nx">startTime</span><span class="o">:</span> <span class="nx">Wed</span> <span class="nx">Jan</span> <span class="mi">23</span> <span class="mi">2013</span> <span class="mi">15</span><span class="o">:</span><span class="mi">35</span><span class="o">:</span><span class="mi">03</span> <span class="nx">GMT</span><span class="o">+</span><span class="mi">0100</span> <span class="p">(</span><span class="nx">CET</span><span class="p">),</span>
+  <span class="nx">title</span><span class="o">:</span> <span class="s1">'Let\'s buy a widget'</span> <span class="p">}</span>
+</pre>
+<p>Say we want to add a contact number for <tt class="docutils literal">April</tt> to the document. Since we know it's the first document we can address it as element <tt class="docutils literal">0</tt> in the array (more information about it's why <tt class="docutils literal">0</tt> and not <tt class="docutils literal">1</tt> at <a class="reference external" href="http://en.wikipedia.org/wiki/Zero-based_numbering">http://en.wikipedia.org/wiki/Zero-based_numbering</a>). Let's write the update statement to add the phone number.</p>
+<pre class="code javascript literal-block">
+<span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">$set</span><span class="o">:</span> <span class="p">{</span><span class="s1">'participants.0.phone'</span><span class="o">:</span> <span class="s1">'333-444-5555'</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<span class="p">});</span>
+</pre>
+<p>After the update the document will look like.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+  <span class="nx">description</span><span class="o">:</span> <span class="s1">'We need to buy the ACME widget and need budget approval'</span><span class="p">,</span>
+  <span class="nx">endTime</span><span class="o">:</span> <span class="nx">Wed</span> <span class="nx">Jan</span> <span class="mi">23</span> <span class="mi">2013</span> <span class="mi">15</span><span class="o">:</span><span class="mi">35</span><span class="o">:</span><span class="mi">03</span> <span class="nx">GMT</span><span class="o">+</span><span class="mi">0100</span> <span class="p">(</span><span class="nx">CET</span><span class="p">),</span>
+  <span class="nx">participants</span><span class="o">:</span>
+   <span class="p">[</span> <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">'April'</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">'april&#64;inc.com'</span><span class="p">,</span> <span class="nx">phone</span> <span class="o">:</span> <span class="s1">'333-444-5555'</span> <span class="p">},</span>
+     <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">'John'</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">'john&#64;inc.com'</span> <span class="p">}</span> <span class="p">],</span>
+  <span class="nx">startTime</span><span class="o">:</span> <span class="nx">Wed</span> <span class="nx">Jan</span> <span class="mi">23</span> <span class="mi">2013</span> <span class="mi">15</span><span class="o">:</span><span class="mi">35</span><span class="o">:</span><span class="mi">03</span> <span class="nx">GMT</span><span class="o">+</span><span class="mi">0100</span> <span class="p">(</span><span class="nx">CET</span><span class="p">),</span>
+  <span class="nx">title</span><span class="o">:</span> <span class="s1">'Let\'s buy a widget'</span> <span class="p">}</span>
+</pre>
+<p>Notice <tt class="docutils literal">'participants.0.phone'</tt> this tells <tt class="docutils literal">MongoDB</tt> that the field <tt class="docutils literal">participants</tt> is an array and that we are accessing the first element of the array and in that element we wish to set the field <tt class="docutils literal">phone</tt>.</p>
+<p>That's great but what if we don't know the location of the document in the array <tt class="docutils literal">participants</tt>. How do we select the right document to update. Luckily for us we have a operator called the positional operator available to do this. The positional operator is the <tt class="docutils literal">$</tt> sign. Let's show it with an update example. Let's add a phone number to <tt class="docutils literal">John</tt> using the positional operator.</p>
+<pre class="code javascript literal-block">
+<span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">,</span> <span class="nx">participants</span><span class="p">.</span><span class="nx">name</span><span class="o">:</span><span class="s1">'John'</span><span class="p">},</span> <span class="p">{</span><span class="nx">$set</span><span class="o">:</span> <span class="p">{</span><span class="s1">'participants.$.phone'</span><span class="o">:</span> <span class="s1">'111-222-3333'</span><span class="p">}}</span>
+  <span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+  <span class="p">});</span>
+</pre>
+<p>After the update the document will look like.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+  <span class="nx">description</span><span class="o">:</span> <span class="s1">'We need to buy the ACME widget and need budget approval'</span><span class="p">,</span>
+  <span class="nx">endTime</span><span class="o">:</span> <span class="nx">Wed</span> <span class="nx">Jan</span> <span class="mi">23</span> <span class="mi">2013</span> <span class="mi">15</span><span class="o">:</span><span class="mi">35</span><span class="o">:</span><span class="mi">03</span> <span class="nx">GMT</span><span class="o">+</span><span class="mi">0100</span> <span class="p">(</span><span class="nx">CET</span><span class="p">),</span>
+  <span class="nx">participants</span><span class="o">:</span>
+   <span class="p">[</span> <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">'April'</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">'april&#64;inc.com'</span><span class="p">,</span> <span class="nx">phone</span> <span class="o">:</span> <span class="s1">'333-444-5555'</span> <span class="p">},</span>
+     <span class="p">{</span> <span class="nx">name</span><span class="o">:</span> <span class="s1">'John'</span><span class="p">,</span> <span class="nx">email</span><span class="o">:</span> <span class="s1">'john&#64;inc.com'</span><span class="p">,</span> <span class="nx">phone</span> <span class="o">:</span> <span class="s1">'111-222-3333'</span> <span class="p">}</span> <span class="p">],</span>
+  <span class="nx">startTime</span><span class="o">:</span> <span class="nx">Wed</span> <span class="nx">Jan</span> <span class="mi">23</span> <span class="mi">2013</span> <span class="mi">15</span><span class="o">:</span><span class="mi">35</span><span class="o">:</span><span class="mi">03</span> <span class="nx">GMT</span><span class="o">+</span><span class="mi">0100</span> <span class="p">(</span><span class="nx">CET</span><span class="p">),</span>
+  <span class="nx">title</span><span class="o">:</span> <span class="s1">'Let\'s buy a widget'</span> <span class="p">}</span>
+</pre>
+<p>Notice the two main differences. The first part is the query which looks like <tt class="docutils literal">{_id:1, <span class="pre">participants.name:'John'}</span></tt>. This will locate the document where <tt class="docutils literal">_id</tt> is <tt class="docutils literal">1</tt> and it contains a participant document where the <tt class="docutils literal">name</tt> field equals to <tt class="docutils literal">John</tt>.</p>
+<p>The update part  <tt class="docutils literal"><span class="pre">{'$set':</span> <span class="pre">{'participants.$.phone':</span> <span class="pre">'111-222-3333'}}</span></tt> contains the <tt class="docutils literal">$</tt> which tells <tt class="docutils literal">MongoDB</tt> to locate the first participant who's <tt class="docutils literal">name</tt> field equals <tt class="docutils literal">John</tt> and update <tt class="docutils literal">$set</tt> the value of the field <tt class="docutils literal">phone</tt> in that document to <tt class="docutils literal"><span class="pre">111-222-3333</span></tt>.</p>
+<p>There are a couple of limitations to the <tt class="docutils literal">$</tt> operator. The first is that it will only change the <tt class="docutils literal">first</tt> matching document so if you use a <tt class="docutils literal">query</tt> that is picking a document in an array by a <tt class="docutils literal">field</tt> that is not unique it will only update the first match. So it's important to make sure you are using a field in the documents for your query uniquely identifies it. There are some other limitations for the command that you can read more about at <a class="reference external" href="http://docs.mongodb.org/manual/reference/operator/positional/#_S_">http://docs.mongodb.org/manual/reference/operator/positional/#_S_</a>.</p>
+</div>
+<div class="section" id="one-push-to-rule-them-all">
+<h1>One $push To Rule Them All</h1>
+<p><tt class="docutils literal">MongoDB</tt> 2.4 or higher introduces some changes in the <tt class="docutils literal">$push</tt> operator that deprecates the usage of <tt class="docutils literal">$pushAll</tt> and allows you to fix the max size of an array. This is most easily showed using an example.</p>
+<p>Say we have a document that looks like this.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">a</span><span class="o">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span> <span class="p">}</span>
+</pre>
+<p>Let's add 2 more elements but we want to keep the size fixed to a max of 5 elements.</p>
+<pre class="code javascript literal-block">
+<span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">$push</span><span class="o">:</span> <span class="p">{</span> <span class="nx">a</span><span class="o">:</span> <span class="p">{</span> <span class="nx">$each</span><span class="o">:</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">],</span> <span class="nx">$slice</span><span class="o">:</span> <span class="o">-</span><span class="mi">5</span><span class="p">}}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<span class="p">});</span>
+</pre>
+<p>The results from the update.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">a</span><span class="o">:</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">]</span> <span class="p">}</span>
+</pre>
+<p>Let's pick apart the update statement.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span><span class="nx">$push</span><span class="o">:</span> <span class="p">{</span> <span class="nx">a</span><span class="o">:</span> <span class="p">{</span> <span class="nx">$each</span><span class="o">:</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">7</span><span class="p">],</span> <span class="nx">$slice</span><span class="o">:</span> <span class="o">-</span><span class="mi">5</span><span class="p">}}}</span>
+</pre>
+<p>The <tt class="docutils literal">$each</tt> parameter of the <tt class="docutils literal">$push</tt> operator takes an array of values or objects and replaces the <tt class="docutils literal">$pushAll</tt> operation. so the operation <tt class="docutils literal">{$push: { a: { $each: [6, <span class="pre">7]}}}</span></tt> is equivalent to <tt class="docutils literal">{$pushAll: {a : [6, <span class="pre">7]}}</span></tt>. The second parameter is <tt class="docutils literal">$slice</tt>. <tt class="docutils literal">$slice</tt> takes a value that is <tt class="docutils literal">0</tt> or less and trims the number of elements in the array from right to left. In other words the following happens.</p>
+<pre class="code console literal-block">
+<span class="go">[1, 2, 3, 4, 5]
+[1, 2, 3, 4, 5, 6, 7]
+[3, 4, 5, 6, 7]</span>
+</pre>
+<p>Between the second and third step the <tt class="docutils literal">$push</tt> operator takes the last five elements and removes the rest. This makes it possible to <tt class="docutils literal">enforce</tt> a fixed size array field in a document. The last parameter we will show is the <tt class="docutils literal">$sort</tt> parameter. Let's write up an example. Take a document like.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">a</span><span class="o">:</span> <span class="p">[</span><span class="p">{</span><span class="nx">pri</span><span class="o">:</span><span class="mi">4</span><span class="p">},</span> <span class="p">{</span><span class="nx">pri</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">pri</span><span class="o">:</span><span class="mi">2</span><span class="p">},</span> <span class="p">{</span><span class="nx">pri</span><span class="o">:</span><span class="mi">4</span><span class="p">},</span> <span class="p">{</span><span class="nx">pri</span><span class="o">:</span><span class="mi">3</span><span class="p">}]</span> <span class="p">}</span>
+</pre>
+<p>Now let's add some new objects to our fixed size array and sort them in <tt class="docutils literal">descending</tt> order with the highest priority object first.</p>
+<pre class="code javascript literal-block">
+<span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">$push</span><span class="o">:</span> <span class="p">{</span> <span class="nx">a</span><span class="o">:</span> <span class="p">{</span> <span class="nx">$each</span><span class="o">:</span> <span class="p">[</span> <span class="p">{</span><span class="nx">pri</span><span class="o">:</span><span class="mi">2</span><span class="p">},</span> <span class="p">{</span><span class="nx">pri</span><span class="o">:</span><span class="mi">1</span><span class="p">}],</span> <span class="nx">$slice</span><span class="o">:</span> <span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="nx">$sort</span><span class="o">:</span> <span class="p">{</span><span class="nx">pri</span><span class="o">:</span><span class="o">-</span><span class="mi">1</span><span class="p">}}}}</span>
+  <span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+
+  <span class="p">});</span>
+</pre>
+<p>The results from the update.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span> <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">a</span><span class="o">:</span> <span class="p">[</span><span class="p">{</span><span class="nx">pri</span><span class="o">:</span><span class="mi">3</span><span class="p">},</span> <span class="p">{</span><span class="nx">pri</span><span class="o">:</span><span class="mi">2</span><span class="p">},</span> <span class="p">{</span><span class="nx">pri</span><span class="o">:</span><span class="mi">2</span><span class="p">},</span> <span class="p">{</span><span class="nx">pri</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">pri</span><span class="o">:</span><span class="mi">1</span><span class="p">}]</span> <span class="p">}</span>
+</pre>
+<p>The thing to notice is that the <tt class="docutils literal">$sort</tt> will be applied before the <tt class="docutils literal">slice</tt> and that it only supports sorting of objects. You cannot use <tt class="docutils literal">$sort</tt> with an array of numbers for example.</p>
+<p>That covers working with arrays when performing updates. As we briefly touched upon earlier there is an additional update command available called <tt class="docutils literal">findAndModify</tt>. In the next exercise we will learn how it works and for what kind of situations it's useful.</p>
+</div>
+    </div>
+
+    <div class="one columns" id="right-nav">
+        <center>
+        <p><a href="/book/"><img src="images/48_structure.png"></a></p>
+        <p><a href="#"><img src="images/48_email.png"></a></p>
+        <p><a href="#faq"><img src="images/48_faq.png"></a></p>
+        <p>
+        </p>
+        </center>
+    </div>
+
+  <!-- Included JS Files (Compressed) -->
+  <script src="javascripts/jquery.js"></script>
+  <script src="javascripts/foundation.min.js"></script>
+  
+  <!-- Initialize JS Plugins -->
+  <script src="javascripts/app.js"></script>
+
+</body>
+</html>

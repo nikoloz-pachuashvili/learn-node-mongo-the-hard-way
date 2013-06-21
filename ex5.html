@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+    <!--[if gt IE 8]><!-->
+<html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8" />
+
+  <!-- Set the viewport width to device width for mobile -->
+  <meta name="viewport" content="width=device-width" />
+
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
+<title>Exercise 5: Document documents everywhere</title>
+
+  <!-- Included CSS Files (Compressed) -->
+  <link rel="stylesheet" href="stylesheets/foundation.min.css">
+  <link rel="stylesheet" href="stylesheets/pygments.css">
+  <link rel="stylesheet" href="stylesheets/app.css">
+
+  <script src="javascripts/modernizr.foundation.js"></script>
+
+  <!-- IE Fix for HTML5 Tags -->
+  <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+</head>
+<body>
+
+  <div class="row">
+          <h1 class="title">Exercise 5: Document documents everywhere</h1>
+      </div>
+  </div>
+
+  <div class="row">
+    <div class="eleven columns">
+        <p>So it's probably dawned on you that MongoDB is a document database. Moreover it's schemaless database. So what does that mean in layman terms. Let's start with a simple example of a <tt class="docutils literal">JSON</tt> document.</p>
+<pre class="code json literal-block">
+<span class="p">{</span>
+  <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;MongoDB&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;version&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+  <span class="nt">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;A schemaless document database&quot;</span><span class="p">,</span>
+  <span class="nt">&quot;features&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;schemaless&quot;</span><span class="p">,</span> <span class="s2">&quot;document oriented&quot;</span><span class="p">,</span> <span class="s2">&quot;fast&quot;</span><span class="p">,</span> <span class="s2">&quot;scalable&quot;</span><span class="p">],</span>
+  <span class="nt">&quot;main developer&quot;</span><span class="p">:</span> <span class="p">{</span>
+    <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;10gen&quot;</span><span class="p">,</span>
+    <span class="nt">&quot;location&quot;</span><span class="p">:</span> <span class="s2">&quot;new york city&quot;</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre>
+<p>As we can the document is made up of set of names and values <tt class="docutils literal">'name': 'MongoDB'</tt> and we can see that we can express such concepts as a list of features and a <tt class="docutils literal">JSON</tt> embedded document under the name <tt class="docutils literal">main developer</tt>. The possibilities on how to structure your data in documents is only limited by your imagination and the current 16MB limit for a single document.</p>
+<p>MongoDB extends on <tt class="docutils literal">JSON</tt> by adding types. This format is called <tt class="docutils literal">BSON</tt> and is a binary representation of <tt class="docutils literal">JSON</tt> with additonal types so the database can operate on them. These types can be summed up in a table (more details available at <a class="reference external" href="http://bsonspec.org/#/specification">http://bsonspec.org/#/specification</a>). We've only included the types that you will use from your application and ignored the ones that are internal data types or are not generally used in documents.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="7%" />
+<col width="93%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Type</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>Long</td>
+<td>A 64 bit integer value that can take the value of +/- 9,223,372,036,854,775,808</td>
+</tr>
+<tr><td>Date</td>
+<td>A UTC Datetime value</td>
+</tr>
+<tr><td>Regexp</td>
+<td>A regular expression</td>
+</tr>
+<tr><td>Code</td>
+<td>A Javascript string with an option scope for the script</td>
+</tr>
+<tr><td>Binary</td>
+<td>A Binary blob object (can have a subtype)</td>
+</tr>
+<tr><td>Double</td>
+<td>A 64 bit float value (only use this if you have a whole number that you want stored as a double instead and not an integer)</td>
+</tr>
+</tbody>
+</table>
+<p>So how do we express a Document with all these special types in Node.js. Well fire up the text editor and let's get cracking on the code below.</p>
+<div class="highlight"><pre><a name="code--ex5--ex1.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex5--ex1.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">Long</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">Long</span>
+<a name="code--ex5--ex1.js-pyg.html-3"></a>  <span class="p">,</span> <span class="nx">Binary</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">Binary</span>
+<a name="code--ex5--ex1.js-pyg.html-4"></a>  <span class="p">,</span> <span class="nx">Code</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">Code</span>
+<a name="code--ex5--ex1.js-pyg.html-5"></a>  <span class="p">,</span> <span class="nx">ObjectID</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">ObjectID</span>
+<a name="code--ex5--ex1.js-pyg.html-6"></a>  <span class="p">,</span> <span class="nx">serialize</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">BSONPure</span><span class="p">.</span><span class="nx">BSON</span><span class="p">.</span><span class="nx">serialize</span><span class="p">;</span>
+<a name="code--ex5--ex1.js-pyg.html-7"></a>
+<a name="code--ex5--ex1.js-pyg.html-8"></a><span class="kd">var</span> <span class="nx">buffer</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Buffer</span><span class="p">(</span><span class="s1">&#39;hello world&#39;</span><span class="p">);</span>
+<a name="code--ex5--ex1.js-pyg.html-9"></a>
+<a name="code--ex5--ex1.js-pyg.html-10"></a><span class="kd">var</span> <span class="nb">document</span> <span class="o">=</span> <span class="p">{</span>
+<a name="code--ex5--ex1.js-pyg.html-11"></a>    <span class="s1">&#39;64bitvalue&#39;</span><span class="o">:</span> <span class="nx">Long</span><span class="p">.</span><span class="nx">fromNumber</span><span class="p">(</span><span class="mi">45000000</span><span class="p">)</span>
+<a name="code--ex5--ex1.js-pyg.html-12"></a>  <span class="p">,</span> <span class="s1">&#39;array of values&#39;</span><span class="o">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;hello&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="o">:</span> <span class="mi">1</span><span class="p">}]</span>
+<a name="code--ex5--ex1.js-pyg.html-13"></a>  <span class="p">,</span> <span class="s1">&#39;binary&#39;</span><span class="o">:</span> <span class="k">new</span> <span class="nx">Binary</span><span class="p">(</span><span class="nx">buffer</span><span class="p">)</span>
+<a name="code--ex5--ex1.js-pyg.html-14"></a>  <span class="p">,</span> <span class="s1">&#39;code&#39;</span><span class="o">:</span> <span class="k">new</span> <span class="nx">Code</span><span class="p">(</span><span class="kd">function</span> <span class="nx">test</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex5--ex1.js-pyg.html-15"></a>      <span class="k">return</span> <span class="s2">&quot;hello world&quot;</span><span class="p">;</span>
+<a name="code--ex5--ex1.js-pyg.html-16"></a>    <span class="p">})</span>
+<a name="code--ex5--ex1.js-pyg.html-17"></a>  <span class="p">,</span> <span class="s1">&#39;date&#39;</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">()</span>
+<a name="code--ex5--ex1.js-pyg.html-18"></a>  <span class="p">,</span> <span class="s1">&#39;regexp&#39;</span><span class="o">:</span> <span class="sr">/^hello/</span>
+<a name="code--ex5--ex1.js-pyg.html-19"></a>  <span class="p">,</span> <span class="s1">&#39;_id&#39;</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">()</span>
+<a name="code--ex5--ex1.js-pyg.html-20"></a><span class="p">}</span>
+<a name="code--ex5--ex1.js-pyg.html-21"></a>
+<a name="code--ex5--ex1.js-pyg.html-22"></a><span class="nx">serialize</span><span class="p">(</span><span class="nb">document</span><span class="p">);</span>
+</pre></div><p>The <tt class="docutils literal">serialize</tt> function is not a function you'll usually use in your programs but allows us to verify that the document is a valid <tt class="docutils literal">BSON</tt> document by serializing it to it's binary representation.</p>
+<p>There are some interesting limitations in Javascript due to the way way numbers are represented in the language. All numbers are actually <tt class="docutils literal">double floats</tt> which means that the highest number you can represent in Javascript is 53 bits of resolution or <tt class="docutils literal">+/- 9,007,199,254,740,992</tt> which is significantly less than the <tt class="docutils literal">Long</tt> type. This means that any <tt class="docutils literal">Long</tt> values stored in MongoDB is returned as a <tt class="docutils literal">Long</tt> instance instead of a <tt class="docutils literal">Number</tt> instance. Since MongoDB can only store either 32 bit ints, 64 bit ints or 64 bit doubles the driver does intelligent conversion where possible. You can override this by doing <tt class="docutils literal">new Double(1)</tt> to force it to store it as a 64 bit float instead of a 32 bit integer.</p>
+<p>If we look a the second value in the document <tt class="docutils literal">array of values</tt> we can see that it's an array composed of some numbers, a string and a document. This is a reflection of the flexibility of expression the document model gives you when modeling your applications data and one of the main reasons I think MongoDB is a blast of fresh air to traditional data modelling with relational tables.</p>
+<p>The <tt class="docutils literal">Binary</tt> type let's us store raw byte data in MongoDB. You can store such things as images or maybe binary files such as word documents or pdf's. However remember that a single document has a maximum size of 16MB. If you need to store Bigger files we will show you how in a later exercise using a driver feature called <tt class="docutils literal">GridFS</tt>.</p>
+<p>The <tt class="docutils literal">Code</tt> object is kind of interesting and is used to store actual Javascript code in MongoDB. You can even execute this code on the server if you store it in a special place (but this is not recommended as Javascript on the server is not very performant and comes with some fairly harsh limitations, more on that later).</p>
+<p>The <tt class="docutils literal">date</tt> value is a Javascript Date object and MongoDB has native support for dates so you can sort on them in the database. For the driver this shows the perfect match of MongoDB and Node.js since the date type is just the one that already comes pre-packaged with Javascript.</p>
+<p>The next value <tt class="docutils literal">regexp</tt> is a a regular expression that can also be stored in MongoDB. For pure documents it might not be so useful but because queries in MongoDB are actually <tt class="docutils literal">BSON</tt> documents it means that MongoDB supports regular expressions in queries.</p>
+<p>The last value <tt class="docutils literal">_id</tt> is a special type in MongoDB that is a 12 bit unique identifier inside a collection. This type is the default primary key in a collection (the primary key in a document is alway the <tt class="docutils literal">_id</tt> field in a document) and is made up of a timestamp + some additional fields and an incremental value. This gives it a great secondary property of being sortable by time allowing you to sort any record that just contains the <tt class="docutils literal">_id</tt> field by it's creation time.</p>
+<p>So as you can see we can store pure <tt class="docutils literal">JSON</tt> objects but also more complex types that go beyond what Javascript supports natively. This matching makes MongoDB a great database for Node.js. As we will see in future exercises the match between MongoDB and Node.js can be leveraged to do some very interesting and unique things.</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">Much of the power of MongoDB is locked in the design of your schema, how you design your data will impact the way you read and write the data and also the performance of you application. We will go more indepth on schema design in future exercises and look at benefits and tradeoffs associated with specific solutions.</p>
+</div>
+    </div>
+
+    <div class="one columns" id="right-nav">
+        <center>
+        <p><a href="/book/"><img src="images/48_structure.png"></a></p>
+        <p><a href="#"><img src="images/48_email.png"></a></p>
+        <p><a href="#faq"><img src="images/48_faq.png"></a></p>
+        <p>
+        </p>
+        </center>
+    </div>
+
+  <!-- Included JS Files (Compressed) -->
+  <script src="javascripts/jquery.js"></script>
+  <script src="javascripts/foundation.min.js"></script>
+  
+  <!-- Initialize JS Plugins -->
+  <script src="javascripts/app.js"></script>
+
+</body>
+</html>

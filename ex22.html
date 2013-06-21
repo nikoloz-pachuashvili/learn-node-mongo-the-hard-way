@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+    <!--[if gt IE 8]><!-->
+<html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8" />
+
+  <!-- Set the viewport width to device width for mobile -->
+  <meta name="viewport" content="width=device-width" />
+
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
+<title>Exercise 22: MongoDB Topologies</title>
+
+  <!-- Included CSS Files (Compressed) -->
+  <link rel="stylesheet" href="stylesheets/foundation.min.css">
+  <link rel="stylesheet" href="stylesheets/pygments.css">
+  <link rel="stylesheet" href="stylesheets/app.css">
+
+  <script src="javascripts/modernizr.foundation.js"></script>
+
+  <!-- IE Fix for HTML5 Tags -->
+  <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+</head>
+<body>
+
+  <div class="row">
+          <h1 class="title">Exercise 22: MongoDB Topologies</h1>
+      </div>
+  </div>
+
+  <div class="row">
+    <div class="eleven columns">
+        <p>It's time to talk a little about the deployment Topologies of MongoDB. They are split into three distinct setups.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="29%" />
+<col width="71%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Topology</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>Single Server</td>
+<td>A single MongoDB instance handles all reads and writes</td>
+</tr>
+<tr><td>Replicaset</td>
+<td>A cluster of MongoDB servers handle reads and writes and provide fault tolerance with automatic failover.</td>
+</tr>
+<tr><td>Sharded System</td>
+<td>A collection of replicasets handles horizontal scaling using sharding</td>
+</tr>
+</tbody>
+</table>
+<p>In the next couple of exercises we will dig into the Three categories and go into how it works and how the driver supports each of the categories.</p>
+<div class="section" id="the-single-server">
+<h1>The Single Server</h1>
+<p>The single server will most people's first experience with MongoDB. It's pretty straight forwards as all reads and writes from your application will be going to the same single server. Let's take a look at how we can set up a single server and connect to it using the driver. Let's start with booting up the <tt class="docutils literal">mongod</tt> process.</p>
+<pre class="code console literal-block">
+<span class="go">mkdir ./data
+mongod --dbpath=./data --port 27017</span>
+</pre>
+<p>Boot up your text editor and enter the needed connection code.</p>
+<pre class="code javascript literal-block">
+<span class="kd">var</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'mongodb'</span><span class="p">).</span><span class="nx">MongoClient</span><span class="p">;</span>
+
+<span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">err</span><span class="p">;</span>
+
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to the database&quot;</span><span class="p">);</span>
+  <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">(</span><span class="p">);</span>
+<span class="p">});</span>
+</pre>
+<p>That pretty much covers a single server. Not very hard to get started right. But what if we want to ensure that our application still runs if the MongoDB server goes down? That's where Replicasets come in and what is next.</p>
+</div>
+<div class="section" id="the-replicaset">
+<h1>The Replicaset</h1>
+<p>The replicaset is the way MongoDB handles fault tolerance. It consists of 3 types of server instances (why 3 you might ask, we will get into that shortly).</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="23%" />
+<col width="77%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Server type</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>Primary</td>
+<td>The current master of the replicaset that accepts writes</td>
+</tr>
+<tr><td>Secondary</td>
+<td>The slaves of the replicaset, accepts reads but no writes. Can be elected as primary if the current primary goes down.</td>
+</tr>
+<tr><td>Arbiter</td>
+<td>A special type of server that accepts no reads or writes and only partake in the election of a new primary server if the current one goes down.</td>
+</tr>
+</tbody>
+</table>
+<p>As you can see the only server that accepts writes is the primary but the secondaries allow for an intriguing possibility of scaling reads. Let's get a replicaset up and running.</p>
+<pre class="code console literal-block">
+<span class="go">~ $ mkdir ./data
+~ $ mkdir ./data/30000
+~ $ mkdir ./data/30001
+~ $ mkdir ./data/30002
+~ $ mkdir ./data/logs
+
+~ $ mongod --dbpath=./data/30000 --logpath=./data/logs/30000.log
+--replSet test --port 30000 --fork
+about to fork child process, waiting until server is ready for connections.
+forked process: 69559
+~ $ mongod --dbpath=./data/30001 --logpath=./data/logs/30001.log
+--replSet test --port 30001 --fork
+about to fork child process, waiting until server is ready for connections.
+forked process: 69560
+~ $ mongod --dbpath=./data/30002 --logpath=./data/logs/30002.log
+--replSet test --port 30002 --fork
+about to fork child process, waiting until server is ready for connections.
+forked process: 69561</span>
+</pre>
+<p>The next step is to configure the servers so they will connect to each other and form a working replicaset. A configuration is a simple <tt class="docutils literal">JSON</tt> document. Let's look at the a simple configuration for a replicaset where we have a single primary, one secondary and one arbiter</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span>
+    <span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="s2">&quot;test&quot;</span>
+  <span class="p">,</span> <span class="s2">&quot;version&quot;</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="s2">&quot;members&quot;</span><span class="o">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="mi">0</span>
+      <span class="p">,</span> <span class="s2">&quot;host&quot;</span><span class="o">:</span> <span class="s2">&quot;localhost:30000&quot;</span>
+    <span class="p">},</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="mi">1</span>
+      <span class="p">,</span> <span class="s2">&quot;host&quot;</span><span class="o">:</span> <span class="s2">&quot;localhost:30001&quot;</span>
+    <span class="p">},</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="mi">2</span>
+      <span class="p">,</span> <span class="s2">&quot;host&quot;</span><span class="o">:</span> <span class="s2">&quot;localhost:30002&quot;</span>
+      <span class="p">,</span> <span class="s2">&quot;arbiterOnly&quot;</span><span class="o">:</span> <span class="kc">true</span>
+    <span class="p">}</span>
+  <span class="p">]</span>
+<span class="p">}</span>
+</pre>
+<p>So let's have a look at what this configuration means. The top level <tt class="docutils literal">_id</tt> field is the <tt class="docutils literal">name</tt> of the replicaset. When we started the <tt class="docutils literal">mongod</tt> processes earlier we passed in an argument <tt class="docutils literal"><span class="pre">--replSet</span> test</tt>. This marks the <tt class="docutils literal">mongod</tt> process as being a part of a replicaset named <tt class="docutils literal">test</tt>. Our configuration's <tt class="docutils literal">_id</tt> field needs to match this name so we set it to <tt class="docutils literal">test</tt> aswell. The <tt class="docutils literal">version</tt> field is the version of this document. The reason this exists is that we can change the configuration of a replicaset at runtime and MongoDB uses the version number to ensure that we cannot revert to an older version (each new configuration needs to have an increasing version number).</p>
+<p>The last part is a field called <tt class="docutils literal">members</tt> that contains an array of documents, one for each of the servers in the replicaset. Let's look at them.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span>
+    <span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="mi">0</span>
+  <span class="p">,</span> <span class="s2">&quot;host&quot;</span><span class="o">:</span> <span class="s2">&quot;localhost:30000&quot;</span>
+<span class="p">}</span>
+
+<span class="p">{</span>
+    <span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="s2">&quot;host&quot;</span><span class="o">:</span> <span class="s2">&quot;localhost:30001&quot;</span>
+<span class="p">}</span>
+</pre>
+<p>The two first documents each have a <tt class="docutils literal">_id</tt> and <tt class="docutils literal">host</tt> field. The <tt class="docutils literal">_id</tt> field is a unique identifier inside the replicaset for that specific server. The <tt class="docutils literal">host</tt> field contains the host and port for the server.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span>
+      <span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="mi">2</span>
+    <span class="p">,</span> <span class="s2">&quot;host&quot;</span><span class="o">:</span> <span class="s2">&quot;localhost:30002&quot;</span>
+    <span class="p">,</span> <span class="s2">&quot;arbiterOnly&quot;</span><span class="o">:</span> <span class="kc">true</span>
+<span class="p">}</span>
+</pre>
+<p>Notice that the last document has an <tt class="docutils literal">arbiterOnly</tt> tag? That is because this last server is only going to be running as an arbiter for server elections (we will cover what elections are in a little bit) and will not service any reads or writes.</p>
+<p>So as you obviously have figured out there are some potential parameters that can be added to this configuration file. Let's go through all of the available ones as of MongoDB 2.4.</p>
+<div class="section" id="top-level-fields">
+<h2>Top Level Fields</h2>
+<table border="1" class="docutils">
+<colgroup>
+<col width="24%" />
+<col width="20%" />
+<col width="57%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Value</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>_id</td>
+<td>string</td>
+<td>The name of the replicaset</td>
+</tr>
+<tr><td>members</td>
+<td>array</td>
+<td>The array of members that are in the replicaset</td>
+</tr>
+<tr><td>settings</td>
+<td>doc</td>
+<td>Settings that apply to all servers in the replicaset</td>
+</tr>
+</tbody>
+</table>
+<p>Let's look at the fields we can define in a member document.</p>
+</div>
+<div class="section" id="member-fields">
+<h2>Member Fields</h2>
+<table border="1" class="docutils">
+<colgroup>
+<col width="7%" />
+<col width="6%" />
+<col width="87%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Value (Default)</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>chainingAllowed</td>
+<td>boolean (true)</td>
+<td>If true let's secondary to replicate from other secondaries instead of just the primary</td>
+</tr>
+<tr><td>getLastErrorDefaults</td>
+<td>doc</td>
+<td>Default behavior for getLastError command if none are provided from the driver</td>
+</tr>
+<tr><td>getLastErrorModes</td>
+<td>doc</td>
+<td>Let's you set up getLastError shortnames that move the configuration details of a write concern to the server configuration. One example might be a <tt class="docutils literal">MultipleDC</tt> write concern that means different things in different server environment or might change over time.</td>
+</tr>
+</tbody>
+</table>
+<p>Similarly the settings field can have several different options</p>
+</div>
+<div class="section" id="settings-fields">
+<h2>Settings Fields</h2>
+<table border="1" class="docutils">
+<colgroup>
+<col width="7%" />
+<col width="6%" />
+<col width="87%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Value (Default)</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>_id</td>
+<td>ordinal</td>
+<td>The zero-indexed identifier of every member in the replicaset</td>
+</tr>
+<tr><td>host</td>
+<td>host:port</td>
+<td>The host/port location of the member (ex: &quot;localhost:30000&quot;)</td>
+</tr>
+<tr><td>arbiterOnly</td>
+<td>boolean (false)</td>
+<td>Sets if the server is an arbiter</td>
+</tr>
+<tr><td>buildIndexes</td>
+<td>boolean (true)</td>
+<td>Determines if <tt class="docutils literal">mongod</tt> builds indexes on this member</td>
+</tr>
+<tr><td>hidden</td>
+<td>boolean (false)</td>
+<td>If set the server is hidden and not included in the command <tt class="docutils literal">isMaster</tt> meaning no reads or writes will go to this server</td>
+</tr>
+<tr><td>priority</td>
+<td>integer (1)</td>
+<td>The server with the highest priority becomes more eligible to become primary in a replicaset. If you set the priority to <tt class="docutils literal">0</tt> the node can never become a primary.</td>
+</tr>
+<tr><td>tags</td>
+<td>doc</td>
+<td>Allows you to tag a specific server with arbitrary tags that can be used to mark servers f.ex with geographical location. The tags can be used from the driver to f.ex direct reads to closer servers (only read from tags tagged with Germany from German application servers)</td>
+</tr>
+<tr><td>slaveDelay</td>
+<td>integer (0)</td>
+<td>Allows you to tell the server to lag <tt class="docutils literal">X</tt> seconds behind the primary. Can be used to ensure you have a window of recovery if data is corrupted on the primary.</td>
+</tr>
+</tbody>
+</table>
+<p>Alright let's get connected and configure the replicaset so it will be up and running.</p>
+<pre class="code javascript literal-block">
+<span class="o">~</span> <span class="nx">$</span> <span class="nx">mongo</span> <span class="o">--</span><span class="nx">port</span> <span class="mi">30000</span>
+<span class="nx">MongoDB</span> <span class="nx">shell</span> <span class="nx">version</span><span class="o">:</span> <span class="mf">2.4</span><span class="p">.</span><span class="mi">3</span>
+<span class="nx">connecting</span> <span class="nx">to</span><span class="o">:</span> <span class="mf">127.0</span><span class="p">.</span><span class="mf">0.1</span><span class="o">:</span><span class="mi">30000</span><span class="o">/</span><span class="nx">test</span>
+<span class="o">&gt;</span> <span class="nx">c</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="s2">&quot;test&quot;</span><span class="p">,</span> <span class="s2">&quot;version&quot;</span><span class="o">:</span> <span class="mi">1</span>
+<span class="p">,</span> <span class="s2">&quot;members&quot;</span><span class="o">:</span> <span class="p">[</span><span class="p">{</span> <span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;host&quot;</span><span class="o">:</span> <span class="s2">&quot;localhost:30000&quot;</span><span class="p">}</span>
+<span class="p">,</span><span class="p">{</span><span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;host&quot;</span><span class="o">:</span> <span class="s2">&quot;localhost:30001&quot;</span><span class="p">}</span>
+<span class="p">,</span><span class="p">{</span><span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;host&quot;</span><span class="o">:</span> <span class="s2">&quot;localhost:30002&quot;</span><span class="p">,</span> <span class="s2">&quot;arbiterOnly&quot;</span><span class="o">:</span> <span class="kc">true</span><span class="p">}]}</span>
+<span class="p">{</span>
+  <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="s2">&quot;test&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;version&quot;</span> <span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+  <span class="s2">&quot;members&quot;</span> <span class="o">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+      <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">0</span><span class="p">,</span>
+      <span class="s2">&quot;host&quot;</span> <span class="o">:</span> <span class="s2">&quot;localhost:30000&quot;</span>
+    <span class="p">},</span>
+    <span class="p">{</span>
+      <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+      <span class="s2">&quot;host&quot;</span> <span class="o">:</span> <span class="s2">&quot;localhost:30001&quot;</span>
+    <span class="p">},</span>
+    <span class="p">{</span>
+      <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">2</span><span class="p">,</span>
+      <span class="s2">&quot;host&quot;</span> <span class="o">:</span> <span class="s2">&quot;localhost:30002&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;arbiterOnly&quot;</span> <span class="o">:</span> <span class="kc">true</span>
+    <span class="p">}</span>
+  <span class="p">]</span>
+<span class="p">}</span>
+<span class="o">&gt;</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">initiate</span><span class="p">(</span><span class="nx">c</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="s2">&quot;info&quot;</span> <span class="o">:</span> <span class="s2">&quot;Config now saved locally.  Should come online in about a minute.&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;ok&quot;</span> <span class="o">:</span> <span class="mi">1</span>
+<span class="p">}</span>
+<span class="nx">test</span><span class="o">:</span><span class="nx">STARTUP2</span><span class="o">&gt;</span> <span class="nx">rs</span><span class="p">.</span><span class="nx">status</span><span class="p">(</span><span class="p">)</span>
+<span class="p">{</span>
+  <span class="s2">&quot;set&quot;</span> <span class="o">:</span> <span class="s2">&quot;test&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;date&quot;</span> <span class="o">:</span> <span class="nx">ISODate</span><span class="p">(</span><span class="s2">&quot;2013-05-29T12:51:48Z&quot;</span><span class="p">),</span>
+  <span class="s2">&quot;myState&quot;</span> <span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+  <span class="s2">&quot;members&quot;</span> <span class="o">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+      <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">0</span><span class="p">,</span>
+      <span class="s2">&quot;name&quot;</span> <span class="o">:</span> <span class="s2">&quot;localhost:30000&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;health&quot;</span> <span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+      <span class="s2">&quot;state&quot;</span> <span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+      <span class="s2">&quot;stateStr&quot;</span> <span class="o">:</span> <span class="s2">&quot;PRIMARY&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;uptime&quot;</span> <span class="o">:</span> <span class="mi">2573</span><span class="p">,</span>
+      <span class="s2">&quot;optime&quot;</span> <span class="o">:</span> <span class="p">{</span>
+        <span class="s2">&quot;t&quot;</span> <span class="o">:</span> <span class="mi">1369831875</span><span class="p">,</span>
+        <span class="s2">&quot;i&quot;</span> <span class="o">:</span> <span class="mi">1</span>
+      <span class="p">},</span>
+      <span class="s2">&quot;optimeDate&quot;</span> <span class="o">:</span> <span class="nx">ISODate</span><span class="p">(</span><span class="s2">&quot;2013-05-29T12:51:15Z&quot;</span><span class="p">),</span>
+      <span class="s2">&quot;self&quot;</span> <span class="o">:</span> <span class="kc">true</span>
+    <span class="p">},</span>
+    <span class="p">{</span>
+      <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+      <span class="s2">&quot;name&quot;</span> <span class="o">:</span> <span class="s2">&quot;localhost:30001&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;health&quot;</span> <span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+      <span class="s2">&quot;state&quot;</span> <span class="o">:</span> <span class="mi">2</span><span class="p">,</span>
+      <span class="s2">&quot;stateStr&quot;</span> <span class="o">:</span> <span class="s2">&quot;SECONDARY&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;uptime&quot;</span> <span class="o">:</span> <span class="mi">33</span><span class="p">,</span>
+      <span class="s2">&quot;optime&quot;</span> <span class="o">:</span> <span class="p">{</span>
+        <span class="s2">&quot;t&quot;</span> <span class="o">:</span> <span class="mi">1369831875</span><span class="p">,</span>
+        <span class="s2">&quot;i&quot;</span> <span class="o">:</span> <span class="mi">1</span>
+      <span class="p">},</span>
+      <span class="s2">&quot;optimeDate&quot;</span> <span class="o">:</span> <span class="nx">ISODate</span><span class="p">(</span><span class="s2">&quot;2013-05-29T12:51:15Z&quot;</span><span class="p">),</span>
+      <span class="s2">&quot;lastHeartbeat&quot;</span> <span class="o">:</span> <span class="nx">ISODate</span><span class="p">(</span><span class="s2">&quot;2013-05-29T12:51:47Z&quot;</span><span class="p">),</span>
+      <span class="s2">&quot;lastHeartbeatRecv&quot;</span> <span class="o">:</span> <span class="nx">ISODate</span><span class="p">(</span><span class="s2">&quot;1970-01-01T00:00:00Z&quot;</span><span class="p">),</span>
+      <span class="s2">&quot;pingMs&quot;</span> <span class="o">:</span> <span class="mi">0</span>
+    <span class="p">},</span>
+    <span class="p">{</span>
+      <span class="s2">&quot;_id&quot;</span> <span class="o">:</span> <span class="mi">2</span><span class="p">,</span>
+      <span class="s2">&quot;name&quot;</span> <span class="o">:</span> <span class="s2">&quot;localhost:30002&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;health&quot;</span> <span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+      <span class="s2">&quot;state&quot;</span> <span class="o">:</span> <span class="mi">7</span><span class="p">,</span>
+      <span class="s2">&quot;stateStr&quot;</span> <span class="o">:</span> <span class="s2">&quot;ARBITER&quot;</span><span class="p">,</span>
+      <span class="s2">&quot;uptime&quot;</span> <span class="o">:</span> <span class="mi">31</span><span class="p">,</span>
+      <span class="s2">&quot;lastHeartbeat&quot;</span> <span class="o">:</span> <span class="nx">ISODate</span><span class="p">(</span><span class="s2">&quot;2013-05-29T12:51:47Z&quot;</span><span class="p">),</span>
+      <span class="s2">&quot;lastHeartbeatRecv&quot;</span> <span class="o">:</span> <span class="nx">ISODate</span><span class="p">(</span><span class="s2">&quot;1970-01-01T00:00:00Z&quot;</span><span class="p">),</span>
+      <span class="s2">&quot;pingMs&quot;</span> <span class="o">:</span> <span class="mi">0</span>
+    <span class="p">}</span>
+  <span class="p">],</span>
+  <span class="s2">&quot;ok&quot;</span> <span class="o">:</span> <span class="mi">1</span>
+<span class="p">}</span>
+</pre>
+<p>I might take a little while before <tt class="docutils literal">rs.status()</tt> returns with a result similar to the one above. Just be patient it will eventually finish starting up and get to a stable state. You should see one <tt class="docutils literal">primary</tt> server, one <tt class="docutils literal">secondary</tt> server and an <tt class="docutils literal">arbiter</tt>.</p>
+<p>We are now up and running let's fire up our editor and get connected.</p>
+<pre class="code javascript literal-block">
+<span class="kd">var</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'mongodb'</span><span class="p">).</span><span class="nx">MongoClient</span><span class="p">;</span>
+
+<span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:30000/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">err</span><span class="p">;</span>
+
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to the database&quot;</span><span class="p">);</span>
+  <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">(</span><span class="p">);</span>
+<span class="p">});</span>
+</pre>
+<p>Only a single address in the <tt class="docutils literal">connect</tt> function you might ask? The reason is because the replicaset is self discovering. You need only point to a single member of the replicaset for it to discover the other members. Obviously more than on address is better as the connection will fail if that single <tt class="docutils literal">seed</tt> server it not up when the application tries to connect. Let's change it slightly to reflect this.</p>
+<pre class="code javascript literal-block">
+<span class="kd">var</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'mongodb'</span><span class="p">).</span><span class="nx">MongoClient</span><span class="p">;</span>
+
+<span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:30000,localhost:30001/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">err</span><span class="p">;</span>
+
+  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to the database&quot;</span><span class="p">);</span>
+  <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">(</span><span class="p">);</span>
+<span class="p">});</span>
+</pre>
+<p>That's it when it comes to connecting to the Replicaset from your application. Now let's discover one of the more powerful aspects of the replicasets, namely read preferences.</p>
+</div>
+</div>
+<div class="section" id="read-preferences">
+<h1>Read Preferences</h1>
+<p>One of the things introduces in 2.2 or higher is the concept of read preferences. The reason was to allow more flexibility to the application developer in where their application reads from. Say you don't need up to the millisecond updated data (say a content management system where you publish articles). Since you have a replicaset it would be useful to read from one of the <tt class="docutils literal">secondaries</tt> instead of from the <tt class="docutils literal">primary</tt> so you could scale your reads by leveraging the multiple <tt class="docutils literal">secondaries</tt> you have in your replicaset. Or maybe you need the application reads only to go against local data center <tt class="docutils literal">secondaries</tt> that are replicated across from another datacenter. That's where read preferences and tags come in. Let's quickly look at an overview of the possible read preference concepts the driver has.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="16%" />
+<col width="84%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Read Preference</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>Primary</td>
+<td>The read should only go to the primary</td>
+</tr>
+<tr><td>Primary Preferred</td>
+<td>The read should go to the primary if available but two a secondary if not available</td>
+</tr>
+<tr><td>Secondary</td>
+<td>The read should go to a secondary only</td>
+</tr>
+<tr><td>Secondary Preferred</td>
+<td>The read should go to the primary only if a secondary is not available</td>
+</tr>
+<tr><td>Nearest</td>
+<td>The read should go to the nearest server (including secondaries and primary) within an acceptable latency period</td>
+</tr>
+</tbody>
+</table>
+<p>As you can see the read preferences give you control over how your read's should behave. The second part of the read preferences are the tags.</p>
+<p>As we saw above you can add a field called <tt class="docutils literal">tags</tt> for a <tt class="docutils literal">member</tt> document in the replicaset configuration. Tags can be used to identify a server as having some specific location or anything else you can think off. Let's look at an example configuration with tags.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span>
+    <span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="s2">&quot;test&quot;</span>
+  <span class="p">,</span> <span class="s2">&quot;version&quot;</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="s2">&quot;members&quot;</span><span class="o">:</span> <span class="p">[</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="mi">0</span>
+      <span class="p">,</span> <span class="s2">&quot;host&quot;</span><span class="o">:</span> <span class="s2">&quot;localhost:30000&quot;</span>
+      <span class="p">,</span> <span class="s2">&quot;tags&quot;</span><span class="o">:</span> <span class="p">{</span>
+        <span class="s2">&quot;dc&quot;</span><span class="o">:</span> <span class="s2">&quot;ny&quot;</span>
+      <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="mi">1</span>
+      <span class="p">,</span> <span class="s2">&quot;host&quot;</span><span class="o">:</span> <span class="s2">&quot;localhost:30001&quot;</span>
+      <span class="p">,</span> <span class="s2">&quot;tags&quot;</span><span class="o">:</span> <span class="p">{</span>
+        <span class="s2">&quot;dc&quot;</span><span class="o">:</span> <span class="s2">&quot;ny&quot;</span>
+      <span class="p">}</span>
+    <span class="p">},</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="mi">2</span>
+      <span class="p">,</span> <span class="s2">&quot;host&quot;</span><span class="o">:</span> <span class="s2">&quot;localhost:30002&quot;</span>
+      <span class="p">,</span> <span class="s2">&quot;tags&quot;</span><span class="o">:</span> <span class="p">{</span>
+        <span class="s2">&quot;dc&quot;</span><span class="o">:</span> <span class="s2">&quot;sf&quot;</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">]</span>
+<span class="p">}</span>
+</pre>
+<p>In this configuration we have one <tt class="docutils literal">primary</tt> and two <tt class="docutils literal">secondaries</tt>. Notice how we have added the <tt class="docutils literal">&quot;dc&quot;: &quot;ny&quot;</tt> tag to the two first servers indicating that they are physically located in New York. The last one has the tag <tt class="docutils literal">&quot;dc&quot;: &quot;sf&quot;</tt> indicating it's located in San Francisco. In a bit we will see how we can use the tags to direct our reads to a server with a specific tag.</p>
+<p>So how do we use read preference with the driver? It's fairly simple as we will see, but first we need to understand the inheritance of read preferences in the driver. Let's have a look at our connection example from above but this time we will set a read preference.</p>
+<pre class="code javascript literal-block">
+<span class="kd">var</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'mongodb'</span><span class="p">).</span><span class="nx">MongoClient</span><span class="p">;</span>
+
+<span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:30000/test?readPreference=primaryPreferred&quot;</span>
+  <span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">err</span><span class="p">;</span>
+      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to the database&quot;</span><span class="p">);</span>
+
+      <span class="kd">var</span> <span class="nx">articles</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'articles'</span><span class="p">);</span>
+
+      <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">(</span><span class="p">);</span>
+  <span class="p">});</span>
+</pre>
+<p>The <tt class="docutils literal">db</tt> instance returned will have it's read preference set to <tt class="docutils literal">primaryPreferred</tt> and the <tt class="docutils literal">articles</tt> collection instance will inherit the read preference settings from the <tt class="docutils literal">db</tt>, meaning all read operations using the <tt class="docutils literal">articles</tt> collection will use <tt class="docutils literal">primaryPreferred</tt>. But what if we need to override the collections <tt class="docutils literal">read preference</tt> as we intend reads to happen from a <tt class="docutils literal">secondary</tt> not from a <tt class="docutils literal">primary</tt>. Luckily this is fairly easy. Let's see how.</p>
+<pre class="code javascript literal-block">
+<span class="kd">var</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'mongodb'</span><span class="p">).</span><span class="nx">MongoClient</span>
+  <span class="p">,</span> <span class="nx">ReadPreference</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'mongodb'</span><span class="p">).</span><span class="nx">ReadPreference</span><span class="p">;</span>
+
+<span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:30000/test?readPreference=primaryPreferred&quot;</span>
+  <span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">err</span><span class="p">;</span>
+      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to the database&quot;</span><span class="p">);</span>
+
+      <span class="kd">var</span> <span class="nx">articles</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'articles'</span>
+        <span class="p">,</span> <span class="p">{</span><span class="nx">readPreference</span><span class="o">:</span> <span class="nx">ReadPreference</span><span class="p">.</span><span class="nx">SECONDARY_PREFERRED</span><span class="p">});</span>
+
+      <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">(</span><span class="p">);</span>
+  <span class="p">});</span>
+</pre>
+<p>Any read operations on the <tt class="docutils literal">articles</tt> collection will now be executed with the <tt class="docutils literal">secondaryPreferred</tt> read preference instead of the default one for the database <tt class="docutils literal">primaryPreferred</tt>. Even then imagine that there is a particular query we want to ensure is run against the <tt class="docutils literal">primary</tt> instead of a secondary. Luckily that's possible as well. Let's see how.</p>
+<pre class="code javascript literal-block">
+<span class="kd">var</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'mongodb'</span><span class="p">).</span><span class="nx">MongoClient</span>
+  <span class="p">,</span> <span class="nx">ReadPreference</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'mongodb'</span><span class="p">).</span><span class="nx">ReadPreference</span><span class="p">;</span>
+
+<span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:30000/test?readPreference=primaryPreferred&quot;</span>
+  <span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">err</span><span class="p">;</span>
+      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to the database&quot;</span><span class="p">);</span>
+
+      <span class="kd">var</span> <span class="nx">articles</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'articles'</span>
+        <span class="p">,</span> <span class="p">{</span><span class="nx">readPreference</span><span class="o">:</span> <span class="nx">ReadPreference</span><span class="p">.</span><span class="nx">SECONDARY_PREFERRED</span><span class="p">});</span>
+
+      <span class="kd">var</span> <span class="nx">cursor</span> <span class="o">=</span> <span class="nx">articles</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="p">{</span><span class="p">},</span> <span class="p">{</span><span class="nx">readPreference</span><span class="o">:</span> <span class="nx">ReadPreference</span><span class="p">.</span><span class="nx">PRIMARY</span><span class="p">});</span>
+
+      <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">(</span><span class="p">);</span>
+  <span class="p">});</span>
+</pre>
+<p>The <tt class="docutils literal">cursor</tt> returned from the <tt class="docutils literal">find</tt> method will now have the <tt class="docutils literal">primary</tt> read preference instead of the <tt class="docutils literal">secondaryPreferred</tt> specified in it's collection instance. So as you can see you can read preferences down to the individual query issues against the replicaset. Most of the read preferences are fairly simple but the <tt class="docutils literal">nearest</tt> one require a bit more explanation. The idea of the <tt class="docutils literal">nearest</tt> read preference is to attempt to steer the queries to the server that's the closest. This might sound like it's always the closest one but in fact it's not always true. The definition is actually the closest inside an acceptable latency window from the server with the lowest current pingtime. There is an optional parameter that can be passed into <tt class="docutils literal">MongoClient.connect</tt> that lets you change the value, but the default is <tt class="docutils literal">15ms</tt>. So how does it work.</p>
+<p>The driver will ping all <tt class="docutils literal">secondaries</tt> and the <tt class="docutils literal">primary</tt> at a regular interval. Saw we get the following results.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="57%" />
+<col width="43%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Server</th>
+<th class="head">Ping Time</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>localhost:30000</td>
+<td>1 ms</td>
+</tr>
+<tr><td>localhost:30001</td>
+<td>10 ms</td>
+</tr>
+<tr><td>localhost:30001</td>
+<td>50 ms</td>
+</tr>
+</tbody>
+</table>
+<p>The driver establishes the lowest ping time to be <tt class="docutils literal">1 ms</tt> and since the <tt class="docutils literal">acceptable</tt> latency window is <tt class="docutils literal">15 ms</tt> only servers with a ping time less than <tt class="docutils literal">16 ms</tt> will be candidates for reads.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="57%" />
+<col width="43%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Server</th>
+<th class="head">Ping Time</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>localhost:30000</td>
+<td>1 ms</td>
+</tr>
+<tr><td>localhost:30001</td>
+<td>10 ms</td>
+</tr>
+</tbody>
+</table>
+<p>In our case that will be servers <tt class="docutils literal">localhost:30000</tt> and <tt class="docutils literal">localhost:30001</tt>. So how can you change the acceptable latency window? Let's take a quick look.</p>
+<pre class="code javascript literal-block">
+<span class="kd">var</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'mongodb'</span><span class="p">).</span><span class="nx">MongoClient</span><span class="p">;</span>
+
+<span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:30000/test?readPreference=nearest&quot;</span><span class="p">,</span> <span class="p">{</span>
+  <span class="nx">replSet</span><span class="o">:</span> <span class="p">{</span><span class="nx">secondaryAcceptableLatencyMS</span><span class="o">:</span> <span class="mi">50</span><span class="p">}</span>
+<span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">err</span><span class="p">;</span>
+
+  <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">(</span><span class="p">);</span>
+<span class="p">});</span>
+</pre>
+<p>We changed the acceptable latency window to <tt class="docutils literal">50ms</tt> which in our example above would not include all tree servers as possible candidates for reads.</p>
+<p>But what if our application should only read from the San Francisco <tt class="docutils literal">secondary</tt>. Let's see how that is accomplished.</p>
+<pre class="code javascript literal-block">
+<span class="kd">var</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'mongodb'</span><span class="p">).</span><span class="nx">MongoClient</span>
+  <span class="p">,</span> <span class="nx">ReadPreference</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'mongodb'</span><span class="p">).</span><span class="nx">ReadPreference</span><span class="p">;</span>
+
+<span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:30000/test?&quot;</span>
+  <span class="o">+</span> <span class="s2">&quot;readPreference=secondaryPreferred&quot;</span>
+  <span class="o">+</span> <span class="s2">&quot;&amp;readPreferenceTags=dc:sf&quot;</span>
+  <span class="o">+</span> <span class="s2">&quot;&amp;readPreferenceTags=dc:ny&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">err</span><span class="p">;</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to the database&quot;</span><span class="p">);</span>
+
+    <span class="kd">var</span> <span class="nx">articles</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'articles'</span>
+      <span class="p">,</span> <span class="p">{</span><span class="nx">readPreference</span><span class="o">:</span> <span class="nx">ReadPreference</span><span class="p">.</span><span class="nx">SECONDARY_PREFERRED</span><span class="p">});</span>
+
+    <span class="kd">var</span> <span class="nx">cursor</span> <span class="o">=</span> <span class="nx">articles</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="p">{</span><span class="p">},</span> <span class="p">{</span><span class="nx">readPreference</span><span class="o">:</span> <span class="nx">ReadPreference</span><span class="p">.</span><span class="nx">PRIMARY</span><span class="p">});</span>
+
+    <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">(</span><span class="p">);</span>
+  <span class="p">});</span>
+</pre>
+<p>Let's have a look at the connection string. Notice <tt class="docutils literal">readPreferenceTags=dc:sf</tt> and <tt class="docutils literal">readPreferenceTags=dc:ny</tt>. These tells the driver to prefer servers that are tagged with <tt class="docutils literal"><span class="pre">&quot;dc&quot;:&quot;df&quot;</span></tt> before any tagged with <tt class="docutils literal"><span class="pre">&quot;dc&quot;:&quot;ny&quot;</span></tt>. The order of the <tt class="docutils literal">readPreferenceTags=dc:ny</tt> matter as the first one will be the most important one. Just as in the previous example tags can be overridden at a <tt class="docutils literal">collection</tt> and individual <tt class="docutils literal">query</tt> level. Let's see how.</p>
+<pre class="code javascript literal-block">
+<span class="kd">var</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'mongodb'</span><span class="p">).</span><span class="nx">MongoClient</span>
+  <span class="p">,</span> <span class="nx">ReadPreference</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'mongodb'</span><span class="p">).</span><span class="nx">ReadPreference</span><span class="p">;</span>
+
+<span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:30000/test?&quot;</span>
+  <span class="o">+</span> <span class="s2">&quot;readPreference=secondaryPreferred&quot;</span>
+  <span class="o">+</span> <span class="s2">&quot;&amp;readPreferenceTags=dc:sf&quot;</span>
+  <span class="o">+</span> <span class="s2">&quot;&amp;readPreferenceTags=dc:ny&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">err</span><span class="p">;</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to the database&quot;</span><span class="p">);</span>
+
+    <span class="kd">var</span> <span class="nx">articles</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'articles'</span><span class="p">);</span>
+
+    <span class="kd">var</span> <span class="nx">cursor</span> <span class="o">=</span> <span class="nx">articles</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="p">{</span><span class="p">}</span>
+      <span class="p">,</span> <span class="p">{</span><span class="nx">readPreference</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ReadPreference</span><span class="p">(</span><span class="nx">ReadPreference</span><span class="p">.</span><span class="nx">PRIMARY</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;dc&quot;</span><span class="o">:</span> <span class="s2">&quot;ny&quot;</span><span class="p">}});</span>
+
+    <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">(</span><span class="p">);</span>
+  <span class="p">});</span>
+</pre>
+<p>We create an instance of the <tt class="docutils literal">ReadPreference</tt> class pass in the desired tags as the second parameter of the constructor. The <tt class="docutils literal">cursor</tt> from the <tt class="docutils literal">articles.find</tt> will now attempt to read from the New York tagged server instead of the San Francisco one.</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">Tags can be used to create some fairly sophisticated read topologies in your application such as allowing the application to be aware of the geographical location of your servers. When we look at sharding we will see the tags put to some fairly sophisticated uses.</p>
+</div>
+</div>
+    </div>
+
+    <div class="one columns" id="right-nav">
+        <center>
+        <p><a href="/book/"><img src="images/48_structure.png"></a></p>
+        <p><a href="#"><img src="images/48_email.png"></a></p>
+        <p><a href="#faq"><img src="images/48_faq.png"></a></p>
+        <p>
+        </p>
+        </center>
+    </div>
+
+  <!-- Included JS Files (Compressed) -->
+  <script src="javascripts/jquery.js"></script>
+  <script src="javascripts/foundation.min.js"></script>
+  
+  <!-- Initialize JS Plugins -->
+  <script src="javascripts/app.js"></script>
+
+</body>
+</html>

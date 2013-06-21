@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+    <!--[if gt IE 8]><!-->
+<html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8" />
+
+  <!-- Set the viewport width to device width for mobile -->
+  <meta name="viewport" content="width=device-width" />
+
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
+<title>Tic-Tac-Toe: Exercise 2</title>
+
+  <!-- Included CSS Files (Compressed) -->
+  <link rel="stylesheet" href="stylesheets/foundation.min.css">
+  <link rel="stylesheet" href="stylesheets/pygments.css">
+  <link rel="stylesheet" href="stylesheets/app.css">
+
+  <script src="javascripts/modernizr.foundation.js"></script>
+
+  <!-- IE Fix for HTML5 Tags -->
+  <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+</head>
+<body>
+
+  <div class="row">
+          <h1 class="title">Tic-Tac-Toe: Exercise 2</h1>
+      </div>
+  </div>
+
+  <div class="row">
+    <div class="eleven columns">
+        <p>Welcome back it's time to start implementing the first parts of our game. In this exercise we will focus on the registration and login process for the game allowing our marks (I mean potential tic-tac-toe players) to register as players and to return to wet their addiction in the future with a user and password. Since we want to keep the registration process as simple as possible we are going to just remove such fancy things as email verification or captchas (feel free to add this if you fear an avalanche of 419 scammers).</p>
+<p>As we touched on in the last exercise we decided to go with an API over <tt class="docutils literal">SocketIO</tt> as it's all the rage (at least in 2013 when this was written) and we've forgone any fancy frameworks like <tt class="docutils literal">meteor</tt>, <tt class="docutils literal">geddy</tt> or <tt class="docutils literal">socketstream</tt> to make it very clear what's going on (I hope).</p>
+<div class="section" id="where-is-the-code">
+<h1>Where Is The Code</h1>
+<p>The code for this exercise is located at</p>
+<p><a class="reference external" href="https://github.com/christkv/tic-tac-toe-steps/tree/step1">https://github.com/christkv/tic-tac-toe-steps/tree/step1</a></p>
+</div>
+<div class="section" id="it-s-like-lego-but-with-code">
+<h1>It's Like LEGO But With Code</h1>
+<p>Let's create the files we are going to be using in our exercise.</p>
+<pre class="code console literal-block">
+<span class="go">touch lib/handlers/login_handler.js
+touch lib/models/shared.js
+touch lib/models/user.js
+touch lib/models/gamer.js</span>
+</pre>
+<p>We are going to need two API calls for our registration and login process. The first method one is to <tt class="docutils literal">register</tt> a new user and the second method, is to allow an existing user to <tt class="docutils literal">login</tt>. Open the <tt class="docutils literal">app.js</tt> file and add the new handlers for our API calls.</p>
+<div class="highlight"><pre><a name="code--tic--tic2--tic1.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">env</span>                      <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;./env&#39;</span><span class="p">)</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">main_controller</span>          <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;./lib/controllers/main_controller&#39;</span><span class="p">);</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-3"></a>
+<a name="code--tic--tic2--tic1.js-pyg.html-4"></a><span class="kd">var</span> <span class="nx">register_handler</span>         <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;./lib/handlers/login_handler&#39;</span><span class="p">).</span><span class="nx">register_handler</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-5"></a>  <span class="p">,</span> <span class="nx">login_handler</span>            <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;./lib/handlers/login_handler&#39;</span><span class="p">).</span><span class="nx">login_handler</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-6"></a>
+<a name="code--tic--tic2--tic1.js-pyg.html-7"></a>
+<a name="code--tic--tic2--tic1.js-pyg.html-8"></a><span class="nx">env</span><span class="p">.</span><span class="nx">initialize</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">app</span><span class="p">,</span> <span class="nx">io</span><span class="p">,</span> <span class="nx">session_store</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-9"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">err</span><span class="p">;</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-10"></a>
+<a name="code--tic--tic2--tic1.js-pyg.html-11"></a>  <span class="c1">//</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-12"></a>  <span class="c1">// http routes</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-13"></a>  <span class="c1">//</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-14"></a>  <span class="nx">app</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="nx">main_controller</span><span class="p">.</span><span class="nx">index</span><span class="p">());</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-15"></a>
+<a name="code--tic--tic2--tic1.js-pyg.html-16"></a>  <span class="c1">//</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-17"></a>  <span class="c1">// websocket api end point handlers (our API)</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-18"></a>  <span class="c1">//</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-19"></a>  <span class="nx">io</span><span class="p">.</span><span class="nx">sockets</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;connection&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">socket</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-20"></a>    <span class="nx">socket</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;register&#39;</span><span class="p">,</span> <span class="nx">register_handler</span><span class="p">(</span><span class="nx">io</span><span class="p">,</span> <span class="nx">socket</span><span class="p">,</span> <span class="nx">session_store</span><span class="p">,</span> <span class="nx">db</span><span class="p">));</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-21"></a>    <span class="nx">socket</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;login&#39;</span><span class="p">,</span> <span class="nx">login_handler</span><span class="p">(</span><span class="nx">io</span><span class="p">,</span> <span class="nx">socket</span><span class="p">,</span> <span class="nx">session_store</span><span class="p">,</span> <span class="nx">db</span><span class="p">));</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-22"></a>
+<a name="code--tic--tic2--tic1.js-pyg.html-23"></a>    <span class="c1">// Fire the init message to setup the game</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-24"></a>    <span class="nx">socket</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="p">{</span><span class="nx">event</span><span class="o">:</span><span class="s1">&#39;init&#39;</span><span class="p">,</span> <span class="nx">ok</span><span class="o">:</span><span class="kc">true</span><span class="p">,</span> <span class="nx">result</span><span class="o">:</span> <span class="nx">socket</span><span class="p">.</span><span class="nx">handshake</span><span class="p">.</span><span class="nx">sessionID</span><span class="p">});</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-25"></a>  <span class="p">});</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-26"></a>
+<a name="code--tic--tic2--tic1.js-pyg.html-27"></a>  <span class="c1">//</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-28"></a>  <span class="c1">// fire up the server</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-29"></a>  <span class="c1">//  </span>
+<a name="code--tic--tic2--tic1.js-pyg.html-30"></a>  <span class="nx">env</span><span class="p">.</span><span class="nx">run</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-31"></a>    <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">err</span><span class="p">;</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-32"></a>
+<a name="code--tic--tic2--tic1.js-pyg.html-33"></a>    <span class="c1">//</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-34"></a>    <span class="c1">// nothing to do</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-35"></a>    <span class="c1">//</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-36"></a>  <span class="p">});</span>
+<a name="code--tic--tic2--tic1.js-pyg.html-37"></a><span class="p">});</span>
+</pre></div><p>Notice that we are adding the handlers as events to the socket connection. This is because we are using the custom event functionality of <tt class="docutils literal">SocketIO</tt> to map our messages from the <tt class="docutils literal">frontend</tt> javascript to the backend API.</p>
+<pre class="code javascript literal-block">
+<span class="nx">socket</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">'register'</span><span class="p">,</span> <span class="nx">register_handler</span><span class="p">(</span><span class="nx">io</span><span class="p">,</span> <span class="nx">socket</span><span class="p">,</span> <span class="nx">session_store</span><span class="p">,</span> <span class="nx">db</span><span class="p">));</span>
+<span class="nx">socket</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">'login'</span><span class="p">,</span> <span class="nx">login_handler</span><span class="p">(</span><span class="nx">io</span><span class="p">,</span> <span class="nx">socket</span><span class="p">,</span> <span class="nx">session_store</span><span class="p">,</span> <span class="nx">db</span><span class="p">));</span>
+</pre>
+<p>We pass in the <tt class="docutils literal">io</tt> variable that represents our <tt class="docutils literal">SocketIO</tt> instance allowing us to interact with all of the other <tt class="docutils literal">SocketIO</tt> connections. Next is the current <tt class="docutils literal">socket</tt> representing the current user, then the <tt class="docutils literal">session store</tt> so we can do such stuff as registering if the user is currently logged on or not and finally the <tt class="docutils literal">db</tt> instance so we can interact with <tt class="docutils literal">MongoDB</tt>.</p>
+<p>We are defining both of these <tt class="docutils literal">handler</tt> functions in the <tt class="docutils literal">lib/handlers/login_handler.js</tt> file and then including them at the top of the file using <tt class="docutils literal">require</tt>.</p>
+<pre class="code javascript literal-block">
+<span class="kd">var</span> <span class="nx">register_handler</span>     <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'./lib/handlers/login_handler'</span><span class="p">).</span><span class="nx">register_handler</span>
+  <span class="p">,</span> <span class="nx">login_handler</span>        <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">'./lib/handlers/login_handler'</span><span class="p">).</span><span class="nx">login_handler</span>
+</pre>
+<p>Don't worry how these handlers look we will get back to them in a minute. First we need to talk a bit about how our data structures look.</p>
+</div>
+<div class="section" id="modeling-that-data">
+<h1>Modeling That Data</h1>
+<p>It's quite obvious that we need some sort of entities (data structures) in our game. In this game we've decided to use the two terms <tt class="docutils literal">user</tt> and <tt class="docutils literal">gamer</tt> where <tt class="docutils literal">user</tt> is the login and user information for a particular mark(user) and gamer is the current <tt class="docutils literal">session</tt> relationship between a <tt class="docutils literal">user</tt> in <tt class="docutils literal">MongoDB</tt> and the browser the user is playing on.</p>
+<p>For the user we will need a couple of functions to allow us to correctly implement a <tt class="docutils literal">registration</tt> and <a href="#id1"><span class="problematic" id="id2">``</span></a>login process`.</p>
+<div class="system-message" id="id1">
+<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">tic2.rst</tt>, line 97); <em><a href="#id2">backlink</a></em></p>
+Inline literal start-string without end-string.</div>
+<table border="1" class="docutils">
+<colgroup>
+<col width="24%" />
+<col width="76%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Function</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>findByUser</td>
+<td>Locate a user object by user name</td>
+</tr>
+<tr><td>findByUserAndPassword</td>
+<td>Locate a user by username and password, used for login verification</td>
+</tr>
+<tr><td>createUser</td>
+<td>Create a user with his full name, user name and elected password</td>
+</tr>
+</tbody>
+</table>
+<p>Let's Implement the user module, fire up the editor again and enter.</p>
+<div class="highlight"><pre><a name="code--tic--tic2--tic2.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">crypto</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;crypto&#39;</span><span class="p">);</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-2"></a>
+<a name="code--tic--tic2--tic2.js-pyg.html-3"></a><span class="nx">module</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-4"></a>  <span class="kd">var</span> <span class="nx">User</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{}</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-5"></a>
+<a name="code--tic--tic2--tic2.js-pyg.html-6"></a>  <span class="c1">//</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-7"></a>  <span class="c1">// Locate a user by a user name</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-8"></a>  <span class="c1">//</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-9"></a>  <span class="nx">User</span><span class="p">.</span><span class="nx">findByUser</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">user_name</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-10"></a>    <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;users&#39;</span><span class="p">).</span><span class="nx">findOne</span><span class="p">({</span><span class="nx">user_name</span><span class="o">:</span> <span class="nx">user_name</span><span class="p">},</span> <span class="nx">callback</span><span class="p">);</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-11"></a>  <span class="p">}</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-12"></a>
+<a name="code--tic--tic2--tic2.js-pyg.html-13"></a>  <span class="c1">//</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-14"></a>  <span class="c1">// Locate a user by user name and password</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-15"></a>  <span class="c1">//</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-16"></a>  <span class="nx">User</span><span class="p">.</span><span class="nx">findByUserAndPassword</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">user_name</span><span class="p">,</span> <span class="nx">password</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-17"></a>    <span class="c1">// Hash password</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-18"></a>    <span class="kd">var</span> <span class="nx">sha1</span> <span class="o">=</span> <span class="nx">crypto</span><span class="p">.</span><span class="nx">createHash</span><span class="p">(</span><span class="s1">&#39;sha1&#39;</span><span class="p">);</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-19"></a>    <span class="nx">sha1</span><span class="p">.</span><span class="nx">update</span><span class="p">(</span><span class="nx">password</span><span class="p">);</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-20"></a>    <span class="c1">// Get digest</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-21"></a>    <span class="kd">var</span> <span class="nx">hashed_password</span> <span class="o">=</span> <span class="nx">sha1</span><span class="p">.</span><span class="nx">digest</span><span class="p">(</span><span class="s1">&#39;hex&#39;</span><span class="p">);</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-22"></a>    <span class="c1">// Locate user</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-23"></a>    <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;users&#39;</span><span class="p">).</span><span class="nx">findOne</span><span class="p">(</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-24"></a>      <span class="p">{</span>   <span class="nx">user_name</span><span class="o">:</span> <span class="nx">user_name</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-25"></a>        <span class="p">,</span> <span class="nx">password</span><span class="o">:</span> <span class="nx">hashed_password</span><span class="p">},</span> <span class="nx">callback</span><span class="p">);</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-26"></a>  <span class="p">}</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-27"></a>
+<a name="code--tic--tic2--tic2.js-pyg.html-28"></a>  <span class="c1">//</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-29"></a>  <span class="c1">// Create a new user with full name and password</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-30"></a>  <span class="c1">//</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-31"></a>  <span class="nx">User</span><span class="p">.</span><span class="nx">createUser</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">full_name</span><span class="p">,</span> <span class="nx">user_name</span><span class="p">,</span> <span class="nx">password</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-32"></a>    <span class="c1">// Hash password</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-33"></a>    <span class="kd">var</span> <span class="nx">sha1</span> <span class="o">=</span> <span class="nx">crypto</span><span class="p">.</span><span class="nx">createHash</span><span class="p">(</span><span class="s1">&#39;sha1&#39;</span><span class="p">);</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-34"></a>    <span class="nx">sha1</span><span class="p">.</span><span class="nx">update</span><span class="p">(</span><span class="nx">password</span><span class="p">);</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-35"></a>    <span class="c1">// Get digest</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-36"></a>    <span class="kd">var</span> <span class="nx">hashed_password</span> <span class="o">=</span> <span class="nx">sha1</span><span class="p">.</span><span class="nx">digest</span><span class="p">(</span><span class="s1">&#39;hex&#39;</span><span class="p">);</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-37"></a>    <span class="c1">// Insert user</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-38"></a>    <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;users&#39;</span><span class="p">).</span><span class="nx">insert</span><span class="p">(</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-39"></a>      <span class="p">{</span>   <span class="nx">full_name</span><span class="o">:</span> <span class="nx">full_name</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-40"></a>        <span class="p">,</span> <span class="nx">user_name</span><span class="o">:</span> <span class="nx">user_name</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-41"></a>        <span class="p">,</span> <span class="nx">password</span><span class="o">:</span> <span class="nx">hashed_password</span><span class="p">},</span> <span class="nx">callback</span><span class="p">);</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-42"></a>  <span class="p">}</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-43"></a>
+<a name="code--tic--tic2--tic2.js-pyg.html-44"></a>  <span class="k">return</span> <span class="nx">User</span><span class="p">;</span>
+<a name="code--tic--tic2--tic2.js-pyg.html-45"></a><span class="p">}</span>
+</pre></div><p>There are a couple of things to notice here. The first one is the <tt class="docutils literal">module.exports = function(db)</tt>. This lets us do <tt class="docutils literal"><span class="pre">user(db).findByUser</span></tt> and apply the method <tt class="docutils literal">findByUser</tt> to the selected <tt class="docutils literal">db</tt>. Remember that in <tt class="docutils literal">Javascript</tt> a constructor is just a function so in this case <tt class="docutils literal">User</tt> which is a function is returned but since it's created inside the function <tt class="docutils literal">module.exports = function(db)</tt> <tt class="docutils literal">db</tt> is in the scope of the returned <tt class="docutils literal">User</tt> function. A useful pattern to remember.</p>
+<p>Let's move on and have a look at <tt class="docutils literal">findByUserAndPassword</tt> method. We are using the <tt class="docutils literal">crypto</tt> library in <tt class="docutils literal">Node.js</tt> to encrypt the passed in password. Always remember to do this in your application. <tt class="docutils literal">NEVER</tt> store the clean word password in your database as it's a huge security risk. In this case I've picked a hashing method called <tt class="docutils literal">sha1</tt> but feel free to pick something like <tt class="docutils literal">sha256</tt> if you really want to avoid the chance of people being able to crack the password. We then turn the <tt class="docutils literal">sha'ed</tt> password into a <tt class="docutils literal">hex</tt> string and attempt to lookup a user by the user name and the <tt class="docutils literal">hex</tt> digest of the password. If no user is returned, there either is no user or the password does not match.</p>
+<p>The <tt class="docutils literal">createUser</tt> method is quite similar to the <tt class="docutils literal">findByUserAndPassword</tt>, the main difference being that we are adding a user to the db instead of checking if it exists or has a valid password.</p>
+<p>Let's move on to the <tt class="docutils literal">gamer</tt> model we are using to map the users browser <tt class="docutils literal">session</tt> to his database <tt class="docutils literal">user</tt>. For this one we are going to need a couple of things. First off all we are defining the <tt class="docutils literal">collection</tt> for the data as <tt class="docutils literal">time to live or TTL</tt> collection meaning that the seesions will timeout after a certain period of time (in this case 60 seconds times 60 minutes or 1 hour). The other two methods we will need is to look up a user by a <tt class="docutils literal">session</tt> and to update an existing gamer <tt class="docutils literal">session</tt>.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="33%" />
+<col width="67%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Function</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>findGamerBySid</td>
+<td>Locate a gamer by his session id</td>
+</tr>
+<tr><td>updateGamer</td>
+<td>Updates a given user with a live session id</td>
+</tr>
+<tr><td>init</td>
+<td>Sets up the TTL collection</td>
+</tr>
+</tbody>
+</table>
+<p>Fire up the editor and implement the code below.</p>
+<div class="highlight"><pre><a name="code--tic--tic2--tic3.js-pyg.html-1"></a><span class="nx">module</span><span class="p">.</span><span class="nx">exports</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-2"></a>  <span class="kd">var</span> <span class="nx">Gamer</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{}</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-3"></a>
+<a name="code--tic--tic2--tic3.js-pyg.html-4"></a>  <span class="c1">//</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-5"></a>  <span class="c1">// Locate a gamer by his session id</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-6"></a>  <span class="c1">//</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-7"></a>  <span class="nx">Gamer</span><span class="p">.</span><span class="nx">findGamerBySid</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">sid</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-8"></a>    <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;gamers&#39;</span><span class="p">).</span><span class="nx">findOne</span><span class="p">({</span><span class="nx">sid</span><span class="o">:</span> <span class="nx">sid</span><span class="p">},</span> <span class="nx">callback</span><span class="p">);</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-10"></a>
+<a name="code--tic--tic2--tic3.js-pyg.html-11"></a>  <span class="c1">//</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-12"></a>  <span class="c1">// Update a gamers current activity time and session id</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-13"></a>  <span class="c1">// when they come back after some time away</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-14"></a>  <span class="c1">//</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-15"></a>  <span class="nx">Gamer</span><span class="p">.</span><span class="nx">updateGamer</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">user_name</span><span class="p">,</span> <span class="nx">sid</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-16"></a>    <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;gamers&#39;</span><span class="p">).</span><span class="nx">update</span><span class="p">({</span><span class="nx">user_name</span><span class="o">:</span> <span class="nx">user_name</span><span class="p">}</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-17"></a>      <span class="p">,</span> <span class="p">{</span><span class="nx">$set</span><span class="o">:</span> <span class="p">{</span><span class="nx">updated_on</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">(),</span> <span class="nx">sid</span><span class="o">:</span><span class="nx">sid</span><span class="p">}}</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-18"></a>      <span class="p">,</span> <span class="p">{</span><span class="nx">upsert</span><span class="o">:</span><span class="kc">true</span><span class="p">},</span> <span class="nx">callback</span><span class="p">);</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-19"></a>  <span class="p">}</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-20"></a>
+<a name="code--tic--tic2--tic3.js-pyg.html-21"></a>  <span class="c1">//</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-22"></a>  <span class="c1">// Initialize the gamer collection, by adding indexes etc</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-23"></a>  <span class="c1">//</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-24"></a>  <span class="nx">Gamer</span><span class="p">.</span><span class="nx">init</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-25"></a>    <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;gamers&#39;</span><span class="p">).</span><span class="nx">ensureIndex</span><span class="p">({</span><span class="nx">updated_on</span><span class="o">:</span> <span class="mi">1</span><span class="p">}</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-26"></a>      <span class="p">,</span> <span class="p">{</span><span class="nx">expireAfterSeconds</span><span class="o">:</span> <span class="p">(</span><span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)},</span> <span class="nx">callback</span><span class="p">);</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-27"></a>  <span class="p">}</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-28"></a>
+<a name="code--tic--tic2--tic3.js-pyg.html-29"></a>  <span class="k">return</span> <span class="nx">Gamer</span><span class="p">;</span>
+<a name="code--tic--tic2--tic3.js-pyg.html-30"></a><span class="p">}</span>
+</pre></div><p>Two things to notice are the <tt class="docutils literal">Gamer.init</tt> and the <tt class="docutils literal">Gamer.updateGamer</tt> methods. The first <tt class="docutils literal">Gamer.init</tt> should be run only once when we are setting up the server to ensure we have the <tt class="docutils literal">TTL</tt> index all set up on the <tt class="docutils literal">gamers</tt> collection. Let's modify the <tt class="docutils literal">env.js</tt> file.</p>
+<div class="highlight"><pre><a name="code--tic--tic2--tic4.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">run</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-2"></a>  <span class="nx">gamer</span><span class="p">(</span><span class="nx">db</span><span class="p">).</span><span class="nx">init</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-3"></a>    <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">return</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">err</span><span class="p">);</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-4"></a>
+<a name="code--tic--tic2--tic4.js-pyg.html-5"></a>    <span class="nx">server</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="nx">APP_PORT</span><span class="p">,</span> <span class="nx">APP_HOST</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-6"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-7"></a>        <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-8"></a>        <span class="k">return</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">err</span><span class="p">);</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-9"></a>      <span class="p">}</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-10"></a>
+<a name="code--tic--tic2--tic4.js-pyg.html-11"></a>      <span class="c1">// Print out a nice message to the console</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-12"></a>      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-13"></a>          <span class="p">[</span> <span class="s2">&quot;&quot;</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-14"></a>          <span class="p">,</span> <span class="s2">&quot;        |       |&quot;</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-15"></a>          <span class="p">,</span> <span class="s2">&quot;        |       |&quot;</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-16"></a>          <span class="p">,</span> <span class="s2">&quot;  — — — | — — — | — — — &quot;</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-17"></a>          <span class="p">,</span> <span class="s2">&quot;        |       |&quot;</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-18"></a>          <span class="p">,</span> <span class="s2">&quot;        |       |&quot;</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-19"></a>          <span class="p">,</span> <span class="s2">&quot;  — — — | — — — | — — — &quot;</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-20"></a>          <span class="p">,</span> <span class="s2">&quot;        |       |&quot;</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-21"></a>          <span class="p">,</span> <span class="s2">&quot;        |       |&quot;</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-22"></a>          <span class="p">,</span> <span class="s2">&quot;&quot;</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-23"></a>          <span class="p">,</span> <span class="s2">&quot;tic-tac-toe server v&quot;</span> <span class="o">+</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;./package.json&#39;</span><span class="p">).</span><span class="nx">version</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-24"></a>          <span class="p">,</span> <span class="s2">&quot;listening on port &quot;</span> <span class="o">+</span> <span class="nx">APP_PORT</span> <span class="o">+</span> <span class="s2">&quot; and host &quot;</span> <span class="o">+</span> <span class="nx">APP_HOST</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-25"></a>        <span class="p">].</span><span class="nx">join</span><span class="p">(</span><span class="s1">&#39;\n&#39;</span><span class="p">));</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-26"></a>
+<a name="code--tic--tic2--tic4.js-pyg.html-27"></a>      <span class="c1">// Return successful start of server</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-28"></a>      <span class="nx">callback</span><span class="p">(</span><span class="kc">null</span><span class="p">);</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-29"></a>    <span class="p">});</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-30"></a>  <span class="p">});</span>
+<a name="code--tic--tic2--tic4.js-pyg.html-31"></a><span class="p">}</span>
+</pre></div><p>Notice that we added the line <tt class="docutils literal"><span class="pre">gamer(db).init(...)</span></tt> to the <tt class="docutils literal">env.js</tt> file. This means the initialization of the <tt class="docutils literal">TTL</tt> index on the <tt class="docutils literal">gamers</tt> collection will only happen at startup and only once. We've now set up the models, let's get cracking on the backend API's for our game.</p>
+</div>
+<div class="section" id="handlers-for-the-win">
+<h1>Handlers For The Win</h1>
+<p>We have two handlers we need to define on the server side, to allow a new user to <tt class="docutils literal">register</tt> and an existing user to <tt class="docutils literal">login</tt>. These are the <tt class="docutils literal">register_handler</tt> and <tt class="docutils literal">login_handler</tt> methods.</p>
+<p>Fire up the text editor, open <tt class="docutils literal">lib/handlers/login_handler.js</tt> and get cracking on the code for the handlers by entering the following code.</p>
+<div class="highlight"><pre><a name="code--tic--tic2--tic5.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">emit_message</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;../models/shared&quot;</span><span class="p">).</span><span class="nx">emit_message</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">emit_message_all</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;../models/shared&quot;</span><span class="p">).</span><span class="nx">emit_message_all</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-3"></a>  <span class="p">,</span> <span class="nx">emit_error</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s2">&quot;../models/shared&quot;</span><span class="p">).</span><span class="nx">emit_error</span><span class="p">;</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-4"></a>
+<a name="code--tic--tic2--tic5.js-pyg.html-5"></a><span class="kd">var</span> <span class="nx">user</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;../models/user&#39;</span><span class="p">)</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-6"></a>  <span class="p">,</span> <span class="nx">gamer</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;../models/gamer&#39;</span><span class="p">);</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-7"></a>
+<a name="code--tic--tic2--tic5.js-pyg.html-8"></a><span class="cm">/**</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-9"></a><span class="cm"> * Register a new user</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-10"></a><span class="cm"> */</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-11"></a><span class="kd">var</span> <span class="nx">register_handler</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">io</span><span class="p">,</span> <span class="nx">socket</span><span class="p">,</span> <span class="nx">session_store</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-12"></a>  <span class="c1">// Easier to keep track of where we emitting messages</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-13"></a>  <span class="kd">var</span> <span class="nx">calling_method_name</span> <span class="o">=</span> <span class="s2">&quot;register&quot;</span><span class="p">;</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-14"></a>
+<a name="code--tic--tic2--tic5.js-pyg.html-15"></a>  <span class="c1">// Function we return that accepts the data from SocketIO</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-16"></a>  <span class="k">return</span> <span class="kd">function</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-17"></a>    <span class="c1">// Unpack the parameters</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-18"></a>    <span class="kd">var</span> <span class="nx">full_name</span> <span class="o">=</span> <span class="nx">data</span><span class="p">.</span><span class="nx">full_name</span><span class="p">;</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-19"></a>    <span class="kd">var</span> <span class="nx">user_name</span> <span class="o">=</span> <span class="nx">data</span><span class="p">.</span><span class="nx">user_name</span><span class="p">;</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-20"></a>    <span class="kd">var</span> <span class="nx">password</span> <span class="o">=</span> <span class="nx">data</span><span class="p">.</span><span class="nx">password</span><span class="p">;</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-21"></a>
+<a name="code--tic--tic2--tic5.js-pyg.html-22"></a>    <span class="c1">// Check if the user already exists</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-23"></a>    <span class="nx">user</span><span class="p">(</span><span class="nx">db</span><span class="p">).</span><span class="nx">findByUser</span><span class="p">(</span><span class="nx">user_name</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">_user</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-24"></a>      <span class="c1">// If there is there is an error when attempting to find the user</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-25"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">return</span> <span class="nx">emit_error</span><span class="p">(</span><span class="nx">calling_method_name</span><span class="p">,</span> <span class="nx">err</span><span class="p">.</span><span class="nx">message</span><span class="p">,</span> <span class="nx">socket</span><span class="p">);</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-26"></a>
+<a name="code--tic--tic2--tic5.js-pyg.html-27"></a>      <span class="c1">// The user already exists notify the client function</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-28"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">_user</span> <span class="o">!=</span> <span class="kc">null</span><span class="p">)</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-29"></a>        <span class="k">return</span> <span class="nx">emit_error</span><span class="p">(</span><span class="nx">calling_method_name</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-30"></a>            <span class="p">,</span> <span class="s2">&quot;User with user name &quot;</span> <span class="o">+</span> <span class="nx">user_name</span> <span class="o">+</span> <span class="s2">&quot; already exists&quot;</span><span class="p">,</span> <span class="nx">socket</span><span class="p">);</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-31"></a>
+<a name="code--tic--tic2--tic5.js-pyg.html-32"></a>      <span class="c1">// The user does not exist, let&#39;s create it</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-33"></a>      <span class="nx">user</span><span class="p">(</span><span class="nx">db</span><span class="p">).</span><span class="nx">createUser</span><span class="p">(</span><span class="nx">full_name</span><span class="p">,</span> <span class="nx">user_name</span><span class="p">,</span> <span class="nx">password</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">_user</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-34"></a>        <span class="c1">// There was an error during the creation of the user, emit an error message</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-35"></a>        <span class="c1">// to the calling client</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-36"></a>        <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">return</span> <span class="nx">emit_error</span><span class="p">(</span><span class="nx">calling_method_name</span><span class="p">,</span> <span class="nx">err</span><span class="p">.</span><span class="nx">message</span><span class="p">,</span> <span class="nx">socket</span><span class="p">);</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-37"></a>
+<a name="code--tic--tic2--tic5.js-pyg.html-38"></a>        <span class="c1">// We have a legal registration, lets set up the state needed</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-39"></a>        <span class="c1">// and log the user in</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-40"></a>        <span class="nx">emit_login_or_registration_ok</span><span class="p">(</span><span class="nx">io</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-41"></a>          <span class="p">,</span> <span class="nx">calling_method_name</span><span class="p">,</span> <span class="nx">db</span><span class="p">,</span> <span class="nx">session_store</span><span class="p">,</span> <span class="nx">user_name</span><span class="p">,</span> <span class="nx">socket</span><span class="p">);</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-42"></a>      <span class="p">});</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-43"></a>    <span class="p">})</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-44"></a>  <span class="p">}</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-45"></a><span class="p">}</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-46"></a>
+<a name="code--tic--tic2--tic5.js-pyg.html-47"></a><span class="cm">/**</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-48"></a><span class="cm"> * Attempt to login user</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-49"></a><span class="cm"> */</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-50"></a><span class="kd">var</span> <span class="nx">login_handler</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">io</span><span class="p">,</span> <span class="nx">socket</span><span class="p">,</span> <span class="nx">session_store</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-51"></a>  <span class="c1">// Easier to keep track of where we emitting messages</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-52"></a>  <span class="kd">var</span> <span class="nx">calling_method_name</span> <span class="o">=</span> <span class="s2">&quot;login&quot;</span><span class="p">;</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-53"></a>
+<a name="code--tic--tic2--tic5.js-pyg.html-54"></a>  <span class="c1">// Function we return that accepts the data from SocketIO</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-55"></a>  <span class="k">return</span> <span class="kd">function</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-56"></a>    <span class="c1">// Unpack the parameters</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-57"></a>    <span class="kd">var</span> <span class="nx">user_name</span> <span class="o">=</span> <span class="nx">data</span><span class="p">.</span><span class="nx">user_name</span><span class="p">;</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-58"></a>    <span class="kd">var</span> <span class="nx">password</span> <span class="o">=</span> <span class="nx">data</span><span class="p">.</span><span class="nx">password</span><span class="p">;</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-59"></a>
+<a name="code--tic--tic2--tic5.js-pyg.html-60"></a>    <span class="c1">// Locate the user by user name and password</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-61"></a>    <span class="nx">user</span><span class="p">(</span><span class="nx">db</span><span class="p">).</span><span class="nx">findByUserAndPassword</span><span class="p">(</span><span class="nx">user_name</span><span class="p">,</span> <span class="nx">password</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">user</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-62"></a>      <span class="c1">// If there is there is an error when attempting to find the user      </span>
+<a name="code--tic--tic2--tic5.js-pyg.html-63"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">return</span> <span class="nx">emit_error</span><span class="p">(</span><span class="nx">calling_method_name</span><span class="p">,</span> <span class="nx">err</span><span class="p">.</span><span class="nx">message</span><span class="p">,</span> <span class="nx">socket</span><span class="p">);</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-64"></a>      <span class="c1">// There was no user returned, meaning the user either does not exist or the</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-65"></a>      <span class="c1">// password is incorrect</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-66"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">user</span> <span class="o">==</span> <span class="kc">null</span><span class="p">)</span> <span class="k">return</span> <span class="nx">emit_error</span><span class="p">(</span><span class="nx">calling_method_name</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-67"></a>          <span class="p">,</span> <span class="s2">&quot;User or Password is incorrect&quot;</span><span class="p">,</span> <span class="nx">socket</span><span class="p">);</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-68"></a>
+<a name="code--tic--tic2--tic5.js-pyg.html-69"></a>      <span class="c1">// We have a legal login, lets set up the state needed</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-70"></a>      <span class="c1">// and log the user in</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-71"></a>      <span class="nx">emit_login_or_registration_ok</span><span class="p">(</span><span class="nx">io</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-72"></a>        <span class="p">,</span> <span class="nx">calling_method_name</span><span class="p">,</span> <span class="nx">db</span><span class="p">,</span> <span class="nx">session_store</span><span class="p">,</span> <span class="nx">user_name</span><span class="p">,</span> <span class="nx">socket</span><span class="p">);</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-73"></a>    <span class="p">});</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-74"></a>  <span class="p">}</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-75"></a><span class="p">}</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-76"></a>
+<a name="code--tic--tic2--tic5.js-pyg.html-77"></a><span class="cm">/**</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-78"></a><span class="cm"> * Updates the gamer status and sets up the session as being authenticated, finally</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-79"></a><span class="cm"> * returns the gamer data to all other clients that are connected signaling a new</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-80"></a><span class="cm"> * player is available</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-81"></a><span class="cm"> */</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-82"></a><span class="kd">var</span> <span class="nx">emit_login_or_registration_ok</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">io</span><span class="p">,</span><span class="nx">event</span><span class="p">,</span><span class="nx">db</span><span class="p">,</span><span class="nx">session_store</span><span class="p">,</span><span class="nx">user_name</span><span class="p">,</span><span class="nx">socket</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-83"></a>  <span class="c1">// Easier to keep track of where we emitting messages</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-84"></a>  <span class="kd">var</span> <span class="nx">event_name</span>          <span class="o">=</span> <span class="s2">&quot;gamer_joined&quot;</span><span class="p">;</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-85"></a>
+<a name="code--tic--tic2--tic5.js-pyg.html-86"></a>  <span class="c1">// Update the current gamer with the new session id and update the last updated date time</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-87"></a>  <span class="nx">gamer</span><span class="p">(</span><span class="nx">db</span><span class="p">).</span><span class="nx">updateGamer</span><span class="p">(</span><span class="nx">user_name</span><span class="p">,</span> <span class="nx">socket</span><span class="p">.</span><span class="nx">handshake</span><span class="p">.</span><span class="nx">sessionID</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-88"></a>    <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">return</span> <span class="nx">emit_error</span><span class="p">(</span><span class="nx">event</span><span class="p">,</span> <span class="nx">err</span><span class="p">.</span><span class="nx">message</span><span class="p">,</span> <span class="nx">socket</span><span class="p">);</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-89"></a>    <span class="k">if</span><span class="p">(</span><span class="nx">result</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="k">return</span> <span class="nx">emit_error</span><span class="p">(</span><span class="nx">event</span><span class="p">,</span> <span class="s2">&quot;Failed to Save user as active&quot;</span><span class="p">,</span> <span class="nx">socket</span><span class="p">);</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-90"></a>
+<a name="code--tic--tic2--tic5.js-pyg.html-91"></a>    <span class="c1">// Set authenticated on the session</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-92"></a>    <span class="nx">session_store</span><span class="p">.</span><span class="nx">sessions</span><span class="p">[</span><span class="nx">socket</span><span class="p">.</span><span class="nx">handshake</span><span class="p">.</span><span class="nx">sessionID</span><span class="p">].</span><span class="nx">user_name</span> <span class="o">=</span> <span class="nx">user_name</span><span class="p">;</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-93"></a>
+<a name="code--tic--tic2--tic5.js-pyg.html-94"></a>    <span class="c1">// Return succesful login (including setting up user as logged in)</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-95"></a>    <span class="nx">emit_message</span><span class="p">(</span><span class="nx">event</span><span class="p">,</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-96"></a>      <span class="nx">ok</span><span class="o">:</span> <span class="kc">true</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-97"></a>    <span class="p">},</span> <span class="nx">socket</span><span class="p">);</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-98"></a>
+<a name="code--tic--tic2--tic5.js-pyg.html-99"></a>    <span class="c1">// Find the gamer so we can send the info</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-100"></a>    <span class="nx">gamer</span><span class="p">(</span><span class="nx">db</span><span class="p">).</span><span class="nx">findGamerBySid</span><span class="p">(</span><span class="nx">socket</span><span class="p">.</span><span class="nx">handshake</span><span class="p">.</span><span class="nx">sessionID</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">gamer</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-101"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">return</span><span class="p">;</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-102"></a>
+<a name="code--tic--tic2--tic5.js-pyg.html-103"></a>      <span class="c1">// Fire off gamer joined to all connections minus our own</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-104"></a>      <span class="nx">emit_message_all</span><span class="p">(</span><span class="nx">io</span><span class="p">,</span> <span class="nx">session_store</span><span class="p">,</span> <span class="nx">event_name</span><span class="p">,</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-105"></a>          <span class="nx">ok</span><span class="o">:</span> <span class="kc">true</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-106"></a>        <span class="p">,</span> <span class="nx">result</span><span class="o">:</span> <span class="nx">gamer</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-107"></a>      <span class="p">},</span> <span class="nx">socket</span><span class="p">.</span><span class="nx">handshake</span><span class="p">.</span><span class="nx">sessionID</span><span class="p">);</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-108"></a>    <span class="p">});</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-109"></a>  <span class="p">});</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-110"></a><span class="p">}</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-111"></a>
+<a name="code--tic--tic2--tic5.js-pyg.html-112"></a><span class="c1">// Export functions</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-113"></a><span class="nx">exports</span><span class="p">.</span><span class="nx">register_handler</span> <span class="o">=</span> <span class="nx">register_handler</span><span class="p">;</span>
+<a name="code--tic--tic2--tic5.js-pyg.html-114"></a><span class="nx">exports</span><span class="p">.</span><span class="nx">login_handler</span> <span class="o">=</span> <span class="nx">login_handler</span><span class="p">;</span>
+</pre></div></div>
+<div class="section" id="the-register-handler-function">
+<h1>The register_handler Function</h1>
+<p>Let's have a look at the <tt class="docutils literal">register_handler</tt> method that handles the registration of a new user to the game. The first thing you'll notice is that we return a <tt class="docutils literal">function</tt>. This is used to create a unique function tied to the specific connection's socket. The returned function responds to any messages sent via <tt class="docutils literal">SocketIO</tt> with the event <tt class="docutils literal">register</tt>.</p>
+<p><tt class="docutils literal">SocketIO</tt> will return a <tt class="docutils literal">data</tt> object that contains <tt class="docutils literal">full_name</tt>, <tt class="docutils literal">user_name</tt> and <tt class="docutils literal">password</tt>. The first step is to check if the user already exists by calling the <tt class="docutils literal">findByUser</tt> method on the <tt class="docutils literal">User</tt> model we have. If there is one we call a method called <tt class="docutils literal">emit_error</tt> that is defined in the file <tt class="docutils literal">lib/models/shared.js</tt>. Let's have a quick look at <tt class="docutils literal">emit_error</tt> in <tt class="docutils literal">lib/models/shared.js</tt></p>
+<div class="highlight"><pre><a name="code--tic--tic2--tic6.js-pyg.html-1"></a><span class="cm">/**</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-2"></a><span class="cm"> * Emit the standard error message across the SocketIO connection</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-3"></a><span class="cm"> */</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-4"></a><span class="kd">var</span> <span class="nx">emit_error</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">event</span><span class="p">,</span> <span class="nx">err</span><span class="p">,</span> <span class="nx">socket</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nb">Array</span><span class="p">.</span><span class="nx">isArray</span><span class="p">(</span><span class="nx">socket</span><span class="p">))</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-6"></a>    <span class="k">for</span><span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">socket</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-7"></a>      <span class="nx">socket</span><span class="p">[</span><span class="nx">i</span><span class="p">].</span><span class="nx">emit</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-8"></a>          <span class="nx">event</span><span class="o">:</span> <span class="nx">event</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-9"></a>        <span class="p">,</span> <span class="nx">ok</span><span class="o">:</span> <span class="kc">false</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-10"></a>        <span class="p">,</span> <span class="nx">is_error</span><span class="o">:</span><span class="kc">true</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-11"></a>        <span class="p">,</span> <span class="nx">error</span><span class="o">:</span> <span class="nx">err</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-12"></a>      <span class="p">});</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-13"></a>    <span class="p">}</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-14"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-15"></a>    <span class="nx">socket</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-16"></a>        <span class="nx">event</span><span class="o">:</span> <span class="nx">event</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-17"></a>      <span class="p">,</span> <span class="nx">ok</span><span class="o">:</span> <span class="kc">false</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-18"></a>      <span class="p">,</span> <span class="nx">is_error</span><span class="o">:</span><span class="kc">true</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-19"></a>      <span class="p">,</span> <span class="nx">error</span><span class="o">:</span> <span class="nx">err</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-20"></a>    <span class="p">});</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-21"></a>  <span class="p">}</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-22"></a><span class="p">}</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-23"></a>
+<a name="code--tic--tic2--tic6.js-pyg.html-24"></a><span class="cm">/**</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-25"></a><span class="cm"> * Emit the standard message across the SocketIO connection</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-26"></a><span class="cm"> */</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-27"></a><span class="kd">var</span> <span class="nx">emit_message</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">event</span><span class="p">,</span> <span class="nx">message</span><span class="p">,</span> <span class="nx">socket</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-28"></a>  <span class="c1">// Add event</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-29"></a>  <span class="nx">message</span><span class="p">.</span><span class="nx">event</span> <span class="o">=</span> <span class="nx">event</span><span class="p">;</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-30"></a>  <span class="c1">// Emit</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-31"></a>  <span class="nx">socket</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="nx">message</span><span class="p">);</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-32"></a><span class="p">}</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-33"></a>
+<a name="code--tic--tic2--tic6.js-pyg.html-34"></a><span class="cm">/**</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-35"></a><span class="cm"> * Emit a message to all clients minus the excluded session id connection</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-36"></a><span class="cm"> */</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-37"></a><span class="kd">var</span> <span class="nx">emit_message_all</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">io</span><span class="p">,</span> <span class="nx">session_store</span><span class="p">,</span> <span class="nx">event</span><span class="p">,</span> <span class="nx">message</span><span class="p">,</span> <span class="nx">exclude_sid</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-38"></a>  <span class="kd">var</span> <span class="nx">clients</span> <span class="o">=</span> <span class="nx">io</span><span class="p">.</span><span class="nx">sockets</span><span class="p">.</span><span class="nx">clients</span><span class="p">();</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-39"></a>
+<a name="code--tic--tic2--tic6.js-pyg.html-40"></a>  <span class="c1">// Locate our session id</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-41"></a>  <span class="k">for</span><span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">clients</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-42"></a>    <span class="k">if</span><span class="p">(</span><span class="nx">clients</span><span class="p">[</span><span class="nx">i</span><span class="p">].</span><span class="nx">handshake</span><span class="p">.</span><span class="nx">sessionID</span> <span class="o">!=</span> <span class="nx">exclude_sid</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-43"></a>      <span class="o">&amp;&amp;</span> <span class="nx">session_store</span><span class="p">.</span><span class="nx">sessions</span><span class="p">[</span><span class="nx">clients</span><span class="p">[</span><span class="nx">i</span><span class="p">].</span><span class="nx">handshake</span><span class="p">.</span><span class="nx">sessionID</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">null</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-44"></a>      <span class="o">&amp;&amp;</span> <span class="nx">session_store</span><span class="p">.</span><span class="nx">sessions</span><span class="p">[</span><span class="nx">clients</span><span class="p">[</span><span class="nx">i</span><span class="p">].</span><span class="nx">handshake</span><span class="p">.</span><span class="nx">sessionID</span><span class="p">].</span><span class="nx">user_name</span> <span class="o">!=</span> <span class="kc">null</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-45"></a>      <span class="nx">emit_message</span><span class="p">(</span><span class="nx">event</span><span class="p">,</span> <span class="nx">message</span><span class="p">,</span> <span class="nx">clients</span><span class="p">[</span><span class="nx">i</span><span class="p">]);</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-46"></a>    <span class="p">}</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-47"></a>  <span class="p">}</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-48"></a><span class="p">}</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-49"></a>
+<a name="code--tic--tic2--tic6.js-pyg.html-50"></a><span class="nx">exports</span><span class="p">.</span><span class="nx">emit_error</span>                      <span class="o">=</span> <span class="nx">emit_error</span><span class="p">;</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-51"></a><span class="nx">exports</span><span class="p">.</span><span class="nx">emit_message</span>                    <span class="o">=</span> <span class="nx">emit_message</span><span class="p">;</span>
+<a name="code--tic--tic2--tic6.js-pyg.html-52"></a><span class="nx">exports</span><span class="p">.</span><span class="nx">emit_message_all</span>                <span class="o">=</span> <span class="nx">emit_message_all</span><span class="p">;</span>
+</pre></div><p>As we can see the method <tt class="docutils literal">emit_error</tt> will emit an object to one or more <tt class="docutils literal">SocketIO</tt> sockets (if it detects that the socket parameter is an Array it will loop through all the sockets and emit the error). The message is <tt class="docutils literal">standardized</tt> for the application so we can handle all the errors the same way in the browser. Standardizing your messaging protocol is quite useful to avoid complexity and unnecessary duplicated code.</p>
+<pre class="code javascript literal-block">
+<span class="nx">socket</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="p">{</span>
+    <span class="nx">event</span><span class="o">:</span> <span class="nx">event</span>
+  <span class="p">,</span> <span class="nx">ok</span><span class="o">:</span> <span class="kc">false</span>
+  <span class="p">,</span> <span class="nx">is_error</span><span class="o">:</span><span class="kc">true</span>
+  <span class="p">,</span> <span class="nx">error</span><span class="o">:</span> <span class="nx">err</span>
+<span class="p">});</span>
+</pre>
+<p>The other two functions in the <tt class="docutils literal">shared.js</tt> file is the <tt class="docutils literal">emit_message</tt> and <tt class="docutils literal">emit_message_all</tt>. The <tt class="docutils literal">emit_message</tt> is fairly simple it just emits a message over the provided <tt class="docutils literal">SocketIO</tt> with a given socket, event and message. The <tt class="docutils literal">emit_message_all</tt> uses the <tt class="docutils literal">io.socket.clients()</tt> method to get a list of all connected <tt class="docutils literal">SocketIO</tt> clients and then loops through all of them with the exception being the <tt class="docutils literal">socket</tt> that called the method. The exclusion is done using the <tt class="docutils literal"><span class="pre">clients[i].handshake.sessionID</span></tt> that is set in the <tt class="docutils literal">env.js</tt> file when a user first visits the game and a <tt class="docutils literal">SocketIO</tt> connection is made from the browser to the server.</p>
+<p>If no user exists we create a new user using the <tt class="docutils literal">User.createUser</tt> method we wrote earlier and use the shared method <tt class="docutils literal">emit_login_or_registration_ok</tt> to login the user and notify the browser about a successful login.</p>
+<p>The first thing the function <tt class="docutils literal">emit_login_or_registration_ok</tt> does is to update the current gamers session and last active time, using the passed in user name. It then sets the sessions value <tt class="docutils literal"><span class="pre">session_store.sessions[socket.handshake.sessionID].user_name</span></tt> that is used to ensure the user is authenticated (in later exercises we will use this to lock down API calls to make sure there is a valid authenticated user calling the method). Once this is done we send a message back over the user <tt class="docutils literal">socket</tt> with the event <tt class="docutils literal">register</tt> and the object <tt class="docutils literal">{ok:true}</tt> that notifies the browser that the user was registered successfully and is now logged in.</p>
+<p>At the end of the handler we look up our <tt class="docutils literal">gamer</tt> document by our <tt class="docutils literal">session</tt> id and send a message with the event <tt class="docutils literal">gamer_joined</tt> to all the other gamers currently connected via SocketIO. This lets us update things such as the list of available players when other people log in. Since we are iterating over all the live <tt class="docutils literal">SocketIO</tt> connections, only players that are still active will receive the message of the newly joined gamer.</p>
+<p>That end the the backend part of the registration/login process. Let's move on to the frontend part of the application and implement the user facing part of the game.</p>
+</div>
+<div class="section" id="fronting-it">
+<h1>Fronting It</h1>
+<p>One of the things we touched upon earlier was a common error message. We want to have a common error box for all errors on the frontend and we are going to add it as a <tt class="docutils literal">modal</tt> dialog using <tt class="docutils literal">bootstrap</tt>. Let's bring up the editor and add it to our <tt class="docutils literal">index.html</tt> file.</p>
+<div class="highlight"><pre><a name="code--tic--tic2--tic1.html-pyg.html-1"></a><span class="cp">&lt;!DOCTYPE html&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-2"></a><span class="nt">&lt;html</span> <span class="na">lang=</span><span class="s">&quot;en&quot;</span> <span class="na">ng-app=</span><span class="s">&quot;app&quot;</span><span class="nt">&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-3"></a>  <span class="nt">&lt;head&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-4"></a>    <span class="nt">&lt;meta</span> <span class="na">charset=</span><span class="s">&quot;utf-8&quot;</span><span class="nt">&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-5"></a>    <span class="nt">&lt;title&gt;</span>Tic-Tac-Toe<span class="nt">&lt;/title&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-6"></a>
+<a name="code--tic--tic2--tic1.html-pyg.html-7"></a>    <span class="c">&lt;!-- Le styles --&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-8"></a>    <span class="nt">&lt;link</span> <span class="na">href=</span><span class="s">&quot;/css/bootstrap.css&quot;</span> <span class="na">rel=</span><span class="s">&quot;stylesheet&quot;</span><span class="nt">&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-9"></a>    <span class="nt">&lt;style </span><span class="na">type=</span><span class="s">&quot;text/css&quot;</span><span class="nt">&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-10"></a>      <span class="nt">body</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-11"></a>        <span class="k">padding-top</span><span class="o">:</span> <span class="m">60px</span><span class="p">;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-12"></a>        <span class="k">padding-bottom</span><span class="o">:</span> <span class="m">40px</span><span class="p">;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-13"></a>      <span class="p">}</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-14"></a>    <span class="nt">&lt;/style&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-15"></a>    <span class="nt">&lt;link</span> <span class="na">href=</span><span class="s">&quot;/css/bootstrap-responsive.css&quot;</span> <span class="na">rel=</span><span class="s">&quot;stylesheet&quot;</span><span class="nt">&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-16"></a>    <span class="nt">&lt;link</span> <span class="na">href=</span><span class="s">&quot;/css/app.css&quot;</span> <span class="na">rel=</span><span class="s">&quot;stylesheet&quot;</span><span class="nt">&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-17"></a>  <span class="nt">&lt;/head&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-18"></a>  <span class="nt">&lt;body&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-19"></a>    <span class="nt">&lt;div&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-20"></a>      <span class="nt">&lt;ng</span><span class="na">-view</span><span class="nt">&gt;</span><span class="err">&lt;</span>/ng-view&gt;
+<a name="code--tic--tic2--tic1.html-pyg.html-21"></a>    <span class="nt">&lt;/div&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-22"></a>    <span class="nt">&lt;script </span><span class="na">type=</span><span class="s">&quot;text/javascript&quot;</span> <span class="na">src=</span><span class="s">&quot;javascripts/jquery.js&quot;</span><span class="nt">&gt;&lt;/script&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-23"></a>    <span class="nt">&lt;script </span><span class="na">src=</span><span class="s">&quot;/socket.io/socket.io.js&quot;</span><span class="nt">&gt;&lt;/script&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-24"></a>    <span class="nt">&lt;script </span><span class="na">type=</span><span class="s">&quot;text/javascript&quot;</span> <span class="na">src=</span><span class="s">&quot;javascripts/api.js&quot;</span><span class="nt">&gt;&lt;/script&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-25"></a>    <span class="nt">&lt;script </span><span class="na">type=</span><span class="s">&quot;text/javascript&quot;</span> <span class="na">src=</span><span class="s">&quot;javascripts/template_handler.js&quot;</span><span class="nt">&gt;&lt;/script&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-26"></a>    <span class="nt">&lt;script </span><span class="na">type=</span><span class="s">&quot;text/javascript&quot;</span> <span class="na">src=</span><span class="s">&quot;javascripts/mustache.js&quot;</span><span class="nt">&gt;&lt;/script&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-27"></a>    <span class="nt">&lt;script </span><span class="na">type=</span><span class="s">&quot;text/javascript&quot;</span> <span class="na">src=</span><span class="s">&quot;javascripts/bootstrap.min.js&quot;</span><span class="nt">&gt;&lt;/script&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-28"></a>    <span class="nt">&lt;script </span><span class="na">type=</span><span class="s">&quot;text/javascript&quot;</span> <span class="na">src=</span><span class="s">&quot;javascripts/app.js&quot;</span><span class="nt">&gt;&lt;/script&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-29"></a>
+<a name="code--tic--tic2--tic1.html-pyg.html-30"></a>    <span class="nt">&lt;div</span> <span class="na">class=</span><span class="s">&quot;container&quot;</span><span class="nt">&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-31"></a>
+<a name="code--tic--tic2--tic1.html-pyg.html-32"></a>      <span class="nt">&lt;div</span> <span class="na">class=</span><span class="s">&quot;navbar navbar-inverse navbar-fixed-top&quot;</span><span class="nt">&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-33"></a>        <span class="nt">&lt;div</span> <span class="na">class=</span><span class="s">&quot;navbar-inner&quot;</span><span class="nt">&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-34"></a>          <span class="nt">&lt;div</span> <span class="na">class=</span><span class="s">&quot;container&quot;</span><span class="nt">&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-35"></a>            <span class="nt">&lt;a</span> <span class="na">class=</span><span class="s">&quot;btn btn-navbar&quot;</span> <span class="na">data-toggle=</span><span class="s">&quot;collapse&quot;</span> <span class="na">data-target=</span><span class="s">&quot;.nav-collapse&quot;</span><span class="nt">&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-36"></a>              <span class="nt">&lt;span</span> <span class="na">class=</span><span class="s">&quot;icon-bar&quot;</span><span class="nt">&gt;&lt;/span&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-37"></a>              <span class="nt">&lt;span</span> <span class="na">class=</span><span class="s">&quot;icon-bar&quot;</span><span class="nt">&gt;&lt;/span&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-38"></a>              <span class="nt">&lt;span</span> <span class="na">class=</span><span class="s">&quot;icon-bar&quot;</span><span class="nt">&gt;&lt;/span&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-39"></a>            <span class="nt">&lt;/a&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-40"></a>            <span class="nt">&lt;a</span> <span class="na">class=</span><span class="s">&quot;brand&quot;</span> <span class="na">href=</span><span class="s">&quot;#&quot;</span><span class="nt">&gt;</span>Tic-Tac-Toe<span class="nt">&lt;/a&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-41"></a>          <span class="nt">&lt;/div&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-42"></a>        <span class="nt">&lt;/div&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-43"></a>      <span class="nt">&lt;/div&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-44"></a>
+<a name="code--tic--tic2--tic1.html-pyg.html-45"></a>      <span class="c">&lt;!-- Main hero unit for a primary marketing message or call to action --&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-46"></a>      <span class="nt">&lt;div</span> <span class="na">class=</span><span class="s">&quot;hero-unit&quot;</span><span class="nt">&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-47"></a>        <span class="nt">&lt;h1&gt;</span>Tic Tac Toe!<span class="nt">&lt;/h1&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-48"></a>        <span class="nt">&lt;p&gt;</span>Play Tic Tac Toe against your friends in this multiplayer demo.<span class="nt">&lt;/p&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-49"></a>        <span class="nt">&lt;p&gt;&lt;a</span> <span class="na">class=</span><span class="s">&quot;btn btn-primary btn-large&quot;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-50"></a>          <span class="na">href=</span><span class="s">&quot;https://github.com/christkv/tic-tac-toe&quot;</span><span class="nt">&gt;</span>Github <span class="ni">&amp;raquo;</span><span class="nt">&lt;/a&gt;&lt;/p&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-51"></a>      <span class="nt">&lt;/div&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-52"></a>
+<a name="code--tic--tic2--tic1.html-pyg.html-53"></a>      <span class="c">&lt;!-- Example row of columns --&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-54"></a>      <span class="nt">&lt;div</span> <span class="na">class=</span><span class="s">&quot;row&quot;</span> <span class="na">id=</span><span class="s">&quot;view&quot;</span><span class="nt">&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-55"></a>      <span class="nt">&lt;/div&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-56"></a>
+<a name="code--tic--tic2--tic1.html-pyg.html-57"></a>      <span class="nt">&lt;hr&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-58"></a>
+<a name="code--tic--tic2--tic1.html-pyg.html-59"></a>      <span class="nt">&lt;footer&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-60"></a>        <span class="nt">&lt;p&gt;</span><span class="ni">&amp;copy;</span> Christian Kvalheim 2012<span class="nt">&lt;/p&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-61"></a>      <span class="nt">&lt;/footer&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-62"></a>
+<a name="code--tic--tic2--tic1.html-pyg.html-63"></a>    <span class="nt">&lt;/div&gt;</span> <span class="c">&lt;!-- /container --&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-64"></a>    <span class="c">&lt;!-- Modal --&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-65"></a>    <span class="nt">&lt;div</span> <span class="na">id=</span><span class="s">&quot;status_box&quot;</span> <span class="na">class=</span><span class="s">&quot;modal hide fade&quot;</span> <span class="na">tabindex=</span><span class="s">&quot;-1&quot;</span> <span class="na">role=</span><span class="s">&quot;dialog&quot;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-66"></a>    <span class="na">aria-labelledby=</span><span class="s">&quot;status_box&quot;</span> <span class="na">aria-hidden=</span><span class="s">&quot;true&quot;</span><span class="nt">&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-67"></a>      <span class="nt">&lt;div</span> <span class="na">class=</span><span class="s">&quot;modal-header&quot;</span><span class="nt">&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-68"></a>        <span class="nt">&lt;button</span> <span class="na">type=</span><span class="s">&quot;button&quot;</span> <span class="na">class=</span><span class="s">&quot;close&quot;</span> <span class="na">data-dismiss=</span><span class="s">&quot;modal&quot;</span> <span class="na">aria-hidden=</span><span class="s">&quot;true&quot;</span><span class="nt">&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-69"></a>          ×
+<a name="code--tic--tic2--tic1.html-pyg.html-70"></a>        <span class="nt">&lt;/button&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-71"></a>        <span class="nt">&lt;h3</span> <span class="na">id=</span><span class="s">&quot;status_box_header&quot;</span><span class="nt">&gt;</span>Modal header<span class="nt">&lt;/h3&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-72"></a>      <span class="nt">&lt;/div&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-73"></a>      <span class="nt">&lt;div</span> <span class="na">class=</span><span class="s">&quot;modal-body&quot;</span><span class="nt">&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-74"></a>        <span class="nt">&lt;p</span> <span class="na">id=</span><span class="s">&quot;status_box_body&quot;</span><span class="nt">&gt;&lt;/p&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-75"></a>      <span class="nt">&lt;/div&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-76"></a>      <span class="nt">&lt;div</span> <span class="na">class=</span><span class="s">&quot;modal-footer&quot;</span><span class="nt">&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-77"></a>        <span class="nt">&lt;button</span> <span class="na">class=</span><span class="s">&quot;btn&quot;</span> <span class="na">data-dismiss=</span><span class="s">&quot;modal&quot;</span> <span class="na">aria-hidden=</span><span class="s">&quot;true&quot;</span><span class="nt">&gt;</span>Close<span class="nt">&lt;/button&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-78"></a>      <span class="nt">&lt;/div&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-79"></a>    <span class="nt">&lt;/div&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-80"></a>  <span class="nt">&lt;/body&gt;</span>
+<a name="code--tic--tic2--tic1.html-pyg.html-81"></a><span class="nt">&lt;/html&gt;</span>
+</pre></div><p>Awesome let's look at the core of the frontend interface to our backend. This is the <tt class="docutils literal">public/javascript/api.js</tt> file. Open the file and enter the following code.</p>
+<div class="highlight"><pre><a name="code--tic--tic2--tic7.js-pyg.html-1"></a><span class="cm">/**</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-2"></a><span class="cm"> * Wraps the API used for the game and handles the socketIO connection</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-3"></a><span class="cm"> */</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-4"></a><span class="kd">var</span> <span class="nx">API</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-5"></a>  <span class="kd">var</span> <span class="nx">self</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-6"></a>
+<a name="code--tic--tic2--tic7.js-pyg.html-7"></a>  <span class="k">this</span><span class="p">.</span><span class="nx">socket</span> <span class="o">=</span> <span class="nx">io</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;http://&quot;</span> <span class="o">+</span> <span class="nb">document</span><span class="p">.</span><span class="nx">domain</span><span class="p">);</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-8"></a>  <span class="k">this</span><span class="p">.</span><span class="nx">handlers</span> <span class="o">=</span> <span class="p">{};</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-9"></a>  <span class="k">this</span><span class="p">.</span><span class="nx">once_handlers</span> <span class="o">=</span> <span class="p">{};</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-10"></a>
+<a name="code--tic--tic2--tic7.js-pyg.html-11"></a>  <span class="c1">// Handle the data returned over the SocketIO</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-12"></a>  <span class="k">this</span><span class="p">.</span><span class="nx">socket</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-13"></a>
+<a name="code--tic--tic2--tic7.js-pyg.html-14"></a>    <span class="c1">// If the data object has an event member we have</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-15"></a>    <span class="c1">// a valid event message from the server</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-16"></a>    <span class="k">if</span><span class="p">(</span><span class="nx">data</span> <span class="o">&amp;&amp;</span> <span class="nx">data</span><span class="p">.</span><span class="nx">event</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-17"></a>      <span class="kd">var</span> <span class="nx">handlers</span> <span class="o">=</span> <span class="nx">self</span><span class="p">.</span><span class="nx">handlers</span><span class="p">[</span><span class="nx">data</span><span class="p">.</span><span class="nx">event</span><span class="p">];</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-18"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">handlers</span> <span class="o">!=</span> <span class="kc">null</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-19"></a>        <span class="k">for</span><span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">handlers</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-20"></a>          <span class="nx">data</span><span class="p">.</span><span class="nx">is_error</span> <span class="o">?</span> <span class="nx">handlers</span><span class="p">[</span><span class="nx">i</span><span class="p">](</span><span class="nx">data</span><span class="p">)</span> <span class="o">:</span> <span class="nx">handlers</span><span class="p">[</span><span class="nx">i</span><span class="p">](</span><span class="kc">null</span><span class="p">,</span> <span class="nx">data</span><span class="p">.</span><span class="nx">result</span><span class="p">);</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-21"></a>        <span class="p">}</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-22"></a>      <span class="p">}</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-23"></a>
+<a name="code--tic--tic2--tic7.js-pyg.html-24"></a>      <span class="kd">var</span> <span class="nx">handlers</span> <span class="o">=</span> <span class="nx">self</span><span class="p">.</span><span class="nx">once_handlers</span><span class="p">[</span><span class="nx">data</span><span class="p">.</span><span class="nx">event</span><span class="p">];</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-25"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">handlers</span> <span class="o">!=</span> <span class="kc">null</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-26"></a>        <span class="k">while</span><span class="p">(</span><span class="nx">handlers</span><span class="p">.</span><span class="nx">length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-27"></a>          <span class="nx">data</span><span class="p">.</span><span class="nx">is_error</span> <span class="o">?</span> <span class="nx">handlers</span><span class="p">.</span><span class="nx">pop</span><span class="p">()(</span><span class="nx">data</span><span class="p">)</span> <span class="o">:</span> <span class="nx">handlers</span><span class="p">.</span><span class="nx">pop</span><span class="p">()(</span><span class="kc">null</span><span class="p">,</span> <span class="nx">data</span><span class="p">.</span><span class="nx">result</span><span class="p">);</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-28"></a>        <span class="p">}</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-29"></a>
+<a name="code--tic--tic2--tic7.js-pyg.html-30"></a>        <span class="k">delete</span> <span class="nx">self</span><span class="p">.</span><span class="nx">once_handlers</span><span class="p">[</span><span class="nx">data</span><span class="p">.</span><span class="nx">event</span><span class="p">];</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-31"></a>      <span class="p">}</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-32"></a>    <span class="p">}</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-33"></a>  <span class="p">});</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-34"></a><span class="p">}</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-35"></a>
+<a name="code--tic--tic2--tic7.js-pyg.html-36"></a><span class="cm">/**</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-37"></a><span class="cm"> * Register an event listener callback (will keep receiving messages)</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-38"></a><span class="cm"> */</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-39"></a><span class="nx">API</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">on</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">event</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-40"></a>  <span class="k">if</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">handlers</span><span class="p">[</span><span class="nx">event</span><span class="p">]</span> <span class="o">==</span> <span class="kc">null</span><span class="p">)</span> <span class="k">this</span><span class="p">.</span><span class="nx">handlers</span><span class="p">[</span><span class="nx">event</span><span class="p">]</span> <span class="o">=</span> <span class="p">[];</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-41"></a>  <span class="k">this</span><span class="p">.</span><span class="nx">handlers</span><span class="p">[</span><span class="nx">event</span><span class="p">].</span><span class="nx">push</span><span class="p">(</span><span class="nx">callback</span><span class="p">);</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-42"></a><span class="p">}</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-43"></a>
+<a name="code--tic--tic2--tic7.js-pyg.html-44"></a><span class="cm">/**</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-45"></a><span class="cm"> * Register an event listener callback for a single instance of the event</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-46"></a><span class="cm"> */</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-47"></a><span class="nx">API</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">once</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">event</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-48"></a>  <span class="k">if</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">once_handlers</span><span class="p">[</span><span class="nx">event</span><span class="p">]</span> <span class="o">==</span> <span class="kc">null</span><span class="p">)</span> <span class="k">this</span><span class="p">.</span><span class="nx">once_handlers</span><span class="p">[</span><span class="nx">event</span><span class="p">]</span> <span class="o">=</span> <span class="p">[];</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-49"></a>  <span class="k">this</span><span class="p">.</span><span class="nx">once_handlers</span><span class="p">[</span><span class="nx">event</span><span class="p">].</span><span class="nx">push</span><span class="p">(</span><span class="nx">callback</span><span class="p">);</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-50"></a><span class="p">}</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-51"></a>
+<a name="code--tic--tic2--tic7.js-pyg.html-52"></a><span class="cm">/**</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-53"></a><span class="cm"> * Register a new user</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-54"></a><span class="cm"> */</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-55"></a><span class="nx">API</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">register</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">full_name</span><span class="p">,</span> <span class="nx">user_name</span><span class="p">,</span> <span class="nx">password</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-56"></a>  <span class="c1">// Do basic validation</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-57"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">full_name</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">||</span> <span class="nx">full_name</span><span class="p">.</span><span class="nx">length</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-58"></a>    <span class="k">return</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">create_error</span><span class="p">(</span><span class="s2">&quot;register&quot;</span><span class="p">,</span> <span class="s2">&quot;Full name cannot be empty&quot;</span><span class="p">));</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-59"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">user_name</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">||</span> <span class="nx">user_name</span><span class="p">.</span><span class="nx">length</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-60"></a>    <span class="k">return</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">create_error</span><span class="p">(</span><span class="s2">&quot;register&quot;</span><span class="p">,</span> <span class="s2">&quot;User name cannot be empty&quot;</span><span class="p">));</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-61"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">password</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">||</span> <span class="nx">password</span><span class="p">.</span><span class="nx">length</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-62"></a>    <span class="k">return</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">create_error</span><span class="p">(</span><span class="s2">&quot;register&quot;</span><span class="p">,</span> <span class="s2">&quot;Password name cannot be empty&quot;</span><span class="p">));</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-63"></a>  <span class="c1">// Register callback</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-64"></a>  <span class="k">this</span><span class="p">.</span><span class="nx">once</span><span class="p">(</span><span class="s2">&quot;register&quot;</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-65"></a>  <span class="c1">// Fire message</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-66"></a>  <span class="k">this</span><span class="p">.</span><span class="nx">socket</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s2">&quot;register&quot;</span><span class="p">,</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-67"></a>      <span class="nx">full_name</span><span class="o">:</span> <span class="nx">full_name</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-68"></a>    <span class="p">,</span> <span class="nx">user_name</span><span class="o">:</span> <span class="nx">user_name</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-69"></a>    <span class="p">,</span> <span class="nx">password</span><span class="o">:</span> <span class="nx">password</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-70"></a>  <span class="p">});</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-71"></a><span class="p">}</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-72"></a>
+<a name="code--tic--tic2--tic7.js-pyg.html-73"></a><span class="cm">/**</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-74"></a><span class="cm"> * Login a user</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-75"></a><span class="cm"> */</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-76"></a><span class="nx">API</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">login</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">user_name</span><span class="p">,</span> <span class="nx">password</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-77"></a>  <span class="c1">// Do basic validation</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-78"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">user_name</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">||</span> <span class="nx">user_name</span><span class="p">.</span><span class="nx">length</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-79"></a>    <span class="k">return</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">create_error</span><span class="p">(</span><span class="s2">&quot;login&quot;</span><span class="p">,</span> <span class="s2">&quot;User name cannot be empty&quot;</span><span class="p">));</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-80"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">password</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">||</span> <span class="nx">password</span><span class="p">.</span><span class="nx">length</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-81"></a>    <span class="k">return</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">create_error</span><span class="p">(</span><span class="s2">&quot;login&quot;</span><span class="p">,</span> <span class="s2">&quot;Password name cannot be empty&quot;</span><span class="p">));</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-82"></a>  <span class="c1">// Register callback</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-83"></a>  <span class="k">this</span><span class="p">.</span><span class="nx">once</span><span class="p">(</span><span class="s2">&quot;login&quot;</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-84"></a>  <span class="c1">// Fire message</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-85"></a>  <span class="k">this</span><span class="p">.</span><span class="nx">socket</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s2">&quot;login&quot;</span><span class="p">,</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-86"></a>      <span class="nx">user_name</span><span class="o">:</span> <span class="nx">user_name</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-87"></a>    <span class="p">,</span> <span class="nx">password</span><span class="o">:</span> <span class="nx">password</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-88"></a>  <span class="p">});</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-89"></a><span class="p">}</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-90"></a>
+<a name="code--tic--tic2--tic7.js-pyg.html-91"></a><span class="cm">/**</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-92"></a><span class="cm"> * Simple method to create a formated error message that fits the</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-93"></a><span class="cm"> * format returned from the server</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-94"></a><span class="cm"> */</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-95"></a><span class="kd">var</span> <span class="nx">create_error</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">event</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-96"></a>  <span class="k">return</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-97"></a>      <span class="nx">event</span><span class="o">:</span> <span class="nx">event</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-98"></a>    <span class="p">,</span> <span class="nx">ok</span><span class="o">:</span> <span class="kc">false</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-99"></a>    <span class="p">,</span> <span class="nx">is_error</span><span class="o">:</span> <span class="kc">true</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-100"></a>    <span class="p">,</span> <span class="nx">error</span><span class="o">:</span> <span class="nx">err</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-101"></a>  <span class="p">}</span>
+<a name="code--tic--tic2--tic7.js-pyg.html-102"></a><span class="p">}</span>
+</pre></div><p>Let's start with the actual API creation function.</p>
+<pre class="code javascript literal-block">
+<span class="cm">/**
+ * Wraps the API used for the game and handles the socketIO connection
+ */</span>
+<span class="kd">var</span> <span class="nx">API</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">self</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+
+  <span class="k">this</span><span class="p">.</span><span class="nx">socket</span> <span class="o">=</span> <span class="nx">io</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;http://&quot;</span> <span class="o">+</span> <span class="nb">document</span><span class="p">.</span><span class="nx">domain</span><span class="p">);</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">handlers</span> <span class="o">=</span> <span class="p">{</span><span class="p">};</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">once_handlers</span> <span class="o">=</span> <span class="p">{</span><span class="p">};</span>
+
+  <span class="c1">// Handle the data returned over the SocketIO
+</span>  <span class="k">this</span><span class="p">.</span><span class="nx">socket</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+
+    <span class="c1">// If the data object has an event member we have
+</span>    <span class="c1">// a valid event message from the server
+</span>    <span class="k">if</span><span class="p">(</span><span class="nx">data</span> <span class="o">&amp;&amp;</span> <span class="nx">data</span><span class="p">.</span><span class="nx">event</span><span class="p">)</span> <span class="p">{</span>
+      <span class="kd">var</span> <span class="nx">handlers</span> <span class="o">=</span> <span class="nx">self</span><span class="p">.</span><span class="nx">handlers</span><span class="p">[</span><span class="nx">data</span><span class="p">.</span><span class="nx">event</span><span class="p">];</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">handlers</span> <span class="o">!=</span> <span class="kc">null</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">for</span><span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">handlers</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+          <span class="nx">data</span><span class="p">.</span><span class="nx">is_error</span> <span class="o">?</span> <span class="nx">handlers</span><span class="p">[</span><span class="nx">i</span><span class="p">](</span><span class="nx">data</span><span class="p">)</span> <span class="o">:</span> <span class="nx">handlers</span><span class="p">[</span><span class="nx">i</span><span class="p">](</span><span class="kc">null</span><span class="p">,</span> <span class="nx">data</span><span class="p">.</span><span class="nx">result</span><span class="p">);</span>
+        <span class="p">}</span>
+      <span class="p">}</span>
+
+      <span class="kd">var</span> <span class="nx">handlers</span> <span class="o">=</span> <span class="nx">self</span><span class="p">.</span><span class="nx">once_handlers</span><span class="p">[</span><span class="nx">data</span><span class="p">.</span><span class="nx">event</span><span class="p">];</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">handlers</span> <span class="o">!=</span> <span class="kc">null</span><span class="p">)</span> <span class="p">{</span>
+        <span class="k">while</span><span class="p">(</span><span class="nx">handlers</span><span class="p">.</span><span class="nx">length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+          <span class="nx">data</span><span class="p">.</span><span class="nx">is_error</span> <span class="o">?</span> <span class="nx">handlers</span><span class="p">.</span><span class="nx">pop</span><span class="p">(</span><span class="p">)(</span><span class="nx">data</span><span class="p">)</span> <span class="o">:</span> <span class="nx">handlers</span><span class="p">.</span><span class="nx">pop</span><span class="p">(</span><span class="p">)(</span><span class="kc">null</span><span class="p">,</span> <span class="nx">data</span><span class="p">.</span><span class="nx">result</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="k">delete</span> <span class="nx">self</span><span class="p">.</span><span class="nx">once_handlers</span><span class="p">[</span><span class="nx">data</span><span class="p">.</span><span class="nx">event</span><span class="p">];</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>The first thing you'll notice is that we use the <tt class="docutils literal">docuemnt.domain</tt> as the identifier for the <tt class="docutils literal">SocketIO</tt> connection. This is to ensure we are not doing cross-domain websockets and to avoid any authentication issues. Once the connection has been created we add an event listener to the event <tt class="docutils literal">data</tt>. Notice that we don't handle any <tt class="docutils literal">errors</tt> on the socket. We leave it as an exercise to handle how to reconnect if the socket closes.</p>
+<p>The handler for the <tt class="docutils literal">data</tt> event takes the object returned by <tt class="docutils literal">SocketIO</tt> and determines what kind of event it is by looking at the <tt class="docutils literal">data.event</tt> value that is always present in our messages (hence the importance of standardizing your messaging protocol messages so they always look the same). After having determined what kind of <tt class="docutils literal">event</tt> we received we locate all the handlers that are interested in the event and call their functions notifying all interested parties.</p>
+<p>There are two types of handlers we can set up.</p>
+<pre class="code javascript literal-block">
+<span class="cm">/**
+ * Register an event listener callback (will keep receiving messages)
+ */</span>
+<span class="nx">API</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">on</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">event</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">handlers</span><span class="p">[</span><span class="nx">event</span><span class="p">]</span> <span class="o">==</span> <span class="kc">null</span><span class="p">)</span> <span class="k">this</span><span class="p">.</span><span class="nx">handlers</span><span class="p">[</span><span class="nx">event</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="p">];</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">handlers</span><span class="p">[</span><span class="nx">event</span><span class="p">].</span><span class="nx">push</span><span class="p">(</span><span class="nx">callback</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="cm">/**
+ * Register an event listener callback for a single instance of the event
+ */</span>
+<span class="nx">API</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">once</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">event</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">once_handlers</span><span class="p">[</span><span class="nx">event</span><span class="p">]</span> <span class="o">==</span> <span class="kc">null</span><span class="p">)</span> <span class="k">this</span><span class="p">.</span><span class="nx">once_handlers</span><span class="p">[</span><span class="nx">event</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="p">];</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">once_handlers</span><span class="p">[</span><span class="nx">event</span><span class="p">].</span><span class="nx">push</span><span class="p">(</span><span class="nx">callback</span><span class="p">);</span>
+<span class="p">}</span>
+</pre>
+<p>A <tt class="docutils literal">on</tt> and <tt class="docutils literal">once</tt> handler (blatant ripoff from Node.js EventEmitter). The <tt class="docutils literal">on</tt> registers a function to an <tt class="docutils literal">event</tt> that gets called each time that event is detected in a <tt class="docutils literal">SocketIO</tt> message. The <tt class="docutils literal">once</tt> registers a function that will only fire once when a message of the event type is detected in a <tt class="docutils literal">SocketIO</tt> message.</p>
+<p>Why do we do this. Well simply put. When we do a single call to the backend we don't want the callback to be executed more than once and since all messaging is driven by events we register a callback for only a single <tt class="docutils literal">execution</tt>. But for some other things like when a new player joins the game we might want to get messaged each time it happens using the same function. That's when <tt class="docutils literal">on</tt> comes into force. Don't worry it will make more sense when we show you the next piece of code. The more astute of you might have noticed that this could cause an issue if you have multiple messages being fired on the same event (how would it know what callback to send the message to). A solution for this would be to extend our protocol to contain a callback identifier so a message would contain some sort of identification of what the originating callback was. However this is not needed for our simple Tic-Tac-Toe game and is left for you as an exercise. Let's look at the handlers.</p>
+<pre class="code javascript literal-block">
+<span class="cm">/**
+ * Register a new user
+ */</span>
+<span class="nx">API</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">register</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">full_name</span><span class="p">,</span> <span class="nx">user_name</span><span class="p">,</span> <span class="nx">password</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// Do basic validation
+</span>  <span class="k">if</span><span class="p">(</span><span class="nx">full_name</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">||</span> <span class="nx">full_name</span><span class="p">.</span><span class="nx">length</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">create_error</span><span class="p">(</span><span class="s2">&quot;register&quot;</span><span class="p">,</span> <span class="s2">&quot;Full name cannot be empty&quot;</span><span class="p">));</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">user_name</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">||</span> <span class="nx">user_name</span><span class="p">.</span><span class="nx">length</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">create_error</span><span class="p">(</span><span class="s2">&quot;register&quot;</span><span class="p">,</span> <span class="s2">&quot;User name cannot be empty&quot;</span><span class="p">));</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">password</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">||</span> <span class="nx">password</span><span class="p">.</span><span class="nx">length</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">create_error</span><span class="p">(</span><span class="s2">&quot;register&quot;</span><span class="p">,</span> <span class="s2">&quot;Password name cannot be empty&quot;</span><span class="p">));</span>
+  <span class="c1">// Register callback
+</span>  <span class="k">this</span><span class="p">.</span><span class="nx">once</span><span class="p">(</span><span class="s2">&quot;register&quot;</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
+  <span class="c1">// Fire message
+</span>  <span class="k">this</span><span class="p">.</span><span class="nx">socket</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s2">&quot;register&quot;</span><span class="p">,</span> <span class="p">{</span>
+      <span class="nx">full_name</span><span class="o">:</span> <span class="nx">full_name</span>
+    <span class="p">,</span> <span class="nx">user_name</span><span class="o">:</span> <span class="nx">user_name</span>
+    <span class="p">,</span> <span class="nx">password</span><span class="o">:</span> <span class="nx">password</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+
+<span class="cm">/**
+ * Login a user
+ */</span>
+<span class="nx">API</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">login</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">user_name</span><span class="p">,</span> <span class="nx">password</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+  <span class="c1">// Do basic validation
+</span>  <span class="k">if</span><span class="p">(</span><span class="nx">user_name</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">||</span> <span class="nx">user_name</span><span class="p">.</span><span class="nx">length</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">create_error</span><span class="p">(</span><span class="s2">&quot;login&quot;</span><span class="p">,</span> <span class="s2">&quot;User name cannot be empty&quot;</span><span class="p">));</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">password</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">||</span> <span class="nx">password</span><span class="p">.</span><span class="nx">length</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nx">callback</span><span class="p">(</span><span class="nx">create_error</span><span class="p">(</span><span class="s2">&quot;login&quot;</span><span class="p">,</span> <span class="s2">&quot;Password name cannot be empty&quot;</span><span class="p">));</span>
+  <span class="c1">// Register callback
+</span>  <span class="k">this</span><span class="p">.</span><span class="nx">once</span><span class="p">(</span><span class="s2">&quot;login&quot;</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
+  <span class="c1">// Fire message
+</span>  <span class="k">this</span><span class="p">.</span><span class="nx">socket</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s2">&quot;login&quot;</span><span class="p">,</span> <span class="p">{</span>
+      <span class="nx">user_name</span><span class="o">:</span> <span class="nx">user_name</span>
+    <span class="p">,</span> <span class="nx">password</span><span class="o">:</span> <span class="nx">password</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+
+<span class="cm">/**
+ * Send a message to a specific gamer on a specific game
+ */</span>
+<span class="nx">API</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">send_message</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">game_id</span><span class="p">,</span> <span class="nx">message</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">once</span><span class="p">(</span><span class="s2">&quot;send_message&quot;</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">socket</span><span class="p">.</span><span class="nx">emit</span><span class="p">(</span><span class="s2">&quot;send_message&quot;</span><span class="p">,</span> <span class="p">{</span><span class="nx">game_id</span><span class="o">:</span> <span class="nx">game_id</span><span class="p">,</span> <span class="nx">message</span><span class="o">:</span> <span class="nx">message</span><span class="p">});</span>
+<span class="p">}</span>
+
+<span class="cm">/**
+ * Simple method to create a formated error message that fits the
+ * format returned from the server
+ */</span>
+<span class="kd">var</span> <span class="nx">create_error</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">event</span><span class="p">,</span> <span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="p">{</span>
+      <span class="nx">event</span><span class="o">:</span> <span class="nx">event</span>
+    <span class="p">,</span> <span class="nx">ok</span><span class="o">:</span> <span class="kc">false</span>
+    <span class="p">,</span> <span class="nx">is_error</span><span class="o">:</span> <span class="kc">true</span>
+    <span class="p">,</span> <span class="nx">error</span><span class="o">:</span> <span class="nx">err</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre>
+<p>Let's have a look at the <tt class="docutils literal">API.prototype.register</tt> function in the <tt class="docutils literal">API</tt>. It first does a couple of validations checking that <tt class="docutils literal">full_name</tt>, <tt class="docutils literal">user_name</tt> and <tt class="docutils literal">password</tt> are not empty strings and if anyone of them are it returns a <tt class="docutils literal">standardized</tt> error message (same format as we send from the server) using the <tt class="docutils literal">create_error</tt> function. If all the validations pass we use the <tt class="docutils literal">once</tt> method mentioned above to register the calling function's <tt class="docutils literal">callback</tt> function to the event <tt class="docutils literal">register</tt>. This means that when the frontend receives an event of type <tt class="docutils literal">register</tt> it will locate that callback and execute it returning the results to the code originally calling the <tt class="docutils literal">register</tt> <tt class="docutils literal">API</tt> method. After registering the <tt class="docutils literal">callback</tt> the method sends a message down to the backend with the event <tt class="docutils literal">register</tt> that gets processed by our backend handler in the <tt class="docutils literal">lib/handlers/login_handler.js</tt> file called <tt class="docutils literal">register_handler</tt>.</p>
+<p>The same applies for the <tt class="docutils literal">API.prototype.login</tt> method. The difference being that the message sent is handled by the <tt class="docutils literal">login_handler</tt> function in the <tt class="docutils literal">lib/handlers/login_handler.js</tt> file.</p>
+</div>
+<div class="section" id="wiring-up-the-code">
+<h1>Wiring Up The Code</h1>
+<p>We've defined the <tt class="docutils literal">API</tt> for the game, now let's wire it all up so we can actually perform a registration or login from the browser. Open the file <tt class="docutils literal">public/javascript/app.js</tt> in your editor.</p>
+<div class="highlight"><pre><a name="code--tic--tic2--tic8.js-pyg.html-1"></a><span class="c1">// Contains the application state</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-2"></a><span class="kd">var</span> <span class="nx">application_state</span> <span class="o">=</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-3"></a>  <span class="nx">session_id</span><span class="o">:</span> <span class="kc">null</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-4"></a><span class="p">}</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-5"></a>
+<a name="code--tic--tic2--tic8.js-pyg.html-6"></a><span class="c1">// Create an instance of the API class</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-7"></a><span class="kd">var</span> <span class="nx">api</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">API</span><span class="p">();</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-8"></a>
+<a name="code--tic--tic2--tic8.js-pyg.html-9"></a><span class="c1">// Create a template handler with all the templates</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-10"></a><span class="c1">// used in the application</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-11"></a><span class="kd">var</span> <span class="nx">template_handler</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">TemplateHandler</span><span class="p">({</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-12"></a>    <span class="s2">&quot;main&quot;</span><span class="o">:</span> <span class="s2">&quot;/templates/main.ms&quot;</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-13"></a>  <span class="p">,</span> <span class="s2">&quot;dashboard&quot;</span><span class="o">:</span> <span class="s2">&quot;/templates/dashboard.ms&quot;</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-14"></a><span class="p">});</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-15"></a>
+<a name="code--tic--tic2--tic8.js-pyg.html-16"></a><span class="c1">// Load all the templates and once it&#39;s done</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-17"></a><span class="c1">// register up all the initial button handlers</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-18"></a><span class="nx">template_handler</span><span class="p">.</span><span class="nx">start</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-19"></a>
+<a name="code--tic--tic2--tic8.js-pyg.html-20"></a>  <span class="c1">// Render the main view in the #view div</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-21"></a>  <span class="nx">template_handler</span><span class="p">.</span><span class="nx">setTemplate</span><span class="p">(</span><span class="s2">&quot;#view&quot;</span><span class="p">,</span> <span class="s2">&quot;main&quot;</span><span class="p">,</span> <span class="p">{});</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-22"></a>
+<a name="code--tic--tic2--tic8.js-pyg.html-23"></a>  <span class="c1">// Wire up the buttons for the main view</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-24"></a>  <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#register_button&#39;</span><span class="p">)</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-25"></a>    <span class="p">.</span><span class="nx">click</span><span class="p">(</span><span class="nx">register_button_handler</span><span class="p">(</span><span class="nx">application_state</span><span class="p">,</span> <span class="nx">api</span><span class="p">,</span> <span class="nx">template_handler</span><span class="p">));</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-26"></a>  <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#login_button&#39;</span><span class="p">)</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-27"></a>    <span class="p">.</span><span class="nx">click</span><span class="p">(</span><span class="nx">login_button_handler</span><span class="p">(</span><span class="nx">application_state</span><span class="p">,</span> <span class="nx">api</span><span class="p">,</span> <span class="nx">template_handler</span><span class="p">));</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-28"></a><span class="p">})</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-29"></a>
+<a name="code--tic--tic2--tic8.js-pyg.html-30"></a><span class="cm">/****************************************************************************************</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-31"></a><span class="cm"> * Application events we listen to</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-32"></a><span class="cm"> ****************************************************************************************/</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-33"></a>
+<a name="code--tic--tic2--tic8.js-pyg.html-34"></a><span class="cm">/**</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-35"></a><span class="cm"> * The init event, the server has set up everything an assigned us</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-36"></a><span class="cm"> * a session id that we can use in the application</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-37"></a><span class="cm"> */</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-38"></a><span class="nx">api</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s2">&quot;init&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-39"></a>  <span class="nx">application_state</span><span class="p">.</span><span class="nx">session_id</span> <span class="o">=</span> <span class="nx">data</span><span class="p">;</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-40"></a><span class="p">});</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-41"></a>
+<a name="code--tic--tic2--tic8.js-pyg.html-42"></a><span class="cm">/**</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-43"></a><span class="cm"> * A new gamer logged on, display the new user in the list of available gamers</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-44"></a><span class="cm"> * to play</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-45"></a><span class="cm"> */</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-46"></a><span class="nx">api</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;gamer_joined&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-47"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">return</span><span class="p">;</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-48"></a><span class="p">});</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-49"></a>
+<a name="code--tic--tic2--tic8.js-pyg.html-50"></a><span class="cm">/****************************************************************************************</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-51"></a><span class="cm"> * Handlers</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-52"></a><span class="cm"> ****************************************************************************************/</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-53"></a><span class="cm">/**</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-54"></a><span class="cm"> * Handles the attempt to register a new user</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-55"></a><span class="cm"> */</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-56"></a><span class="kd">var</span> <span class="nx">register_button_handler</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">application_state</span><span class="p">,</span> <span class="nx">api</span><span class="p">,</span> <span class="nx">template_handler</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-57"></a>  <span class="k">return</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-58"></a>    <span class="c1">// Lets get the values for the registration</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-59"></a>    <span class="kd">var</span> <span class="nx">full_name</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#inputFullNameRegister&#39;</span><span class="p">).</span><span class="nx">val</span><span class="p">();</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-60"></a>    <span class="kd">var</span> <span class="nx">user_name</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#inputUserNameRegister&#39;</span><span class="p">).</span><span class="nx">val</span><span class="p">();</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-61"></a>    <span class="kd">var</span> <span class="nx">password</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#inputPasswordRegister&#39;</span><span class="p">).</span><span class="nx">val</span><span class="p">();</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-62"></a>
+<a name="code--tic--tic2--tic8.js-pyg.html-63"></a>    <span class="c1">// Attempt to register a new user</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-64"></a>    <span class="nx">api</span><span class="p">.</span><span class="nx">register</span><span class="p">(</span><span class="nx">full_name</span><span class="p">,</span> <span class="nx">user_name</span><span class="p">,</span> <span class="nx">password</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-65"></a>      <span class="c1">// If we have an error show the error message to the user</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-66"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">return</span> <span class="nx">error_box_show</span><span class="p">(</span><span class="nx">err</span><span class="p">.</span><span class="nx">error</span><span class="p">);</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-67"></a>
+<a name="code--tic--tic2--tic8.js-pyg.html-68"></a>      <span class="c1">// Show the main dashboard view and render with all the available players</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-69"></a>      <span class="nx">template_handler</span><span class="p">.</span><span class="nx">setTemplate</span><span class="p">(</span><span class="s2">&quot;#view&quot;</span><span class="p">,</span> <span class="s2">&quot;dashboard&quot;</span><span class="p">,</span> <span class="p">{</span><span class="nx">gamers</span><span class="o">:</span> <span class="p">[]});</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-70"></a>    <span class="p">});</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-71"></a>  <span class="p">}</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-72"></a><span class="p">}</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-73"></a>
+<a name="code--tic--tic2--tic8.js-pyg.html-74"></a><span class="cm">/**</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-75"></a><span class="cm"> * Handles the attempt to login</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-76"></a><span class="cm"> */</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-77"></a><span class="kd">var</span> <span class="nx">login_button_handler</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">application_state</span><span class="p">,</span> <span class="nx">api</span><span class="p">,</span> <span class="nx">template_handler</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-78"></a>  <span class="k">return</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-79"></a>    <span class="c1">// Lets get the values for the login</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-80"></a>    <span class="kd">var</span> <span class="nx">user_name</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#inputUserNameLogin&#39;</span><span class="p">).</span><span class="nx">val</span><span class="p">();</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-81"></a>    <span class="kd">var</span> <span class="nx">password</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#inputPasswordLogin&#39;</span><span class="p">).</span><span class="nx">val</span><span class="p">();</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-82"></a>
+<a name="code--tic--tic2--tic8.js-pyg.html-83"></a>    <span class="c1">// Attempt to login the user</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-84"></a>    <span class="nx">api</span><span class="p">.</span><span class="nx">login</span><span class="p">(</span><span class="nx">user_name</span><span class="p">,</span> <span class="nx">password</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-85"></a>      <span class="c1">// If we have an error show the error message to the user</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-86"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">return</span> <span class="nx">error_box_show</span><span class="p">(</span><span class="nx">err</span><span class="p">.</span><span class="nx">error</span><span class="p">);</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-87"></a>
+<a name="code--tic--tic2--tic8.js-pyg.html-88"></a>      <span class="c1">// Show the main dashboard view and render with all the available players</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-89"></a>      <span class="nx">template_handler</span><span class="p">.</span><span class="nx">setTemplate</span><span class="p">(</span><span class="s2">&quot;#view&quot;</span><span class="p">,</span> <span class="s2">&quot;dashboard&quot;</span><span class="p">,</span> <span class="p">{</span><span class="nx">gamers</span><span class="o">:</span> <span class="p">[]});</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-90"></a>    <span class="p">});</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-91"></a>  <span class="p">}</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-92"></a><span class="p">}</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-93"></a>
+<a name="code--tic--tic2--tic8.js-pyg.html-94"></a><span class="cm">/****************************************************************************************</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-95"></a><span class="cm"> * Helper methods</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-96"></a><span class="cm"> ****************************************************************************************/</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-97"></a>
+<a name="code--tic--tic2--tic8.js-pyg.html-98"></a><span class="cm">/**</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-99"></a><span class="cm"> * Show an error message box</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-100"></a><span class="cm"> */</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-101"></a><span class="kd">var</span> <span class="nx">error_box_show</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">error</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-102"></a>  <span class="c1">// Set fields for the error</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-103"></a>  <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#status_box_header&#39;</span><span class="p">).</span><span class="nx">html</span><span class="p">(</span><span class="s2">&quot;Registration Error&quot;</span><span class="p">);</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-104"></a>  <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#status_box_body&#39;</span><span class="p">).</span><span class="nx">html</span><span class="p">(</span><span class="nx">error</span><span class="p">);</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-105"></a>  <span class="c1">// Show the modal box</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-106"></a>  <span class="nx">$</span><span class="p">(</span><span class="s1">&#39;#status_box&#39;</span><span class="p">).</span><span class="nx">modal</span><span class="p">({</span><span class="nx">backdrop</span><span class="o">:</span><span class="kc">true</span><span class="p">,</span> <span class="nx">show</span><span class="o">:</span><span class="kc">true</span><span class="p">})</span>
+<a name="code--tic--tic2--tic8.js-pyg.html-107"></a><span class="p">}</span>
+</pre></div><p>The first part of the file is the <tt class="docutils literal">application_state</tt>. This object keeps track of all application specific information needed across the lifetime of the application such as the current session id associated with the current user. The <tt class="docutils literal">var api = new API()</tt> statement keeps an instance of the api around for the application to use and initiates contact with the server backend over <tt class="docutils literal">SocketIO</tt>.</p>
+<p>Let's take a look at the class we use to handle the rendering of all our templates in the application. Lets open the <tt class="docutils literal">public/javascripts/template_handler.js</tt> and add the following code.</p>
+<div class="highlight"><pre><a name="code--tic--tic2--tic9.js-pyg.html-1"></a><span class="cm">/**</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-2"></a><span class="cm"> * The template handler just keeps our mustache templates</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-3"></a><span class="cm"> * and wraps basic things like loading the templates and rendering them</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-4"></a><span class="cm"> */</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-5"></a><span class="kd">var</span> <span class="nx">TemplateHandler</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">templates</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-6"></a>  <span class="k">this</span><span class="p">.</span><span class="nx">templates</span> <span class="o">=</span> <span class="nx">templates</span><span class="p">;</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-7"></a>  <span class="k">this</span><span class="p">.</span><span class="nx">template_file_content</span> <span class="o">=</span> <span class="p">{};</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-8"></a>  <span class="k">this</span><span class="p">.</span><span class="nx">numberOfTemplates</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-9"></a>  <span class="c1">// Get templates count</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-10"></a>  <span class="k">for</span><span class="p">(</span><span class="kd">var</span> <span class="nx">name</span> <span class="k">in</span> <span class="k">this</span><span class="p">.</span><span class="nx">templates</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-11"></a>    <span class="k">this</span><span class="p">.</span><span class="nx">numberOfTemplates</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">numberOfTemplates</span> <span class="o">+</span> <span class="mi">1</span><span class="p">;</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-12"></a>  <span class="p">}</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-13"></a><span class="p">}</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-14"></a>
+<a name="code--tic--tic2--tic9.js-pyg.html-15"></a><span class="cm">/**</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-16"></a><span class="cm"> * Load all the templates using jquery and save them in our internal</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-17"></a><span class="cm"> * cache</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-18"></a><span class="cm"> */</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-19"></a><span class="nx">TemplateHandler</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">start</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-20"></a>  <span class="kd">var</span> <span class="nx">counter</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">numberOfTemplates</span><span class="p">;</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-21"></a>  <span class="kd">var</span> <span class="nx">self</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-22"></a>
+<a name="code--tic--tic2--tic9.js-pyg.html-23"></a>  <span class="k">for</span><span class="p">(</span><span class="kd">var</span> <span class="nx">name</span> <span class="k">in</span> <span class="k">this</span><span class="p">.</span><span class="nx">templates</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-24"></a>    <span class="c1">// Execute each get in it&#39;s own context</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-25"></a>    <span class="kd">var</span> <span class="nx">wrapper_function</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">template_name</span><span class="p">,</span> <span class="nx">template_location</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-26"></a>
+<a name="code--tic--tic2--tic9.js-pyg.html-27"></a>      <span class="c1">// Load the initial mustache template</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-28"></a>      <span class="nx">$</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="nx">self</span><span class="p">.</span><span class="nx">templates</span><span class="p">[</span><span class="nx">name</span><span class="p">],</span> <span class="kd">function</span><span class="p">(</span><span class="nx">template</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-29"></a>        <span class="nx">counter</span> <span class="o">=</span> <span class="nx">counter</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-30"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;loaded template: &quot;</span> <span class="o">+</span> <span class="nx">template_name</span> <span class="o">+</span> <span class="s2">&quot; at &quot;</span> <span class="o">+</span> <span class="nx">template_location</span><span class="p">);</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-31"></a>
+<a name="code--tic--tic2--tic9.js-pyg.html-32"></a>        <span class="c1">// Store the template in the file content cache</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-33"></a>        <span class="nx">self</span><span class="p">.</span><span class="nx">template_file_content</span><span class="p">[</span><span class="nx">template_name</span><span class="p">]</span> <span class="o">=</span> <span class="nx">template</span><span class="p">;</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-34"></a>        <span class="k">if</span><span class="p">(</span><span class="nx">counter</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="nx">callback</span><span class="p">();</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-35"></a>      <span class="p">})</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-36"></a>    <span class="p">}</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-37"></a>
+<a name="code--tic--tic2--tic9.js-pyg.html-38"></a>    <span class="c1">// Wrap the load to ensure we keep the scope local to the function</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-39"></a>    <span class="nx">wrapper_function</span><span class="p">(</span><span class="nx">name</span><span class="p">,</span> <span class="k">this</span><span class="p">.</span><span class="nx">templates</span><span class="p">[</span><span class="nx">name</span><span class="p">])</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-40"></a>  <span class="p">}</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-41"></a><span class="p">}</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-42"></a>
+<a name="code--tic--tic2--tic9.js-pyg.html-43"></a><span class="cm">/**</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-44"></a><span class="cm"> * Render a template by the template name and then set a div with the rendered template, </span>
+<a name="code--tic--tic2--tic9.js-pyg.html-45"></a><span class="cm"> * the context is an object of values used in the template</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-46"></a><span class="cm"> */</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-47"></a><span class="nx">TemplateHandler</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">setTemplate</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">id</span><span class="p">,</span> <span class="nx">template_name</span><span class="p">,</span> <span class="nx">context</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-48"></a>  <span class="kd">var</span> <span class="nx">container</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="nx">id</span><span class="p">);</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-49"></a>  <span class="c1">// If there is no such HTML container throw an error</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-50"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">container</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">||</span> <span class="nx">container</span><span class="p">.</span><span class="nx">html</span> <span class="o">==</span> <span class="kc">null</span><span class="p">)</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-51"></a>    <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">&quot;no container &quot;</span> <span class="o">+</span> <span class="nx">id</span><span class="p">);</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-52"></a>  <span class="c1">// If the template does not exist throw an error</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-53"></a>  <span class="k">if</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">template_file_content</span><span class="p">[</span><span class="nx">template_name</span><span class="p">]</span> <span class="o">==</span> <span class="kc">null</span><span class="p">)</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-54"></a>    <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">&quot;no template name &quot;</span> <span class="o">+</span> <span class="nx">template_name</span> <span class="o">+</span> <span class="s2">&quot; loaded&quot;</span><span class="p">);</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-55"></a>  <span class="c1">// Ensure at least empty context</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-56"></a>  <span class="nx">context</span> <span class="o">=</span> <span class="nx">context</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">?</span> <span class="p">{}</span> <span class="o">:</span> <span class="nx">context</span><span class="p">;</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-57"></a>  <span class="c1">// Render template</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-58"></a>  <span class="kd">var</span> <span class="nx">rendered_template</span> <span class="o">=</span> <span class="nx">Mustache</span><span class="p">.</span><span class="nx">render</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">template_file_content</span><span class="p">[</span><span class="nx">template_name</span><span class="p">]</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-59"></a>    <span class="p">,</span> <span class="nx">context</span><span class="p">);</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-60"></a>  <span class="c1">// No error render the template</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-61"></a>  <span class="nx">container</span><span class="p">.</span><span class="nx">html</span><span class="p">(</span><span class="nx">rendered_template</span><span class="p">);</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-62"></a><span class="p">}</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-63"></a>
+<a name="code--tic--tic2--tic9.js-pyg.html-64"></a><span class="cm">/**</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-65"></a><span class="cm"> * Verify if a template exists</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-66"></a><span class="cm"> */</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-67"></a><span class="nx">TemplateHandler</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">isTemplate</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">template_name</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-68"></a>  <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">template_file_content</span><span class="p">[</span><span class="nx">template_name</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">null</span><span class="p">;</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-69"></a><span class="p">}</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-70"></a>
+<a name="code--tic--tic2--tic9.js-pyg.html-71"></a><span class="cm">/**</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-72"></a><span class="cm"> * Just render a template and return the text</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-73"></a><span class="cm"> */</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-74"></a><span class="nx">TemplateHandler</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">render</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">template_name</span><span class="p">,</span> <span class="nx">context</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-75"></a>  <span class="c1">// If the template does not exist throw an error</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-76"></a>  <span class="k">if</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">template_file_content</span><span class="p">[</span><span class="nx">template_name</span><span class="p">]</span> <span class="o">==</span> <span class="kc">null</span><span class="p">)</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-77"></a>    <span class="k">throw</span> <span class="k">new</span> <span class="nb">Error</span><span class="p">(</span><span class="s2">&quot;no template name &quot;</span> <span class="o">+</span> <span class="nx">template_name</span> <span class="o">+</span> <span class="s2">&quot; loaded&quot;</span><span class="p">);</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-78"></a>  <span class="c1">// Ensure at least empty context</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-79"></a>  <span class="nx">context</span> <span class="o">=</span> <span class="nx">context</span> <span class="o">==</span> <span class="kc">null</span> <span class="o">?</span> <span class="p">{}</span> <span class="o">:</span> <span class="nx">context</span><span class="p">;</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-80"></a>  <span class="c1">// Render template</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-81"></a>  <span class="k">return</span> <span class="nx">Mustache</span><span class="p">.</span><span class="nx">render</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">template_file_content</span><span class="p">[</span><span class="nx">template_name</span><span class="p">],</span> <span class="nx">context</span><span class="p">);</span>
+<a name="code--tic--tic2--tic9.js-pyg.html-82"></a><span class="p">}</span>
+</pre></div><p>The <tt class="docutils literal">TemplateHandler</tt> class takes care of loading, caching and rendering our templates used in the application using the <tt class="docutils literal">Mustache</tt> template rendering engine.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="28%" />
+<col width="72%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Function</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>start</td>
+<td>Loads all the templates provided in the constructor</td>
+</tr>
+<tr><td>setTemplate</td>
+<td>Renders a template and sets a div</td>
+</tr>
+<tr><td>isTemplate</td>
+<td>Checks if a named template exists</td>
+</tr>
+<tr><td>render</td>
+<td>Render a named template and return the rendered result</td>
+</tr>
+</tbody>
+</table>
+<p>All templates passed into the <tt class="docutils literal">TemplateHandler</tt> constructor are passed as an object like this.</p>
+<pre class="code json literal-block">
+<span class="p">{</span>
+    <span class="nt">&quot;main&quot;</span><span class="p">:</span> <span class="s2">&quot;/templates/main.ms&quot;</span>
+  <span class="p">,</span> <span class="nt">&quot;dashboard&quot;</span><span class="p">:</span> <span class="s2">&quot;/templates/dashboard.ms&quot;</span>
+<span class="p">}</span>
+</pre>
+<p>Each template has an unique name and an url pointing to the location where the template itself is stored. All the templates are written in a template language called <tt class="docutils literal">Mustache</tt> <a class="reference external" href="http://mustache.github.com/">http://mustache.github.com/</a>.</p>
+<p>The benefit of <tt class="docutils literal">Mustache</tt> is that it keeps a very sharp divider between your code and the rendering avoiding silly string concatenations to generate HTML for your application. You can read more up on <tt class="docutils literal">Mustache</tt> on the link above but safe to say it's a very very simple and limited little template language which fits the needs of our application well.</p>
+<p>Open up your editor and enter the two templates. The first one is at <tt class="docutils literal">public/templates/main.ms</tt></p>
+<div class="highlight"><pre><a name="code--tic--tic2--tic1.ms-pyg.html-1"></a>&lt;div class=&quot;span6&quot;&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-2"></a>  &lt;h2&gt;Register&lt;/h2&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-3"></a>  &lt;p&gt;Pick a user name and enter your full name to be able to play games,
+<a name="code--tic--tic2--tic1.ms-pyg.html-4"></a>  you can reuse the user name as many times as you wish.&lt;/p&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-5"></a>  &lt;form class=&quot;form-horizontal&quot;&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-6"></a>    &lt;div class=&quot;control-group&quot;&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-7"></a>      &lt;label class=&quot;control-label&quot; for=&quot;inputFullNameRegister&quot;&gt;Full Name&lt;/label&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-8"></a>      &lt;div class=&quot;controls&quot;&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-9"></a>        &lt;input type=&quot;text&quot; id=&quot;inputFullNameRegister&quot; placeholder=&quot;Full Name&quot;&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-10"></a>      &lt;/div&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-11"></a>    &lt;/div&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-12"></a>    &lt;div class=&quot;control-group&quot;&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-13"></a>      &lt;label class=&quot;control-label&quot; for=&quot;inputUserNameRegister&quot;&gt;User Name&lt;/label&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-14"></a>      &lt;div class=&quot;controls&quot;&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-15"></a>        &lt;input type=&quot;text&quot; id=&quot;inputUserNameRegister&quot; placeholder=&quot;User Name&quot;&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-16"></a>      &lt;/div&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-17"></a>    &lt;/div&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-18"></a>    &lt;div class=&quot;control-group&quot;&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-19"></a>      &lt;label class=&quot;control-label&quot; for=&quot;inputPasswordRegister&quot;&gt;Password&lt;/label&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-20"></a>      &lt;div class=&quot;controls&quot;&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-21"></a>        &lt;input type=&quot;password&quot; id=&quot;inputPasswordRegister&quot; placeholder=&quot;Password&quot;&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-22"></a>      &lt;/div&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-23"></a>    &lt;/div&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-24"></a>    &lt;div class=&quot;control-group&quot;&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-25"></a>      &lt;div class=&quot;controls&quot;&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-26"></a>        &lt;button type=&quot;button&quot; class=&quot;btn&quot; id=&quot;register_button&quot;&gt;Register&lt;/button&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-27"></a>      &lt;/div&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-28"></a>    &lt;/div&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-29"></a>  &lt;/form&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-30"></a>&lt;/div&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-31"></a>&lt;div class=&quot;span6&quot;&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-32"></a>  &lt;h2&gt;Log in&lt;/h2&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-33"></a>  &lt;form class=&quot;form-horizontal&quot;&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-34"></a>    &lt;div class=&quot;control-group&quot;&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-35"></a>      &lt;label class=&quot;control-label&quot; for=&quot;inputUserNameLogin&quot;&gt;User Name&lt;/label&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-36"></a>      &lt;div class=&quot;controls&quot;&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-37"></a>        &lt;input type=&quot;text&quot; id=&quot;inputUserNameLogin&quot; placeholder=&quot;User Name&quot;&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-38"></a>      &lt;/div&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-39"></a>    &lt;/div&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-40"></a>    &lt;div class=&quot;control-group&quot;&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-41"></a>      &lt;label class=&quot;control-label&quot; for=&quot;inputPasswordLogin&quot;&gt;Password&lt;/label&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-42"></a>      &lt;div class=&quot;controls&quot;&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-43"></a>        &lt;input type=&quot;password&quot; id=&quot;inputPasswordLogin&quot; placeholder=&quot;Password&quot;&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-44"></a>      &lt;/div&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-45"></a>    &lt;/div&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-46"></a>    &lt;div class=&quot;control-group&quot;&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-47"></a>      &lt;div class=&quot;controls&quot;&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-48"></a>        &lt;button type=&quot;button&quot; class=&quot;btn&quot; id=&quot;login_button&quot;&gt;Login&lt;/button&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-49"></a>      &lt;/div&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-50"></a>    &lt;/div&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-51"></a>  &lt;/form&gt;
+<a name="code--tic--tic2--tic1.ms-pyg.html-52"></a>&lt;/div&gt;
+</pre></div><p>The second one is at <tt class="docutils literal">public/templates/dashboard.ms</tt></p>
+<div class="highlight"><pre><a name="code--tic--tic2--tic2.ms-pyg.html-1"></a>Dashboard
+</pre></div><p>The <tt class="docutils literal">TemplateHandler.prototype.start</tt> method will use <tt class="docutils literal">JQuery</tt> to load the templates specified in the constructor and store them in an internal object. The application uses the method <tt class="docutils literal">TemplateHandler.prototype.setTemplate</tt> to overwrite an HTML element's contents identified by <tt class="docutils literal">id</tt> with the content of the rendered template identified by <tt class="docutils literal">template_name</tt> and the value in the passed in <tt class="docutils literal">context</tt> object.</p>
+<p><tt class="docutils literal">TemplateHandler.prototype.render</tt> is similar to the <tt class="docutils literal">TemplateHandler.prototype.setTemplate</tt> method but only returns the rendered template result instead of overwriting the content of a HTML element.</p>
+<p>That covers how the <tt class="docutils literal">TemplateHandler</tt> class works. It's time to get back to the <tt class="docutils literal">public/javascript/app.js</tt> file and write some of the code for the application.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// Load all the templates and once it's done
+// register up all the initial button handlers
+</span><span class="nx">template_handler</span><span class="p">.</span><span class="nx">start</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+
+  <span class="c1">// Render the main view in the #view div
+</span>  <span class="nx">template_handler</span><span class="p">.</span><span class="nx">setTemplate</span><span class="p">(</span><span class="s2">&quot;#view&quot;</span><span class="p">,</span> <span class="s2">&quot;main&quot;</span><span class="p">,</span> <span class="p">{</span><span class="p">});</span>
+
+  <span class="c1">// Wire up the buttons for the main view
+</span>  <span class="nx">$</span><span class="p">(</span><span class="s1">'#register_button'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">click</span><span class="p">(</span><span class="nx">register_button_handler</span><span class="p">(</span><span class="nx">application_state</span><span class="p">,</span> <span class="nx">api</span><span class="p">,</span> <span class="nx">template_handler</span><span class="p">));</span>
+  <span class="nx">$</span><span class="p">(</span><span class="s1">'#login_button'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">click</span><span class="p">(</span><span class="nx">login_button_handler</span><span class="p">(</span><span class="nx">application_state</span><span class="p">,</span> <span class="nx">api</span><span class="p">,</span> <span class="nx">template_handler</span><span class="p">));</span>
+<span class="p">})</span>
+</pre>
+<p>When the user first goes to <tt class="docutils literal"><span class="pre">http://localhost:3000</span></tt> a <tt class="docutils literal">TemplateHandler</tt> instance gets created and the method <tt class="docutils literal">start</tt> is called that loads all the templates. The code then sets the initial template view overwriting the HTML element identified by the id <tt class="docutils literal">view</tt> with the starting application view. After rendering and replacing the HTML the method wires up the <tt class="docutils literal">register_button</tt> and the <tt class="docutils literal">login_button</tt> to listen for <tt class="docutils literal">click</tt> events. If a user clicks the <tt class="docutils literal">register_button</tt> the <tt class="docutils literal">register_button_handler</tt> function is called and if the user clicks the <tt class="docutils literal">login_button</tt> the <tt class="docutils literal">login_button_handler</tt> function is called. That takes care of wiring up the buttons. Let's look at the wiring up of <tt class="docutils literal">event</tt> handlers in <tt class="docutils literal">public/javascript/app.js</tt>.</p>
+<pre class="code javascript literal-block">
+<span class="cm">/**
+ * The init event, the server has set up everything an assigned us
+ * a session id that we can use in the application
+ */</span>
+<span class="nx">api</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s2">&quot;init&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">application_state</span><span class="p">.</span><span class="nx">session_id</span> <span class="o">=</span> <span class="nx">data</span><span class="p">;</span>
+<span class="p">});</span>
+
+<span class="cm">/**
+ * A new gamer logged on, display the new user in the list of available gamers
+ * to play
+ */</span>
+<span class="nx">api</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">'gamer_joined'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">return</span><span class="p">;</span>
+<span class="p">});</span>
+</pre>
+<p>Here we are using the <tt class="docutils literal">on</tt> method from the <tt class="docutils literal">API</tt> class to listen to the events <tt class="docutils literal">init</tt> and <tt class="docutils literal">gamer_joined</tt>.</p>
+<p>Looking at the <tt class="docutils literal"><span class="pre">api.on('init',</span> ..)</tt> event handler we see that we are storing the returned data in the <tt class="docutils literal">application_state</tt>. The returned data is the current users session id returned from the server and is used to identify the current user by the server. Don't worry to much about the <tt class="docutils literal"><span class="pre">api.on('gamer_joined',</span> ..)</tt> event handler as we will flesh it out more in the next exercise.</p>
+<p>Let's look at the handlers for the <tt class="docutils literal">register_button</tt> and the <tt class="docutils literal">login_button</tt> buttons.</p>
+<pre class="code javascript literal-block">
+<span class="cm">/**
+ * Handles the attempt to register a new user
+ */</span>
+<span class="kd">var</span> <span class="nx">register_button_handler</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">application_state</span><span class="p">,</span> <span class="nx">api</span><span class="p">,</span> <span class="nx">template_handler</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="kd">function</span><span class="p">(</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// Lets get the values for the registration
+</span>    <span class="kd">var</span> <span class="nx">full_name</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="s1">'#inputFullNameRegister'</span><span class="p">).</span><span class="nx">val</span><span class="p">(</span><span class="p">);</span>
+    <span class="kd">var</span> <span class="nx">user_name</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="s1">'#inputUserNameRegister'</span><span class="p">).</span><span class="nx">val</span><span class="p">(</span><span class="p">);</span>
+    <span class="kd">var</span> <span class="nx">password</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="s1">'#inputPasswordRegister'</span><span class="p">).</span><span class="nx">val</span><span class="p">(</span><span class="p">);</span>
+
+    <span class="c1">// Attempt to register a new user
+</span>    <span class="nx">api</span><span class="p">.</span><span class="nx">register</span><span class="p">(</span><span class="nx">full_name</span><span class="p">,</span> <span class="nx">user_name</span><span class="p">,</span> <span class="nx">password</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// If we have an error show the error message to the user
+</span>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">return</span> <span class="nx">error_box_show</span><span class="p">(</span><span class="nx">err</span><span class="p">.</span><span class="nx">error</span><span class="p">);</span>
+
+      <span class="c1">// Show the main dashboard view and render with all the available players
+</span>      <span class="nx">template_handler</span><span class="p">.</span><span class="nx">setTemplate</span><span class="p">(</span><span class="s2">&quot;#view&quot;</span><span class="p">,</span> <span class="s2">&quot;dashboard&quot;</span><span class="p">,</span> <span class="p">{</span><span class="nx">gamers</span><span class="o">:</span> <span class="p">[</span><span class="p">]});</span>
+    <span class="p">});</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre>
+<p>The first part of the method grabs the content of the three fields <tt class="docutils literal">inputFullNameRegister</tt>, <tt class="docutils literal">inputUserNameRegister</tt> and <tt class="docutils literal">inputPasswordRegister</tt> then attempts to register the user using the <tt class="docutils literal">api.register</tt> method. When the method returns the passed in callback function gets called with two parameters <tt class="docutils literal">err</tt> and <tt class="docutils literal">data</tt> (Standard Node.js callback). If the <tt class="docutils literal">err</tt> parameter is not equal to <tt class="docutils literal">null</tt> the <tt class="docutils literal">register</tt> function failed and we use the method <tt class="docutils literal">error_box_show</tt> to present the user with an error message dialog. Since all our error messages follow the same standard this makes it easy to create a more generalized error message box. If we have no errors the user was successfully created and logged in. We then set the HTML element to the <tt class="docutils literal">dashboard.ms</tt> template and render it. That completes the registration process.</p>
+<pre class="code javascript literal-block">
+<span class="cm">/**
+ * Handles the attempt to login
+ */</span>
+<span class="kd">var</span> <span class="nx">login_button_handler</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">application_state</span><span class="p">,</span> <span class="nx">api</span><span class="p">,</span> <span class="nx">template_handler</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="kd">function</span><span class="p">(</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1">// Lets get the values for the login
+</span>    <span class="kd">var</span> <span class="nx">user_name</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="s1">'#inputUserNameLogin'</span><span class="p">).</span><span class="nx">val</span><span class="p">(</span><span class="p">);</span>
+    <span class="kd">var</span> <span class="nx">password</span> <span class="o">=</span> <span class="nx">$</span><span class="p">(</span><span class="s1">'#inputPasswordLogin'</span><span class="p">).</span><span class="nx">val</span><span class="p">(</span><span class="p">);</span>
+
+    <span class="c1">// Attempt to login the user
+</span>    <span class="nx">api</span><span class="p">.</span><span class="nx">login</span><span class="p">(</span><span class="nx">user_name</span><span class="p">,</span> <span class="nx">password</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+      <span class="c1">// If we have an error show the error message to the user
+</span>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">return</span> <span class="nx">error_box_show</span><span class="p">(</span><span class="nx">err</span><span class="p">.</span><span class="nx">error</span><span class="p">);</span>
+
+      <span class="c1">// Show the main dashboard view and render with all the available players
+</span>      <span class="nx">template_handler</span><span class="p">.</span><span class="nx">setTemplate</span><span class="p">(</span><span class="s2">&quot;#view&quot;</span><span class="p">,</span> <span class="s2">&quot;dashboard&quot;</span><span class="p">,</span> <span class="p">{</span><span class="nx">gamers</span><span class="o">:</span><span class="p">[</span><span class="p">]});</span>
+    <span class="p">});</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre>
+<p>The login code is very similar to the registration code, the difference being that we are calling the <tt class="docutils literal">api.login</tt> function instead of the <tt class="docutils literal">api.register</tt> function.</p>
+<p>That the code for this exercise, lets fire up the server and play around with our application.</p>
+<pre class="code console literal-block">
+<span class="go">node app</span>
+</pre>
+<p>Try out a couple of the scenarios below to test out the application and see how it works.</p>
+<ol class="arabic simple">
+<li>Attempt a login with non existing user.</li>
+<li>Attempt to register a new user with the full name field empty.</li>
+<li>Fill in all the fields correctly for a registered user.</li>
+<li>Login in using a registered user.</li>
+</ol>
+<p>That finished step two in the tutorial. Join us for the next tutorial step where we implement the actual game play aspect of the application.</p>
+</div>
+<div class="section" id="notes">
+<h1>Notes</h1>
+<p>This is a very simplified <tt class="docutils literal">registration</tt> and <tt class="docutils literal">login</tt> process. You might want to do things like extend the validations on the client and server side for password strength, and maybe add an email verification process to make sure the new player enters a valid email. This is left as an exercise for you to do.</p>
+</div>
+    </div>
+
+    <div class="one columns" id="right-nav">
+        <center>
+        <p><a href="/book/"><img src="images/48_structure.png"></a></p>
+        <p><a href="#"><img src="images/48_email.png"></a></p>
+        <p><a href="#faq"><img src="images/48_faq.png"></a></p>
+        <p>
+        </p>
+        </center>
+    </div>
+
+  <!-- Included JS Files (Compressed) -->
+  <script src="javascripts/jquery.js"></script>
+  <script src="javascripts/foundation.min.js"></script>
+  
+  <!-- Initialize JS Plugins -->
+  <script src="javascripts/app.js"></script>
+
+</body>
+</html>

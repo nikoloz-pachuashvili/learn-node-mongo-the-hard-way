@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+    <!--[if gt IE 8]><!-->
+<html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8" />
+
+  <!-- Set the viewport width to device width for mobile -->
+  <meta name="viewport" content="width=device-width" />
+
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
+<title>Exercise 19: Evolving A Simple Schema</title>
+
+  <!-- Included CSS Files (Compressed) -->
+  <link rel="stylesheet" href="stylesheets/foundation.min.css">
+  <link rel="stylesheet" href="stylesheets/pygments.css">
+  <link rel="stylesheet" href="stylesheets/app.css">
+
+  <script src="javascripts/modernizr.foundation.js"></script>
+
+  <!-- IE Fix for HTML5 Tags -->
+  <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+</head>
+<body>
+
+  <div class="row">
+          <h1 class="title">Exercise 19: Evolving A Simple Schema</h1>
+      </div>
+  </div>
+
+  <div class="row">
+    <div class="eleven columns">
+        <p>Let's put together some of the stuff we have covered including inserts, updates with atomic updates and removes to create a little book lending library application. We are going to focus on only the actual code around the book library itself in this chapter and then in the next chapter provide a very simple rest <tt class="docutils literal">API</tt> to out library application so we can integrate it into the next <tt class="docutils literal">facebook</tt> of library lending called <tt class="docutils literal">bookface</tt>.</p>
+<p>Let's fact model our library model concepts.</p>
+<div class="section" id="facts">
+<h1>Facts</h1>
+<div class="section" id="book">
+<h2>Book</h2>
+<ul class="simple">
+<li>A Book has the title <tt class="docutils literal">Fall of the Roman Empire</tt></li>
+<li>The Book <tt class="docutils literal">Fall of the Roman Empire</tt> has the unique id 1</li>
+<li>The Book <tt class="docutils literal">Fall of the Roman Empire</tt> has a 1973 Edition</li>
+<li>The Book <tt class="docutils literal">Fall of the Roman Empire</tt> was published by <tt class="docutils literal">T Books</tt> in 1973</li>
+<li>The Book <tt class="docutils literal">Fall of the Roman Empire</tt> is identified by the ISBN number <tt class="docutils literal"><span class="pre">978-1853260087</span></tt></li>
+<li>The Book <tt class="docutils literal">Fall of the Roman Empire</tt> was written by the Author <tt class="docutils literal">James W Kirk</tt></li>
+<li>The Book <tt class="docutils literal">Fall of the Roman Empire</tt> has the summary <tt class="docutils literal">The road to the fall of the Roman Empire</tt>, a comprehensive history of the greatest western empire's decline&quot;</li>
+<li>The 1973 Edition of <tt class="docutils literal">Fall of the Roman Empire</tt> was loaned by the User <tt class="docutils literal">Peter Griffin</tt> on the 19th of June 1976.</li>
+<li>The 1973 Edition of <tt class="docutils literal">Fall of the Roman Empire</tt> that was loaned by the User <tt class="docutils literal">Peter Griffin</tt> on the 1th of June 1986 should be returned on the 15th of June 1986.</li>
+</ul>
+</div>
+<div class="section" id="edition">
+<h2>Edition</h2>
+<ul class="simple">
+<li>The Edition of <tt class="docutils literal">Fall of the Roman Empire</tt> is Published by <tt class="docutils literal">T Books</tt></li>
+<li>The Edition of <tt class="docutils literal">Fall of the Roman Empire</tt> was Published in 1973</li>
+<li>The Library has 4 copies of the 1973 Edition of the <tt class="docutils literal">Fall of the Roman Empire</tt></li>
+</ul>
+</div>
+<div class="section" id="author">
+<h2>Author</h2>
+<ul class="simple">
+<li>The Author <tt class="docutils literal">James W Kirk</tt> wrote the book <tt class="docutils literal">Fall of the Roman Empire</tt></li>
+<li>The Author <tt class="docutils literal">James W Kirk</tt> wrote the book &quot;The Rise of the Roman Empire&quot;</li>
+</ul>
+</div>
+<div class="section" id="publisher">
+<h2>Publisher</h2>
+<ul class="simple">
+<li>The Publisher <tt class="docutils literal">T Books</tt> published the 1973 Edition of the Book <tt class="docutils literal">Fall of the Roman Empire</tt></li>
+<li>The Publisher <tt class="docutils literal">T Books</tt> has published the 1967 Edition of the Book <tt class="docutils literal">Wizard of Oz</tt></li>
+<li>The Publisher is names <tt class="docutils literal">T Books</tt></li>
+</ul>
+</div>
+<div class="section" id="user">
+<h2>User</h2>
+<ul class="simple">
+<li>The User <tt class="docutils literal">Peter Griffin</tt> loaned the Book <tt class="docutils literal">Fall of the Roman Empire</tt> on the 1st of June 1986.</li>
+<li>The User <tt class="docutils literal">Peter Griffin</tt> has to return the Book <tt class="docutils literal">Fall of the Roman Empire</tt> on the 15th of June 1986.</li>
+<li>A User is named <tt class="docutils literal">Peter Griffin</tt></li>
+</ul>
+<p>Awesome we have a lot of facts to model around. Let's try to organize them in documents.</p>
+</div>
+</div>
+<div class="section" id="document-representation">
+<h1>Document Representation</h1>
+<p>We've identified 4 different entities that we can potentially model as documents. Let's start by roughly sketch them out.</p>
+<p>Let's consider the <tt class="docutils literal">User</tt> entity described above. We know the user has a <tt class="docutils literal">name</tt> and can <tt class="docutils literal">loan</tt> books for a defined period of time. Let's model the data and see how we can interact with the model.</p>
+<div class="section" id="user-document">
+<h2>User Document</h2>
+<pre class="code javascript literal-block">
+<span class="p">{</span>
+    <span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="o">:</span> <span class="s2">&quot;Peter Griffin&quot;</span>
+  <span class="p">,</span> <span class="s2">&quot;loaned_books&quot;</span><span class="o">:</span> <span class="p">[</span>
+      <span class="p">{</span>
+          <span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="mi">1</span>
+        <span class="p">,</span> <span class="s2">&quot;title&quot;</span><span class="o">:</span> <span class="s2">&quot;Fall of the Roman Empire&quot;</span>
+        <span class="p">,</span> <span class="s2">&quot;loaned_on&quot;</span><span class="o">:</span> <span class="s2">&quot;1st of June 1986&quot;</span>
+        <span class="p">,</span> <span class="s2">&quot;due_on&quot;</span><span class="o">:</span> <span class="s2">&quot;15th of June 1986&quot;</span>
+      <span class="p">}</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+</pre>
+<p>We added an embedded array of documents called <tt class="docutils literal">loaned_books</tt> that contain documents representing each loaned book &quot;Peter Griffin&quot; has checked out of the library. In this case it's the 1973 edition of the &quot;Fall of the Roman Empire&quot; <tt class="docutils literal">Book</tt>. What kind of operations would be performed on this document. For the <tt class="docutils literal">User</tt> have decided to embed <tt class="docutils literal">loaned</tt> books as an embedded array for each of retrieval and since the amount of books on loan is not likely to be very big for a given <tt class="docutils literal">User</tt>.</p>
+<ol class="arabic simple">
+<li>Add a new loan to the user document</li>
+</ol>
+<pre class="code javascript literal-block">
+<span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'users'</span><span class="p">).</span><span class="nx">update</span><span class="p">(</span>
+    <span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">}</span>
+  <span class="p">,</span> <span class="p">{</span>
+      <span class="nx">$push</span><span class="o">:</span> <span class="p">{</span><span class="nx">loaned_books</span><span class="o">:</span> <span class="p">{</span>
+          <span class="nx">id</span><span class="o">:</span> <span class="mi">2</span>
+        <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Wizard of Oz&quot;</span>
+        <span class="p">,</span> <span class="nx">loaned_on</span><span class="o">:</span> <span class="nx">start_date</span>
+        <span class="p">,</span> <span class="nx">due_on</span><span class="o">:</span> <span class="nx">due_date</span>
+      <span class="p">}}</span>
+    <span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span><span class="p">})</span>
+</pre>
+<ol class="arabic simple" start="2">
+<li>Remove a book from the user and return it to the library</li>
+</ol>
+<pre class="code javascript literal-block">
+<span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'users'</span><span class="p">).</span><span class="nx">update</span><span class="p">(</span>
+    <span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">}</span>
+  <span class="p">,</span> <span class="p">{</span>
+      <span class="nx">$pop</span><span class="o">:</span> <span class="p">{</span><span class="nx">loaned_books</span><span class="o">:</span> <span class="p">{</span><span class="nx">id</span><span class="o">:</span><span class="mi">2</span><span class="p">}}</span>
+    <span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span><span class="p">})</span>
+</pre>
+<ol class="arabic simple" start="3">
+<li>Extend a loan period (change the due date)</li>
+</ol>
+<pre class="code javascript literal-block">
+<span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'users'</span><span class="p">).</span><span class="nx">update</span><span class="p">(</span>
+    <span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;loaned_on.id&quot;</span><span class="o">:</span> <span class="mi">2</span><span class="p">}</span>
+  <span class="p">,</span> <span class="p">{</span>
+      <span class="nx">$set</span><span class="o">:</span> <span class="p">{</span>
+        <span class="s2">&quot;loaned_on.$.due_on&quot;</span><span class="o">:</span> <span class="nx">new_due_date</span>
+      <span class="p">}</span>
+    <span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span><span class="p">})</span>
+</pre>
+<p>Let's look at a possible Author document.</p>
+</div>
+<div class="section" id="author-document">
+<h2>Author Document</h2>
+<pre class="code javascript literal-block">
+<span class="p">{</span>
+    <span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="o">:</span> <span class="s2">&quot;James W Kirk&quot;</span>
+<span class="p">}</span>
+</pre>
+<p>As you can see we don't include an array of authored <tt class="docutils literal">Book</tt> id's because we will be including the array of authors in the <tt class="docutils literal">Book</tt> document so we can easily browse books by author. This is similar to the traditional <tt class="docutils literal">1:N</tt> relational database relationship.</p>
+<p>Similarly a publisher is represented as a separate document.</p>
+</div>
+<div class="section" id="publisher-document">
+<h2>Publisher Document</h2>
+<pre class="code javascript literal-block">
+<span class="p">{</span>
+    <span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="o">:</span> <span class="s2">&quot;T Books&quot;</span>
+<span class="p">}</span>
+</pre>
+<p>As you can see we don't include an array of published <tt class="docutils literal">Book</tt> id's because we will be including the <tt class="docutils literal">publisher_id</tt> in the <tt class="docutils literal">Book</tt> document so we can easily browse books by publisher. This is similar to the traditional <tt class="docutils literal">1:N</tt> relational database relationship.</p>
+<p>Let's Have a look at the central concept in our library, namely the <tt class="docutils literal">Book</tt>. Let's take a look at the document.</p>
+</div>
+<div class="section" id="book-document">
+<h2>Book Document</h2>
+<pre class="code javascript literal-block">
+<span class="p">{</span>
+  <span class="c1">// Individual Edition id
+</span>    <span class="s2">&quot;_id&quot;</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="s2">&quot;title&quot;</span><span class="o">:</span> <span class="s2">&quot;Fall of the Roman Empire&quot;</span>
+
+  <span class="c1">// Shared id for all &quot;Fall of the Roman Empire&quot; books
+</span>  <span class="p">,</span> <span class="s2">&quot;origin_id&quot;</span><span class="o">:</span> <span class="mi">1</span>
+
+  <span class="c1">// Information about the publisher
+</span>  <span class="p">,</span> <span class="s2">&quot;publisher&quot;</span><span class="o">:</span> <span class="p">{</span>
+      <span class="s2">&quot;published&quot;</span><span class="o">:</span> <span class="mi">1973</span>
+    <span class="p">,</span> <span class="s2">&quot;edition&quot;</span><span class="o">:</span> <span class="mi">4</span>
+    <span class="p">,</span> <span class="s2">&quot;publisher_id&quot;</span><span class="o">:</span> <span class="mi">1</span>
+    <span class="p">,</span> <span class="s2">&quot;publisher&quot;</span><span class="o">:</span> <span class="s2">&quot;T Books&quot;</span>
+  <span class="p">}</span>
+
+  <span class="c1">// Book Authors
+</span>  <span class="p">,</span> <span class="s2">&quot;authors&quot;</span><span class="o">:</span> <span class="p">[</span>
+      <span class="p">{</span>
+          <span class="s2">&quot;id&quot;</span><span class="o">:</span> <span class="mi">1</span>
+        <span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="o">:</span> <span class="s2">&quot;James W Kirk&quot;</span>
+      <span class="p">}</span>
+    <span class="p">]</span>
+
+  <span class="c1">// State of book
+</span>  <span class="p">,</span> <span class="nx">loaned_out</span><span class="o">:</span> <span class="kc">true</span>
+
+  <span class="c1">// Books lent out
+</span>  <span class="p">,</span> <span class="s2">&quot;loaned_out_to&quot;</span><span class="o">:</span> <span class="p">{</span>
+        <span class="s2">&quot;user_id&quot;</span><span class="o">:</span> <span class="mi">1</span>
+      <span class="p">,</span> <span class="s2">&quot;loaned_on&quot;</span><span class="o">:</span> <span class="s2">&quot;1st of June 1986&quot;</span>
+      <span class="p">,</span> <span class="s2">&quot;due_on&quot;</span><span class="o">:</span> <span class="s2">&quot;15th of June 1986&quot;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre>
+<p>As you can see the schema for the <tt class="docutils literal">Book</tt> is quite a bit more complex than the other concepts in the database. Let's look at the some of the values and what they mean.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="24%" />
+<col width="76%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Field</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>origin_id</td>
+<td>This id is shared by all editions of a specific book</td>
+</tr>
+<tr><td>publisher</td>
+<td>Embedded document with all the publisher information for easy access</td>
+</tr>
+<tr><td>authors</td>
+<td>An array of embedded author documents</td>
+</tr>
+<tr><td>loaned_out</td>
+<td>Embedded document containing information about the user who has borrowed the book</td>
+</tr>
+</tbody>
+</table>
+<p>So what kind of operation could we do on this document.</p>
+<ol class="arabic simple">
+<li>Locate a <tt class="docutils literal">Fall of the Roman Empire</tt> book that is not currently loaned out</li>
+</ol>
+<pre class="code javascript literal-block">
+<span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">).</span><span class="nx">findOne</span><span class="p">(</span><span class="p">{</span>
+    <span class="nx">title</span><span class="o">:</span> <span class="sr">/^Fall of the Roman/</span>
+  <span class="p">,</span> <span class="nx">loaned_out</span><span class="o">:</span><span class="kc">false</span>
+<span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span><span class="p">});</span>
+</pre>
+<ol class="arabic" start="2">
+<li><p class="first">Locate all the books for <a href="#id1"><span class="problematic" id="id2">``</span></a>Fall of the Roman Empire currently out for loan.</p>
+<div class="system-message" id="id1">
+<p class="system-message-title">System Message: WARNING/2 (<tt class="docutils">ex19.rst</tt>, line 210); <em><a href="#id2">backlink</a></em></p>
+<p>Inline literal start-string without end-string.</p>
+</div>
+</li>
+</ol>
+<pre class="code javascript literal-block">
+<span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">).</span><span class="nx">findOne</span><span class="p">(</span><span class="p">{</span>
+    <span class="nx">title</span><span class="o">:</span> <span class="sr">/^Fall of the Roman/</span>
+  <span class="p">,</span> <span class="nx">loaned_out</span><span class="o">:</span><span class="kc">false</span>
+<span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span><span class="p">});</span>
+</pre>
+<ol class="arabic simple" start="3">
+<li>Loan one of the <tt class="docutils literal">Fall of the Roman Empire</tt> books out</li>
+</ol>
+<pre class="code javascript literal-block">
+<span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">).</span><span class="nx">update</span><span class="p">(</span><span class="p">{</span>
+  <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">loaned_out_to</span><span class="o">:</span> <span class="p">{</span><span class="nx">$exists</span><span class="o">:</span> <span class="kc">false</span><span class="p">}</span>
+<span class="p">},</span> <span class="p">{</span>
+    <span class="nx">$set</span><span class="o">:</span> <span class="p">{</span>
+      <span class="nx">loaned_out</span><span class="o">:</span> <span class="kc">true</span>
+    <span class="p">,</span> <span class="nx">loaned_out_to</span><span class="o">:</span> <span class="p">{</span>
+          <span class="nx">user_id</span><span class="o">:</span> <span class="mi">1</span>
+        <span class="p">,</span> <span class="nx">loaned_on</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">(</span><span class="p">)</span>
+        <span class="p">,</span> <span class="nx">due_on</span><span class="o">:</span> <span class="nx">due_date_variable</span>
+      <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span><span class="p">});</span>
+</pre>
+<p>The first thing to notice is that the <tt class="docutils literal">update selector</tt> contains not only the <tt class="docutils literal">_id</tt> of the <tt class="docutils literal">Book</tt> we are loaning out but also a requirement that the field <tt class="docutils literal">loaned_out</tt> should be false. This way we ensure the update fails if someone else checked out the book before our update got run. If we do correctly find the valid document where <tt class="docutils literal">loaned_out</tt> is still <tt class="docutils literal">false</tt> we set the the <tt class="docutils literal">loaned_out</tt> field to true and update the <tt class="docutils literal">loaned_out_to</tt> field to the user who is borrowing the book.</p>
+<ol class="arabic simple" start="4">
+<li>Return the <tt class="docutils literal">Fall of the Roman Empire</tt> book to the library</li>
+</ol>
+<pre class="code javascript literal-block">
+<span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">).</span><span class="nx">update</span><span class="p">(</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="s2">&quot;loaned_out_to.user_id&quot;</span><span class="o">:</span> <span class="mi">1</span>
+<span class="p">},</span> <span class="p">{</span>
+  <span class="nx">$set</span><span class="o">:</span> <span class="p">{</span>
+      <span class="nx">loaned_out</span><span class="o">:</span> <span class="kc">false</span>
+    <span class="p">,</span> <span class="nx">loaned_out_to</span><span class="o">:</span> <span class="kc">null</span>
+  <span class="p">}</span>
+<span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span><span class="p">});</span>
+</pre>
+<p>This concludes the schema design for our simple library application. In the next chapter we will implement a <tt class="docutils literal">REST</tt> api that allows you to write your frontend code for the library application.</p>
+</div>
+</div>
+    </div>
+
+    <div class="one columns" id="right-nav">
+        <center>
+        <p><a href="/book/"><img src="images/48_structure.png"></a></p>
+        <p><a href="#"><img src="images/48_email.png"></a></p>
+        <p><a href="#faq"><img src="images/48_faq.png"></a></p>
+        <p>
+        </p>
+        </center>
+    </div>
+
+  <!-- Included JS Files (Compressed) -->
+  <script src="javascripts/jquery.js"></script>
+  <script src="javascripts/foundation.min.js"></script>
+  
+  <!-- Initialize JS Plugins -->
+  <script src="javascripts/app.js"></script>
+
+</body>
+</html>

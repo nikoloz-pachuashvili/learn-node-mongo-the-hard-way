@@ -1,0 +1,15 @@
+(dp1
+S'docs'
+p2
+(dp3
+sS'docs_by_storage_key'
+p4
+(dp5
+sS'uuid'
+p6
+S'db226389-500d-4f88-b3d2-66f0cf63cc52'
+p7
+sS'filters_used'
+p8
+(lp9
+s.

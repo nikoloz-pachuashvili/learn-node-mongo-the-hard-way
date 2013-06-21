@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+    <!--[if gt IE 8]><!-->
+<html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8" />
+
+  <!-- Set the viewport width to device width for mobile -->
+  <meta name="viewport" content="width=device-width" />
+
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
+<title>Exercise 6: Databases and Collections</title>
+
+  <!-- Included CSS Files (Compressed) -->
+  <link rel="stylesheet" href="stylesheets/foundation.min.css">
+  <link rel="stylesheet" href="stylesheets/pygments.css">
+  <link rel="stylesheet" href="stylesheets/app.css">
+
+  <script src="javascripts/modernizr.foundation.js"></script>
+
+  <!-- IE Fix for HTML5 Tags -->
+  <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+</head>
+<body>
+
+  <div class="row">
+          <h1 class="title">Exercise 6: Databases and Collections</h1>
+      </div>
+  </div>
+
+  <div class="row">
+    <div class="eleven columns">
+        <p>MongoDB has is build around 3 main concepts. One or more <tt class="docutils literal">db's</tt> that contain one or more <tt class="docutils literal">collections</tt> that contain one or more <tt class="docutils literal">documents</tt>. So how do we get hold of a <tt class="docutils literal">collection</tt>? Time for some code entry.</p>
+<div class="highlight"><pre><a name="code--ex6--ex1.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex6--ex1.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex6--ex1.js-pyg.html-3"></a>
+<a name="code--ex6--ex1.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex6--ex1.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex6--ex1.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex6--ex1.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex6--ex1.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex6--ex1.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex6--ex1.js-pyg.html-10"></a>
+<a name="code--ex6--ex1.js-pyg.html-11"></a>  <span class="kd">var</span> <span class="nx">myotherdb</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">db</span><span class="p">(</span><span class="s1">&#39;myotherdb&#39;</span><span class="p">);</span>
+<a name="code--ex6--ex1.js-pyg.html-12"></a>  <span class="kd">var</span> <span class="nx">admin</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">admin</span><span class="p">();</span>
+<a name="code--ex6--ex1.js-pyg.html-13"></a>
+<a name="code--ex6--ex1.js-pyg.html-14"></a>  <span class="kd">var</span> <span class="nx">mydocuments</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;mydocuments&#39;</span><span class="p">);</span>
+<a name="code--ex6--ex1.js-pyg.html-15"></a>
+<a name="code--ex6--ex1.js-pyg.html-16"></a>  <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex6--ex1.js-pyg.html-17"></a><span class="p">});</span>
+</pre></div><p>The example shows how to use the <tt class="docutils literal">MongoClient.connect</tt> method to fetch a connection to a database directly. The <tt class="docutils literal">connect</tt> method actually returns a database object. If we want to use other databases we can call the <tt class="docutils literal">.db()</tt> method on the <tt class="docutils literal">db</tt> object returned by the <tt class="docutils literal">MongoClient.connect</tt> method. Notice that we don't need a new callback, this is because the <tt class="docutils literal">.db()</tt> method does not open a new connection but reuses the existing connections that was created during the <tt class="docutils literal">MongoClient.connect</tt> call.</p>
+<p>So what is the <tt class="docutils literal">.admin()</tt> method. Some administrative commands must be run against a special database called <tt class="docutils literal">admin</tt>. To make the it a little bit easier I created an <tt class="docutils literal">.admin()</tt> method that returns an instance of the <tt class="docutils literal">Admin</tt> class with helper methods to make it easier to use the administrative commands available.</p>
+<p>The other main usage of the <tt class="docutils literal">admin()</tt> database is for storing user credentials as a server level. Don't worry we will touch on this later as for now it's a more advanced topic than we need to be concerned about.</p>
+<p>After having fetched the new dbs <tt class="docutils literal">myotherdb</tt> and <tt class="docutils literal">admin</tt> we want to grab some collections to do some work on. This is done by calling <tt class="docutils literal">db.collection()</tt> that returns a <tt class="docutils literal">Collection</tt> object helper methods to help us do work on the collection. The reason we don't need to use a callback function here is that <tt class="docutils literal">.collection()</tt> does not actually call out to the database to create a collection. This happens automatically when we save the first document to MongoDB. MongoDB will create a default collection with the name we passed into the <tt class="docutils literal">.collection()</tt> method and save the document to it.</p>
+<div class="section" id="capped-collections">
+<h1>Capped Collections</h1>
+<p>However this might not always be what we want. MongoDB has two types of collection types available. The first one we will refer to as the <tt class="docutils literal">standard</tt> collection type and the second as the <tt class="docutils literal">capped collection</tt> type. The <tt class="docutils literal">capped collection</tt> type is quite a different beast from the <tt class="docutils literal">standard</tt> collection type. It's of a fixed size (you have to specify the size of the intial collection in bytes) and you can set a max number of documents it can store. It's als a FIFO (First in first out) queue which means that when it reaches the end of the space it will wrap around. Other limitiations are that you cannot add fields to an existing document and you cannot delete them.</p>
+<p>This might sound like a lot of limitiations but the FIFO property and the semantics of operations are actually really good if you want to limit the amount of data stored or don't care if data is overwritten after awhile.</p>
+<p>So how do we create a <tt class="docutils literal">capped collection</tt> instead of a <tt class="docutils literal">standard</tt> collection ? Let's explore some code, typing it up in your editor.</p>
+<div class="highlight"><pre><a name="code--ex6--ex2.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex6--ex2.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex6--ex2.js-pyg.html-3"></a>
+<a name="code--ex6--ex2.js-pyg.html-4"></a><span class="kd">var</span> <span class="nb">document</span> <span class="o">=</span> <span class="p">{</span>
+<a name="code--ex6--ex2.js-pyg.html-5"></a>  <span class="s1">&#39;hello&#39;</span><span class="o">:</span> <span class="s1">&#39;world&#39;</span>
+<a name="code--ex6--ex2.js-pyg.html-6"></a><span class="p">}</span>
+<a name="code--ex6--ex2.js-pyg.html-7"></a>
+<a name="code--ex6--ex2.js-pyg.html-8"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex6--ex2.js-pyg.html-9"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex6--ex2.js-pyg.html-10"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex6--ex2.js-pyg.html-11"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex6--ex2.js-pyg.html-12"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex6--ex2.js-pyg.html-13"></a>  <span class="p">}</span>
+<a name="code--ex6--ex2.js-pyg.html-14"></a>
+<a name="code--ex6--ex2.js-pyg.html-15"></a>  <span class="nx">db</span><span class="p">.</span><span class="nx">createCollection</span><span class="p">(</span><span class="s2">&quot;mycappedcollection&quot;</span><span class="p">,</span>
+<a name="code--ex6--ex2.js-pyg.html-16"></a>    <span class="p">{</span> <span class="nx">capped</span><span class="o">:</span><span class="kc">true</span>
+<a name="code--ex6--ex2.js-pyg.html-17"></a>      <span class="p">,</span> <span class="nx">size</span><span class="o">:</span><span class="mi">100000</span>
+<a name="code--ex6--ex2.js-pyg.html-18"></a>      <span class="p">,</span> <span class="nx">max</span><span class="o">:</span> <span class="mi">100</span> <span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span> <span class="nx">collection</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex6--ex2.js-pyg.html-19"></a>
+<a name="code--ex6--ex2.js-pyg.html-20"></a>    <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex6--ex2.js-pyg.html-21"></a>  <span class="p">});</span>
+<a name="code--ex6--ex2.js-pyg.html-22"></a><span class="p">});</span>
+</pre></div><p>Notice the <tt class="docutils literal">db.createCollection()</tt> method we are using. This is a method specifically made to allow us to create collections that are not <tt class="docutils literal">standard</tt> collections. In this code example we are creating a <tt class="docutils literal">capped collection</tt> with a size of <tt class="docutils literal">100000</tt> bytes and holding a maximum of <tt class="docutils literal">100</tt> documents before it starts overwritting them. The options we can pass in to the <tt class="docutils literal">db.createCollection</tt> for a capped collection are.</p>
+<ul class="simple">
+<li><tt class="docutils literal">capped</tt>: (true/false), specified that this is a capped (FIFO) collection</li>
+<li><tt class="docutils literal">size</tt>: (a number of bytes larger than 0), specifies the maximum size in bytes of the capped collection.</li>
+<li><tt class="docutils literal">max</tt>: (a number larger than 0), specifies the maximum number of documents that can be stored in the collection before the collection starts overwritten old documents.</li>
+</ul>
+</div>
+<div class="section" id="time-to-live-collections-ttl">
+<h1>Time to live collections (TTL)</h1>
+<p>From MongoDB 2.2 onwards there is a new type of collection called a <tt class="docutils literal">TTL</tt> collection. It's a bit of a misdemeaner to call it a type of collections as it's actually a <tt class="docutils literal">standard</tt> collection with a special type to live <tt class="docutils literal">index</tt> on a date fields that automatically removes documents that are older than the time specified for the <tt class="docutils literal">TTL index</tt>. It's a very useful when want only to store data for a specified time period. Say we only want to keep 48 hours of log data in a collection. With <tt class="docutils literal">TTL</tt> you can set the time of expiry to be 48 hours and documents will be removed when they are older than 48 hours. Code is a thousand words so fire up your editor and enter the code below.</p>
+<div class="highlight"><pre><a name="code--ex6--ex3.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex6--ex3.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex6--ex3.js-pyg.html-3"></a>
+<a name="code--ex6--ex3.js-pyg.html-4"></a><span class="kd">var</span> <span class="nb">document</span> <span class="o">=</span> <span class="p">{</span>
+<a name="code--ex6--ex3.js-pyg.html-5"></a>  <span class="s1">&#39;hello&#39;</span><span class="o">:</span> <span class="s1">&#39;world&#39;</span>
+<a name="code--ex6--ex3.js-pyg.html-6"></a><span class="p">}</span>
+<a name="code--ex6--ex3.js-pyg.html-7"></a>
+<a name="code--ex6--ex3.js-pyg.html-8"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex6--ex3.js-pyg.html-9"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex6--ex3.js-pyg.html-10"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex6--ex3.js-pyg.html-11"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex6--ex3.js-pyg.html-12"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex6--ex3.js-pyg.html-13"></a>  <span class="p">}</span>
+<a name="code--ex6--ex3.js-pyg.html-14"></a>
+<a name="code--ex6--ex3.js-pyg.html-15"></a>  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;myttlcollection&#39;</span><span class="p">);</span>
+<a name="code--ex6--ex3.js-pyg.html-16"></a>  <span class="kd">var</span> <span class="nx">fortyeighthours</span> <span class="o">=</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">48</span><span class="p">;</span>
+<a name="code--ex6--ex3.js-pyg.html-17"></a>
+<a name="code--ex6--ex3.js-pyg.html-18"></a>  <span class="nx">collection</span><span class="p">.</span><span class="nx">ensureIndex</span><span class="p">(</span>
+<a name="code--ex6--ex3.js-pyg.html-19"></a>      <span class="p">{</span><span class="nx">created_on</span><span class="o">:</span> <span class="mi">1</span><span class="p">}</span>
+<a name="code--ex6--ex3.js-pyg.html-20"></a>    <span class="p">,</span> <span class="p">{</span><span class="nx">expireAfterSeconds</span><span class="o">:</span> <span class="nx">fortyeighthours</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex6--ex3.js-pyg.html-21"></a>
+<a name="code--ex6--ex3.js-pyg.html-22"></a>      <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex6--ex3.js-pyg.html-23"></a>  <span class="p">});</span>
+<a name="code--ex6--ex3.js-pyg.html-24"></a><span class="p">});</span>
+</pre></div><p>Notice the <tt class="docutils literal">collection.ensureIndex()</tt> method. We will go deeper into how indexes work and how the Node.js driver can create them in a later exercise. The point to notice here is that the <tt class="docutils literal">TTL</tt> collection needs an index on a data field to work correctly and that the <tt class="docutils literal">expireAfterSeconds</tt> parameter is in seconds.</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">One particular note to be made about <tt class="docutils literal">TTL</tt> collections is that the expiry time is not a hard expiry time. What's meant by hard. Well it means that even if a document is exactly 48 hours old it might not be removed at exactly 48 hours but some time after that when MongoDB has free resources to remove the document. Also due to the fact that <tt class="docutils literal">TTL</tt> collections need to remove documents from a collection <tt class="docutils literal">TTL</tt> does not work with <tt class="docutils literal">capped collections</tt> so keep that in mind.</p>
+</div>
+</div>
+    </div>
+
+    <div class="one columns" id="right-nav">
+        <center>
+        <p><a href="/book/"><img src="images/48_structure.png"></a></p>
+        <p><a href="#"><img src="images/48_email.png"></a></p>
+        <p><a href="#faq"><img src="images/48_faq.png"></a></p>
+        <p>
+        </p>
+        </center>
+    </div>
+
+  <!-- Included JS Files (Compressed) -->
+  <script src="javascripts/jquery.js"></script>
+  <script src="javascripts/foundation.min.js"></script>
+  
+  <!-- Initialize JS Plugins -->
+  <script src="javascripts/app.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+    <!--[if gt IE 8]><!-->
+<html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8" />
+
+  <!-- Set the viewport width to device width for mobile -->
+  <meta name="viewport" content="width=device-width" />
+
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
+<title>Exercise 2: Installing MongoDB</title>
+
+  <!-- Included CSS Files (Compressed) -->
+  <link rel="stylesheet" href="stylesheets/foundation.min.css">
+  <link rel="stylesheet" href="stylesheets/pygments.css">
+  <link rel="stylesheet" href="stylesheets/app.css">
+
+  <script src="javascripts/modernizr.foundation.js"></script>
+
+  <!-- IE Fix for HTML5 Tags -->
+  <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+</head>
+<body>
+
+  <div class="row">
+          <h1 class="title">Exercise 2: Installing MongoDB</h1>
+      </div>
+  </div>
+
+  <div class="row">
+    <div class="eleven columns">
+        <p>This book is all about using <tt class="docutils literal">Node.js</tt> with <tt class="docutils literal">MongoDB</tt> so naturally
+we need to install <tt class="docutils literal">MongoDB</tt>. With no further ado let's get to it.</p>
+<div class="section" id="mac-osx">
+<h1>Mac OSX</h1>
+<p>This exercise is made up by the following tasks that we need to complete
+to finish this exercise.</p>
+<ol class="arabic">
+<li><p class="first">Go to the <tt class="docutils literal">MongoDB</tt> website at <a class="reference external" href="http://www.mongodb.org/downloads">http://www.mongodb.org/downloads</a></p>
+</li>
+<li><p class="first">Locate the latest <tt class="docutils literal">MongoDB</tt> production release for <tt class="docutils literal">OS X 64 bit</tt></p>
+</li>
+<li><p class="first">Copy the link address to the latest release in the browser (right click
+on the link).</p>
+</li>
+<li><p class="first">Open <tt class="docutils literal">Terminal</tt> application</p>
+</li>
+<li><p class="first">Go to the directory <tt class="docutils literal"><span class="pre">learn-exercises</span></tt> we created in <tt class="docutils literal">exercise 0</tt>.</p>
+</li>
+<li><p class="first">Write the following, where <tt class="docutils literal">link</tt> is the pasted link from the browser
+Following the download do an <tt class="docutils literal">`ls <span class="pre">-la</span></tt> to see the file you downloaded.</p>
+<p>The example below is with 2.2.2 of mongodb</p>
+<pre class="code console literal-block">
+<span class="go">~ $ curl -O link
+</span><span class="gp">%</span> Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+<span class="go">                                 Dload  Upload   Total   Spent    Left  Speed
+100 56.6M  100 56.6M    0     0   353k      0  0:02:44  0:02:44 --:--:--  277k
+~ $ ls -la
+total 115928
+drwxr-xr-x   4 ck  staff       136 Dec  4 13:20 .
+drwxr-xr-x  25 ck  staff       850 Dec  4 12:56 ..
+-rw-r--r--   1 ck  staff  59352946 Dec  4 13:23 mongodb-osx-x86_64-2.2.2.tgz
+drwxr-xr-x   3 ck  staff       102 Dec  4 12:57 node_modules</span>
+</pre>
+</li>
+<li><p class="first">Unpack the mongodb server in the local directory</p>
+<pre class="code console literal-block">
+<span class="go">~ $ tar xvfz mongodb-osx-x86_64-2.2.2.tgz
+x mongodb-osx-x86_64-2.2.2/GNU-AGPL-3.0
+x mongodb-osx-x86_64-2.2.2/README
+x mongodb-osx-x86_64-2.2.2/THIRD-PARTY-NOTICES
+x mongodb-osx-x86_64-2.2.2/bin/mongodump
+x mongodb-osx-x86_64-2.2.2/bin/mongorestore
+x mongodb-osx-x86_64-2.2.2/bin/mongoexport
+x mongodb-osx-x86_64-2.2.2/bin/mongoimport
+x mongodb-osx-x86_64-2.2.2/bin/mongostat
+x mongodb-osx-x86_64-2.2.2/bin/mongotop
+x mongodb-osx-x86_64-2.2.2/bin/mongooplog
+x mongodb-osx-x86_64-2.2.2/bin/mongofiles
+x mongodb-osx-x86_64-2.2.2/bin/bsondump
+x mongodb-osx-x86_64-2.2.2/bin/mongoperf
+x mongodb-osx-x86_64-2.2.2/bin/mongosniff
+x mongodb-osx-x86_64-2.2.2/bin/mongod
+x mongodb-osx-x86_64-2.2.2/bin/mongos
+x mongodb-osx-x86_64-2.2.2/bin/mongo</span>
+</pre>
+<p>We are going to create a file called <tt class="docutils literal"><span class="pre">start-mongodb.sh</span></tt> that we will
+use to start the server.</p>
+</li>
+<li><p class="first">Open <tt class="docutils literal">TextWrangler</tt> and a new document. Enter the following code but
+change the directory reference to the one matching your mongodb version.</p>
+<p>In this case it's <tt class="docutils literal"><span class="pre">mongodb-osx-x86_64-2.2.2</span></tt></p>
+<p>Enter the following code.</p>
+<pre class="code bash literal-block">
+<span class="nb">export </span><span class="nv">PATH</span><span class="o">=</span>./mongodb-osx-x86_64-2.2.2/bin:<span class="nv">$PATH</span>
+</pre>
+<p>Save the file to the <tt class="docutils literal"><span class="pre">learn-exercises</span></tt> directory as <tt class="docutils literal">setup.sh</tt></p>
+</li>
+<li><p class="first">Change the permission of the file so it can be executed</p>
+<pre class="code console literal-block">
+<span class="go">~ $ chmod 775 ./setup.sh</span>
+</pre>
+</li>
+<li><p class="first">Execute the <tt class="docutils literal">setup.sh</tt> script in our local context to set the
+environmental settings.</p>
+<pre class="code console literal-block">
+<span class="go">~ $ . ./setup.sh</span>
+</pre>
+<p>Notice the <tt class="docutils literal">.</tt> before the file, this runs the script in the current
+shell context allowing us to modify the current PATH.</p>
+</li>
+<li><p class="first">Let's create a directory to store our database and start up <tt class="docutils literal">MongoDB</tt></p>
+<pre class="code console literal-block">
+<span class="go">~ $ mkdir data
+~ $ mongod --dbpath=./data
+Tue Dec  4 14:33:17 [initandlisten] MongoDB starting : pid=79402 port=27017
+dbpath=./data/ 64-bit host=ChristianK-MacBook-Pro.local
+Tue Dec  4 14:33:17 [initandlisten]
+Tue Dec  4 14:33:17 [initandlisten] ** WARNING: soft rlimits too low. Number of
+files is 256, should be at least 1000
+Tue Dec  4 14:33:17 [initandlisten] db version v2.2.2, pdfile version 4.5
+Tue Dec  4 14:33:17 [initandlisten] git version:
+d1b43b61a5308c4ad0679d34b262c5af9d664267
+Tue Dec  4 14:33:17 [initandlisten] build info: Darwin bs-osx-106-x86-64-1.local
+10.8.0 Darwin Kernel Version 10.8.0: Tue Jun  7 16:33:36 PDT 2011;
+root:xnu-1504.15.3~1/RELEASE_I386 i386 BOOST_LIB_VERSION=1_49
+Tue Dec  4 14:33:17 [initandlisten] options: { dbpath: &quot;./data/&quot; }
+Tue Dec  4 14:33:17 [initandlisten] journal dir=./data/journal
+Tue Dec  4 14:33:17 [initandlisten] recover : no journal files present,
+no recovery needed
+Tue Dec  4 14:33:17 [websvr] admin web console waiting for connections on port 28017
+Tue Dec  4 14:33:17 [initandlisten] waiting for connections on port 27017</span>
+</pre>
+</li>
+<li><p class="first">Open a new terminal shell window, ensure you are in the directory <tt class="docutils literal"><span class="pre">learn-exercises</span></tt>
+and do.</p>
+<pre class="code console literal-block">
+<span class="go">~ $ . ./setup.sh</span>
+</pre>
+</li>
+<li><p class="first">Let's connect to the <tt class="docutils literal">MongoDB</tt> instance using the <tt class="docutils literal">Mongo</tt> shell and execute
+a couple of commands.</p>
+<pre class="code console literal-block">
+<span class="go">~ $ mongos
+MongoDB shell version: 2.2.2
+connecting to: test
+</span><span class="gp">&gt;</span> show dbs
+<span class="go">local (empty)
+</span><span class="gp">&gt;</span> use <span class="nb">test</span>
+<span class="go">switched to db test
+</span><span class="gp">&gt;</span> db.test.insert<span class="o">({</span>a:1<span class="o">})</span>
+<span class="gp">&gt;</span> db.test.find<span class="o">()</span>.pretty<span class="o">()</span>
+<span class="go">{ &quot;_id&quot; : ObjectId(&quot;50bdfd7d9806fc973570b5b2&quot;), &quot;a&quot; : 1 }
+</span><span class="gp">&gt;</span> <span class="nb">exit</span>
+<span class="go">bye</span>
+</pre>
+</li>
+</ol>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">For the rest of our exercises we are going to assume that you have mongod running on your development machine running on <tt class="docutils literal">localhost</tt> and port <tt class="docutils literal">27017</tt> which are the default. All the code in the rest of the examples that use <tt class="docutils literal">MongoDB</tt> will assume this unless otherwise stated.</p>
+</div>
+</div>
+    </div>
+
+    <div class="one columns" id="right-nav">
+        <center>
+        <p><a href="/book/"><img src="images/48_structure.png"></a></p>
+        <p><a href="#"><img src="images/48_email.png"></a></p>
+        <p><a href="#faq"><img src="images/48_faq.png"></a></p>
+        <p>
+        </p>
+        </center>
+    </div>
+
+  <!-- Included JS Files (Compressed) -->
+  <script src="javascripts/jquery.js"></script>
+  <script src="javascripts/foundation.min.js"></script>
+  
+  <!-- Initialize JS Plugins -->
+  <script src="javascripts/app.js"></script>
+
+</body>
+</html>

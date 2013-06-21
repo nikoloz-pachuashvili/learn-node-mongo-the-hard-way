@@ -1,0 +1,148 @@
+{% import "macros/ork.jinja" as ork with context %}
+Exercise 18: The Importance of Schema Design
+============================================
+
+The hardest part of starting to work with MongoDB is to unlearn most of the skills you have applied to data modeling when using a traditional Relational Database. That's not to say that the skills are wasted it's just that the emphasis is on on other factors than when creating a relational model.
+
+One of the main goals of Relational Databases is to avoid duplication of information as well as the integrity of said data. This is usually accomplished by providing a Database Description Language that allows you to specify constraints and relationships between data items (including one to one, one to many and many to many relationships). The focus on demoralization of the data (avoid duplicated data) means we store the relationships in ``join tables`` and merge the data together at query time to reconstitute the final result. There are a lot of fancy words here. Let's make it simpler by showing a model some very simple entities, namely a book and an author.
+
+Let's write down some facts about the book (I studied at Swinburne in Melbourne the homestead of ORM, object relational modeling).
+
+Facts
+-----
+
+Book Facts
+~~~~~~~~~~
+
+- A book has a title of ``Moby Dick``
+- A book had a an unique ISBN number
+- A book has a published data
+- A book has a publisher
+- A book was written by one or more authors
+
+Author Facts
+~~~~~~~~~~~~
+
+- An author has a name
+- An author has written one or more books
+
+Publisher Facts
+~~~~~~~~~~~~~~~
+
+- A publisher has a name
+- A publisher has published one or more books
+
+Entity Relational Modeling
+--------------------------
+
+So what would this look like if using an ``Entity Relational Modeling Diagram``. Let's have a look at what a normalized data model for this could look like.
+
+.. image:: code/ex18/ex8.png
+
+Let's translate this into a set of tables we could use in a relational database. First up are the basic entity tables for ``book``, ``publisher`` and ``author``.
+
+Book Table
+~~~~~~~~~~
+
+======================= ==================================
+Field                   Type
+======================= ==================================
+Id                      autoincrement int
+Title                   varchar (255)
+ISBN                    varchar (25)
+Published               datetime
+Publisher_id            ``Foreign Key Id`` to table Publishers
+======================= ==================================
+
+Since there is only a single ``publisher`` we can include a reference to the publisher entity directly in the ``book`` table.
+
+Publisher Table
+~~~~~~~~~~~~~~~
+
+======================= ==================================
+Field                   Type
+======================= ==================================
+Id                      autoincrement int
+Name                    varchar (255)
+======================= ==================================
+
+Author Table
+~~~~~~~~~~~~
+
+======================= ==================================
+Field                   Type
+======================= ==================================
+Id                      autoincrement int
+Name                    varchar (255)
+======================= ==================================
+
+Next up we need to define the relationships between the entities. Luckily for us the relationship between a ``publisher`` and a ``book`` is that a ``publisher`` can publish many ``books`` but a ``book`` can only have one ``publisher``. This means we don't need a special join table to be able to retrieve both sides of the query. It's enough to just put the ``publisher's id`` in the ``book`` table.
+
+On the other hand an ``author`` can have written many books and a book can have more than one ``author``. We need to introduce a table to model this relation. This is called a ``join table``. This table well show the relationships between individual books and authors.
+
+AuthorBook Table
+~~~~~~~~~~~~~~~~
+
+======================= ==================================
+Field                   Type
+======================= ==================================
+Book Id                 ``Foreign Key Id`` to table Books
+Author Id               ``Foreign Key Id`` to table Author
+======================= ==================================
+
+Awesome we have an initial model for how to store a book. Now let's use this in our fancy OO language. Let's define a set of classes that allows us to represent a book, an author and a publisher.
+
+{{ ork.code('code/ex18/ex1.js|pyg') }}
+
+One thing is clear mapping one of the objects to the underlying data store requires a set of co-ordinated inserts, queries and updates as the objects are very inter-dependent. F.ex for the ``author`` object each ``book`` must be stored in the ``Book`` table before we can safely write to the ``AuthorBook`` table.
+
+This creates a fair bit of complexity. To avoid doing this over and over Object-Relational Mappers were developed to map from a class structure to a Relational database. This layers an additional level of abstraction on top of the relational model to make OO programming more natural and to hide the decomposition that needs to occur to fit the OO model to the relational model.
+
+There are some pain point related to this, when it comes to changing the data model as you'll likely have to change your data model in 3 places in your code (first in your code, then in your ORM and lastly in the database itself). This incurs significant cognitive cost as you'll have to keep everything straight from top to bottom. Worse situation are if your entity model no longer fits the problem you are trying to solve in code and you need to evolve the schema. This can create a fairly substantial refactoring in your code base as you need to move relationships around and thus migrate data from a schema to another.
+
+It gets worse when trying to describe tree like structures like objects as a single object might require a multitude of join tables making the mapping less than transparent between the ``class`` and the storage layer below. When evolved over time the cost of change increases due to the implied complexity.
+
+Thus one of the more important aspects of relational data modeling is to do better modeling up front to avoid the cost of mutating the schema later. It's harder to evolve the schema more naturally with the application itself. 
+
+Document Modeling
+-----------------
+
+So why are document databases being em-brassed by developers. It's fairly simple. The mapping between an OO language and documents are much closer than between OO languages and relational models. Another aspect is the dynamic schema concept meaning that documents are not set in stone and can evolve without having to modify the underlying Schema definition.
+
+Let's have a look at how we could model the Book class and it's relationships in a document database. Remember the definition of the Book class.
+
+{{ ork.code('code/ex18/ex2.js|pyg') }}
+
+How could this look as a document? Well let's create a JSON (JavaScript Object Notation) document to show a possible schema design. The first document represents a book, the second one an author and the third one a publisher.
+
+Book
+~~~~
+
+{{ ork.code('code/ex18/ex3.json|pyg') }}
+
+Author
+~~~~~~
+
+{{ ork.code('code/ex18/ex4.json|pyg') }}
+
+Publisher
+~~~~~~~~~
+
+{{ ork.code('code/ex18/ex5.json|pyg') }}
+
+Notice somethings? The data and context of the data is bundled together in the document making a document self descriptive. Also we have nested documents in the ``Book`` document for the ``authors`` and the ``publisher``. This matches very closely to how the actual ``Book`` classes internal ``fields`` are laid out. The level off abstraction between the model and the data in the database is lower.
+
+This is especially evident if we decide to introduce a new concept like a review. Let's add the review concept to the ``Book`` class.
+
+{{ ork.code('code/ex18/ex6.js|pyg') }}
+
+Now let's see how that could be reflected in a the document for the ``Book``.
+
+{{ ork.code('code/ex18/ex7.json|pyg') }}
+
+As you can see the mapping between the OO class and the data stored in the database is close to 1:1. In a relational database this would require an additional ``Review`` table and a ``BookReviews`` join table requiring additional logic to map back and forth between the OO class and the data model.
+
+Things To Note
+--------------
+
+Our world is made up of data object that change structure over time. Document databases have become more and more popular as they embrace the concept of evolving data structures better than traditional relational databases and map better to the way computer programming languages model data. In later exercises we will go ahead and build our very own simple ODM (object document mapping) library to help us make the mapping more simple and get a feel on how to map data back and forth. We will also briefly introduce the Mongoose ODM as more full featured version of our simple attempt at abstraction. But first things first. We are going to explore different schema designs and the pros and cons of each.

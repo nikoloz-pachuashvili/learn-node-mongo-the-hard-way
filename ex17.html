@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+    <!--[if gt IE 8]><!-->
+<html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8" />
+
+  <!-- Set the viewport width to device width for mobile -->
+  <meta name="viewport" content="width=device-width" />
+
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
+<title>Exercise 17: Index Katas</title>
+
+  <!-- Included CSS Files (Compressed) -->
+  <link rel="stylesheet" href="stylesheets/foundation.min.css">
+  <link rel="stylesheet" href="stylesheets/pygments.css">
+  <link rel="stylesheet" href="stylesheets/app.css">
+
+  <script src="javascripts/modernizr.foundation.js"></script>
+
+  <!-- IE Fix for HTML5 Tags -->
+  <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+</head>
+<body>
+
+  <div class="row">
+          <h1 class="title">Exercise 17: Index Katas</h1>
+      </div>
+  </div>
+
+  <div class="row">
+    <div class="eleven columns">
+        <p>Let's do a bunch of index Katas to get used to how indexes work in MongoDB. A Kata is a form or pattern. Let's start off with the single value index.</p>
+<div class="section" id="single-value-index">
+<h1>Single Value Index</h1>
+<p>Given the documents inserted into the database <tt class="docutils literal">test</tt> and collection <tt class="docutils literal">users</tt>.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span>
+  <span class="nx">pid</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+  <span class="nx">name</span><span class="o">:</span> <span class="s1">'Steve'</span><span class="p">,</span>
+  <span class="nx">salary</span><span class="o">:</span> <span class="mi">10000</span>
+<span class="p">}</span>
+
+<span class="p">{</span>
+  <span class="nx">pid</span><span class="o">:</span> <span class="mi">2</span><span class="p">,</span>
+  <span class="nx">name</span><span class="o">:</span> <span class="s1">'John'</span><span class="p">,</span>
+  <span class="nx">salary</span><span class="o">:</span> <span class="mi">12000</span>
+<span class="p">}</span>
+
+<span class="p">{</span>
+  <span class="nx">pid</span><span class="o">:</span> <span class="mi">7</span><span class="p">,</span>
+  <span class="nx">name</span><span class="o">:</span> <span class="s1">'Peter'</span><span class="p">,</span>
+  <span class="nx">salary</span><span class="o">:</span> <span class="mi">7000</span>
+<span class="p">}</span>
+
+<span class="p">{</span>
+  <span class="nx">pid</span><span class="o">:</span> <span class="mi">18</span><span class="p">,</span>
+  <span class="nx">name</span><span class="o">:</span> <span class="s1">'Arnold'</span><span class="p">,</span>
+  <span class="nx">salary</span><span class="o">:</span> <span class="mi">32000</span>
+<span class="p">}</span>
+</pre>
+<p>We want to create an index on the <tt class="docutils literal">salary</tt> field so we can perform two queries using the index. The first one is <tt class="docutils literal">locate all users with the salary 10000</tt> and the second one is the query <tt class="docutils literal">locate all users that have a salary less then 30000 but larger than 8000</tt>.</p>
+<p>Let's create the index using either the driver</p>
+<pre class="code javascript literal-block">
+<span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'users'</span><span class="p">).</span><span class="nx">ensureIndex</span><span class="p">(</span><span class="p">{</span><span class="nx">salary</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span><span class="p">});</span>
+</pre>
+<p>or the console</p>
+<pre class="code console literal-block">
+<span class="gp">&gt;</span> use <span class="nb">test
+</span><span class="gp">&gt;</span><span class="nb"> </span>db.users.ensureIndex<span class="o">({</span>salary:1<span class="o">})</span>
+</pre>
+<p>Let's execute the queries mentioned above using the <tt class="docutils literal">console</tt> and have a look at the resulting explain results.</p>
+<p>First the <tt class="docutils literal">locate all users with the salary 10000</tt> query</p>
+<pre class="code console literal-block">
+<span class="gp">&gt;</span> use <span class="nb">test
+</span><span class="gp">&gt;</span><span class="nb"> </span>db.users.find<span class="o">({</span>salary:10000<span class="o">})</span>.explain<span class="o">()</span>
+<span class="go">{
+  &quot;cursor&quot; : &quot;BtreeCursor salary_1&quot;,
+  &quot;isMultiKey&quot; : false,
+  &quot;n&quot; : 1,
+  &quot;nscannedObjects&quot; : 1,
+  &quot;nscanned&quot; : 1,
+  &quot;nscannedObjectsAllPlans&quot; : 1,
+  &quot;nscannedAllPlans&quot; : 1,
+  &quot;scanAndOrder&quot; : false,
+  &quot;indexOnly&quot; : false,
+  &quot;nYields&quot; : 0,
+  &quot;nChunkSkips&quot; : 0,
+  &quot;millis&quot; : 0,
+  &quot;indexBounds&quot; : {
+    &quot;salary&quot; : [
+      [
+        10000,
+        10000
+      ]
+    ]
+  },
+  &quot;server&quot; : &quot;localhost:27017&quot;
+}</span>
+</pre>
+<p>and then the <tt class="docutils literal">locate all users that have a salary less then 30000 but larger than 8000</tt> query.</p>
+<pre class="code console literal-block">
+<span class="gp">&gt;</span> use <span class="nb">test
+</span><span class="gp">&gt;</span><span class="nb"> </span>db.users.find<span class="o">({</span>salary:<span class="o">{</span><span class="nv">$lt</span>: 30000, <span class="nv">$gt</span>: 8000<span class="o">}})</span>.explain<span class="o">()</span>
+<span class="go">{
+  &quot;cursor&quot; : &quot;BtreeCursor salary_1&quot;,
+  &quot;isMultiKey&quot; : false,
+  &quot;n&quot; : 2,
+  &quot;nscannedObjects&quot; : 2,
+  &quot;nscanned&quot; : 2,
+  &quot;nscannedObjectsAllPlans&quot; : 2,
+  &quot;nscannedAllPlans&quot; : 2,
+  &quot;scanAndOrder&quot; : false,
+  &quot;indexOnly&quot; : false,
+  &quot;nYields&quot; : 0,
+  &quot;nChunkSkips&quot; : 0,
+  &quot;millis&quot; : 0,
+  &quot;indexBounds&quot; : {
+    &quot;salary&quot; : [
+      [
+        8000,
+        30000
+      ]
+    ]
+  },
+  &quot;server&quot; : &quot;localhost:27017&quot;
+}</span>
+</pre>
+<p>As you notice we are explicitly making you look the <tt class="docutils literal">explains</tt> for the queries. We are trying to impart the importance of understanding how you queries use indexes as it's a prime factor in getting the best performance out of all databases. Going forward we will only touch on the explain part when it expands the understanding of how indexes work. Let's move on to a single index with sorting.</p>
+</div>
+<div class="section" id="single-value-index-with-sorting">
+<h1>Single Value Index With Sorting</h1>
+<p>Let's play with sorting and using an index. For this we need a bigger set of data to play with. Let's generate some using the <tt class="docutils literal">mongo</tt> shell. Remember it's a JavaScript <tt class="docutils literal">repl</tt> so we can script it in JavaScript.</p>
+<pre class="code console literal-block">
+<span class="gp">&gt;</span> use <span class="nb">test
+</span><span class="gp">&gt;</span><span class="nb"> </span><span class="k">for</span><span class="o">(</span>var <span class="nv">i</span> <span class="o">=</span> 0; i &lt; 10000; i++<span class="o">)</span> db.sorting.insert<span class="o">({</span>a:i, b:<span class="o">(</span>10000 - i<span class="o">)})</span>
+</pre>
+<p>This will generate <tt class="docutils literal">10000</tt> documents with an a field <tt class="docutils literal">a</tt> that increases for each insert (as well as an increasing <tt class="docutils literal">b</tt> field).</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">When we create an index we have to specify either <tt class="docutils literal"><span class="pre">-1</span></tt> or <tt class="docutils literal">1</tt>. This is the ordering of the data in the index. <tt class="docutils literal"><span class="pre">-1</span></tt> means in <tt class="docutils literal">descending</tt> (4, 3, 2, 1), while <tt class="docutils literal">1</tt> means <tt class="docutils literal">ascending</tt> sort order (1, 2, 3, 4). This impacts how data is scanned in indexes and optimally you should always create the index in the <tt class="docutils literal">sort</tt> order that will used in most of the queries to make them as efficient as possible.</p>
+</div>
+<p>Now let's add an index to this field.</p>
+<pre class="code console literal-block">
+<span class="gp">&gt;</span> use <span class="nb">test
+</span><span class="gp">&gt;</span><span class="nb"> </span>db.sorting.ensureIndex<span class="o">({</span>a:1<span class="o">})</span>
+</pre>
+<p>The index can be created in the following way with the driver.</p>
+<pre class="code javascript literal-block">
+<span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'employees'</span><span class="p">).</span><span class="nx">ensureIndex</span><span class="p">(</span><span class="p">{</span><span class="nx">a</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span><span class="p">});</span>
+</pre>
+<p>Let's look at how it works when we are using a sort.</p>
+<pre class="code console literal-block">
+<span class="gp">&gt;</span> use <span class="nb">test
+</span><span class="gp">&gt;</span><span class="nb"> </span>db.sorting.find<span class="o">({</span>a: <span class="o">{</span><span class="nv">$lt</span>:5000, <span class="nv">$gt</span>: 1000<span class="o">}})</span>.sort<span class="o">({</span>a:1<span class="o">})</span>.explain<span class="o">()</span>
+<span class="go">{
+  &quot;cursor&quot; : &quot;BtreeCursor a_1&quot;,
+  &quot;isMultiKey&quot; : false,
+  &quot;n&quot; : 3999,
+  &quot;nscannedObjects&quot; : 3999,
+  &quot;nscanned&quot; : 3999,
+  &quot;nscannedObjectsAllPlans&quot; : 3999,
+  &quot;nscannedAllPlans&quot; : 3999,
+  &quot;scanAndOrder&quot; : false,
+  &quot;indexOnly&quot; : false,
+  &quot;nYields&quot; : 0,
+  &quot;nChunkSkips&quot; : 0,
+  &quot;millis&quot; : 6,
+  &quot;indexBounds&quot; : {
+    &quot;a&quot; : [
+      [
+        1000,
+        5000
+      ]
+    ]
+  },
+  &quot;server&quot; : &quot;localhost:27017&quot;
+}</span>
+</pre>
+<p>Contrast that to</p>
+<pre class="code console literal-block">
+<span class="gp">&gt;</span> use <span class="nb">test
+</span><span class="gp">&gt;</span><span class="nb"> </span>db.sorting.find<span class="o">({</span>a: <span class="o">{</span><span class="nv">$lt</span>:5000, <span class="nv">$gt</span>: 1000<span class="o">}})</span>.sort<span class="o">({</span>a:-1<span class="o">})</span>.explain<span class="o">()</span>
+<span class="go">{
+  &quot;cursor&quot; : &quot;BtreeCursor a_1 reverse&quot;,
+  &quot;isMultiKey&quot; : false,
+  &quot;n&quot; : 3999,
+  &quot;nscannedObjects&quot; : 3999,
+  &quot;nscanned&quot; : 3999,
+  &quot;nscannedObjectsAllPlans&quot; : 3999,
+  &quot;nscannedAllPlans&quot; : 3999,
+  &quot;scanAndOrder&quot; : false,
+  &quot;indexOnly&quot; : false,
+  &quot;nYields&quot; : 0,
+  &quot;nChunkSkips&quot; : 0,
+  &quot;millis&quot; : 6,
+  &quot;indexBounds&quot; : {
+    &quot;a&quot; : [
+      [
+        5000,
+        1000
+      ]
+    ]
+  },
+  &quot;server&quot; : &quot;localhost:27017&quot;
+}</span>
+</pre>
+<p>Notice how <tt class="docutils literal">cursor</tt> says <tt class="docutils literal">BtreeCursor a_1 reverse</tt> instead off <tt class="docutils literal">BtreeCursor a_1</tt>. This is because <tt class="docutils literal">MongoDB</tt> was able to use the index to sort the values by traversing the <tt class="docutils literal">index</tt> tree in the <tt class="docutils literal">reverse</tt> order.</p>
+<p>But what if we sort on the field <tt class="docutils literal">b</tt> instead. Let's try it.</p>
+<pre class="code console literal-block">
+<span class="gp">&gt;</span> use <span class="nb">test
+</span><span class="gp">&gt;</span><span class="nb"> </span>db.sorting.find<span class="o">({</span>a: <span class="o">{</span><span class="nv">$lt</span>:5000, <span class="nv">$gt</span>: 1000<span class="o">}})</span>.sort<span class="o">({</span>b:1<span class="o">})</span>.explain<span class="o">()</span>
+<span class="go">{
+  &quot;cursor&quot; : &quot;BtreeCursor a_1&quot;,
+  &quot;isMultiKey&quot; : false,
+  &quot;n&quot; : 3999,
+  &quot;nscannedObjects&quot; : 3999,
+  &quot;nscanned&quot; : 3999,
+  &quot;nscannedObjectsAllPlans&quot; : 4100,
+  &quot;nscannedAllPlans&quot; : 4100,
+  &quot;scanAndOrder&quot; : true,
+  &quot;indexOnly&quot; : false,
+  &quot;nYields&quot; : 0,
+  &quot;nChunkSkips&quot; : 0,
+  &quot;millis&quot; : 22,
+  &quot;indexBounds&quot; : {
+    &quot;a&quot; : [
+      [
+        1000,
+        5000
+      ]
+    ]
+  },
+  &quot;server&quot; : &quot;localhost:27017&quot;
+}</span>
+</pre>
+<p>Let's look at the field here <tt class="docutils literal">scanAndOrder</tt>. <tt class="docutils literal">scanAndOrder</tt> is defined as <tt class="docutils literal">Is true if an index cannot be used to order the documents returned.</tt>. In the cases where we are using <tt class="docutils literal">a</tt> for sorting this is set to <tt class="docutils literal">false</tt> as the index can be used for the sorting. But in the case of using <tt class="docutils literal">b</tt> for sorting MongoDB cannot use the <tt class="docutils literal">a</tt> index for sorting so it uses it to retrieve all the matching documents by the query and then sorts them by <tt class="docutils literal">b</tt> in memory.</p>
+<dl class="docutils">
+<dt>NOTE::</dt>
+<dd>At the moment MongoDB can only use a single index for a query and sort, this will change in the future to allow multiple indexes to be used in a query and sort scenario.</dd>
+</dl>
+</div>
+<div class="section" id="compound-that-index">
+<h1>Compound That Index</h1>
+<p>So we've looked at single value indexes. But what if we want to search by <tt class="docutils literal">a</tt> as well as <tt class="docutils literal">b</tt> and also a combination of the two. This is where <tt class="docutils literal">compound indexes</tt> come in. A <tt class="docutils literal">compound index</tt> is an index built up of one or fields. Let's use the data from the previous example to play around with the implications for search. But first let's drop the existing indexes and then create the compound index <tt class="docutils literal">{a:1, <span class="pre">b:-1}</span></tt>.</p>
+<pre class="code console literal-block">
+<span class="gp">&gt;</span> use <span class="nb">test
+</span><span class="gp">&gt;</span><span class="nb"> </span>db.sorting.dropIndexes<span class="o">()</span>
+<span class="gp">&gt;</span> db.sorting.ensureIndex<span class="o">({</span>a:1, b:1<span class="o">})</span>
+</pre>
+<p>The index can be created in the following way with the driver.</p>
+<pre class="code javascript literal-block">
+<span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'employees'</span><span class="p">).</span><span class="nx">ensureIndex</span><span class="p">(</span><span class="p">{</span><span class="nx">a</span><span class="o">:</span><span class="mi">1</span><span class="p">,</span> <span class="nx">b</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span><span class="p">});</span>
+</pre>
+<p>Let's do the query over the field <tt class="docutils literal">a</tt> again and sort over the fields <tt class="docutils literal">a</tt> and <tt class="docutils literal">b</tt>.</p>
+<pre class="code console literal-block">
+<span class="gp">&gt;</span> use <span class="nb">test
+</span><span class="gp">&gt;</span><span class="nb"> </span>db.sorting.find<span class="o">({</span>a: <span class="o">{</span><span class="nv">$lt</span>:5000, <span class="nv">$gt</span>: 1000<span class="o">}})</span>.sort<span class="o">({</span>a:1, b:1<span class="o">})</span>.explain<span class="o">()</span>
+<span class="go">{
+  &quot;cursor&quot; : &quot;BtreeCursor a_1_b_1&quot;,
+  &quot;isMultiKey&quot; : false,
+  &quot;n&quot; : 3999,
+  &quot;nscannedObjects&quot; : 3999,
+  &quot;nscanned&quot; : 3999,
+  &quot;nscannedObjectsAllPlans&quot; : 3999,
+  &quot;nscannedAllPlans&quot; : 3999,
+  &quot;scanAndOrder&quot; : false,
+  &quot;indexOnly&quot; : false,
+  &quot;nYields&quot; : 0,
+  &quot;nChunkSkips&quot; : 0,
+  &quot;millis&quot; : 6,
+  &quot;indexBounds&quot; : {
+    &quot;a&quot; : [
+      [
+        1000,
+        5000
+      ]
+    ],
+    &quot;b&quot; : [
+      [
+        {
+          &quot;$minElement&quot; : 1
+        },
+        {
+          &quot;$maxElement&quot; : 1
+        }
+      ]
+    ]
+  },
+  &quot;server&quot; : &quot;localhost:27017&quot;
+}</span>
+</pre>
+<p>Notice how <tt class="docutils literal">scanAndOrder</tt> is false telling us MongoDB was able to use the index to sort the retrieve as well as sorting the data.</p>
+<p>However if we don't specify the sort order as <tt class="docutils literal">{a:1, b:1}</tt> MongoDB cannot establish that we want to use the <tt class="docutils literal">b</tt> part of the index to sort and will have to sort all the documents after retrieving them.</p>
+<pre class="code console literal-block">
+<span class="gp">&gt;</span> use <span class="nb">test
+</span><span class="gp">&gt;</span><span class="nb"> </span>db.sorting.find<span class="o">({</span>a: <span class="o">{</span><span class="nv">$lt</span>:5000, <span class="nv">$gt</span>: 1000<span class="o">}})</span>.sort<span class="o">({</span>b:1<span class="o">})</span>.explain<span class="o">()</span>
+<span class="go">{
+  &quot;cursor&quot; : &quot;BtreeCursor a_1_b_1&quot;,
+  &quot;isMultiKey&quot; : false,
+  &quot;n&quot; : 3999,
+  &quot;nscannedObjects&quot; : 3999,
+  &quot;nscanned&quot; : 3999,
+  &quot;nscannedObjectsAllPlans&quot; : 4100,
+  &quot;nscannedAllPlans&quot; : 4100,
+  &quot;scanAndOrder&quot; : true,
+  &quot;indexOnly&quot; : false,
+  &quot;nYields&quot; : 0,
+  &quot;nChunkSkips&quot; : 0,
+  &quot;millis&quot; : 21,
+  &quot;indexBounds&quot; : {
+    &quot;a&quot; : [
+      [
+        1000,
+        5000
+      ]
+    ],
+    &quot;b&quot; : [
+      [
+        {
+          &quot;$minElement&quot; : 1
+        },
+        {
+          &quot;$maxElement&quot; : 1
+        }
+      ]
+    ]
+  },
+  &quot;server&quot; : &quot;localhost:27017&quot;
+}</span>
+</pre>
+<p>Notice how <tt class="docutils literal">scanAndOrder</tt> is <tt class="docutils literal">true</tt> when we just sort by <tt class="docutils literal">{b:1}</tt>. The reason is that when the index is built it's compounded by adding the fields <tt class="docutils literal">a</tt> and <tt class="docutils literal">b</tt> together when we use <tt class="docutils literal"><span class="pre">ensureIndex({a:1,</span> b:1})</tt> meaning we need to tell MongoDB the sort order of the first key before the second one. If we wanted to sort by only <tt class="docutils literal">{b:1}</tt> we would need to reverse the order of the fields in the compound index making it <tt class="docutils literal">{b:1, a:1}</tt> instead.</p>
+<p>Let's take a sample compound index and tell which queries would use the index and which would not be able to.</p>
+<p>Assume the index <tt class="docutils literal">{ a: 1, b: 1, c: 1, d: 1 }</tt></p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="78%" />
+<col width="22%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Query</th>
+<th class="head">Uses Index</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>db.sorting.find().sort( { a:1 } )</td>
+<td>true</td>
+</tr>
+<tr><td>db.sorting.find().sort( { a:1, b:1 } )</td>
+<td>true</td>
+</tr>
+<tr><td>db.sorting.find( { a:4 } ).sort( { a:1, b:1 } )</td>
+<td>true</td>
+</tr>
+<tr><td>db.sorting.find( { b:5 } ).sort( { a:1, b:1 } )</td>
+<td>true</td>
+</tr>
+<tr><td>db.sorting.find( { a:5 } ).sort( { b:1, c:1 } )</td>
+<td>true</td>
+</tr>
+<tr><td>db.sorting.find( { a:5, c:4, b:3 } ).sort( { d:1 } )</td>
+<td>true</td>
+</tr>
+<tr><td>db.sorting.find( { a: { $gt:4 } } ).sort( { a:1, b:1 } )</td>
+<td>true</td>
+</tr>
+<tr><td>db.sorting.find( { a: { $gt:5 } } ).sort( { a:1, b:1 } )</td>
+<td>true</td>
+</tr>
+<tr><td>db.sorting.find( { a:5, b:3, d:{ $gt:4 } } ).sort( { c:1 } )</td>
+<td>true</td>
+</tr>
+<tr><td>db.sorting.find( { a:5, b:3, c:{ $lt:2 }, d:{ $gt:4 } } )</td>
+<td>true</td>
+</tr>
+<tr><td>db.sorting.find().sort( { b:1 } )</td>
+<td><tt class="docutils literal">false</tt></td>
+</tr>
+<tr><td>db.sorting.find( { b:5 } ).sort( { b:1 } )</td>
+<td><tt class="docutils literal">false</tt></td>
+</tr>
+<tr><td>db.sorting.find({ a:{$lt:10, $gt:5} }).sort({ b:1, c:1 })</td>
+<td><tt class="docutils literal">false</tt></td>
+</tr>
+</tbody>
+</table>
+<p>Two important rules to keep in mind for your queries.</p>
+<ol class="arabic simple">
+<li>If doing a simple equality match and not matching on the first field <tt class="docutils literal">a</tt> you need to include the fields previous to the field you are matching on to use the index. Example <tt class="docutils literal">db.sorting.find( { b:5 } ).sort( { a:1, b:1 } )</tt></li>
+<li>If doing a ranged query you need to include the field you are performing the ranged query over as well as proceeding fields. Example <tt class="docutils literal">db.sorting.find({ <span class="pre">b:{$lt:10,</span> $gt:5} <span class="pre">}).sort({</span> a:1, b:1, c:1 })</tt></li>
+</ol>
+<p>That covers the basics for <tt class="docutils literal">compound indexes</tt>. Let's move onto something cool that we can do with <tt class="docutils literal">compound indexes</tt> namely <tt class="docutils literal">covered indexes</tt>.</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">When sorting large results sets you want to make sure you are using the index as MongoDB will only sort up to 32MB of document at the moment meaning that if the result set is to big it will not be sorted.</p>
+</div>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">In development I tend to use an option for <tt class="docutils literal">mongod</tt> that allows me to catch queries that don't use an index. When you start up the <tt class="docutils literal">mongod</tt> server add the option <tt class="docutils literal"><span class="pre">--notablescan</span></tt> to the <tt class="docutils literal">mongod</tt> command line. If you now attempt to run a query that does not use an index MongoDb will throw an error <tt class="docutils literal"><span class="pre">{&quot;$err&quot;</span> : &quot;table scans not allowed:test.salaries&quot;, &quot;code&quot; : 10111 }</tt></p>
+</div>
+</div>
+<div class="section" id="i-ve-got-you-covered">
+<h1>I've Got You Covered</h1>
+<p>So what if you could return results from a query without ever touching the actual documents. Incredible as this sounds it's possible because of <tt class="docutils literal">compound indexes</tt>. There is only one limitation and that is that we cannot return the <tt class="docutils literal">_id</tt> field.</p>
+<p>Given the documents inserted into the database <tt class="docutils literal">test</tt> and collection <tt class="docutils literal">users</tt>.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span>
+  <span class="nx">pid</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+  <span class="nx">name</span><span class="o">:</span> <span class="s1">'Steve'</span><span class="p">,</span>
+  <span class="nx">salary</span><span class="o">:</span> <span class="mi">10000</span>
+<span class="p">}</span>
+
+<span class="p">{</span>
+  <span class="nx">pid</span><span class="o">:</span> <span class="mi">2</span><span class="p">,</span>
+  <span class="nx">name</span><span class="o">:</span> <span class="s1">'John'</span><span class="p">,</span>
+  <span class="nx">salary</span><span class="o">:</span> <span class="mi">12000</span>
+<span class="p">}</span>
+
+<span class="p">{</span>
+  <span class="nx">pid</span><span class="o">:</span> <span class="mi">7</span><span class="p">,</span>
+  <span class="nx">name</span><span class="o">:</span> <span class="s1">'Peter'</span><span class="p">,</span>
+  <span class="nx">salary</span><span class="o">:</span> <span class="mi">7000</span>
+<span class="p">}</span>
+
+<span class="p">{</span>
+  <span class="nx">pid</span><span class="o">:</span> <span class="mi">18</span><span class="p">,</span>
+  <span class="nx">name</span><span class="o">:</span> <span class="s1">'Arnold'</span><span class="p">,</span>
+  <span class="nx">salary</span><span class="o">:</span> <span class="mi">32000</span>
+<span class="p">}</span>
+</pre>
+<p>No let's create a compound index over the tree fields present.</p>
+<pre class="code console literal-block">
+<span class="gp">&gt;</span> use <span class="nb">test
+</span><span class="gp">&gt;</span><span class="nb"> </span>db.users.dropIndexes<span class="o">()</span>
+<span class="gp">&gt;</span> db.users.ensureIndex<span class="o">({</span>pid:1, name:1, salary:1<span class="o">})</span>
+</pre>
+<p>The index can be created in the following way with the driver.</p>
+<pre class="code javascript literal-block">
+<span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'employees'</span><span class="p">).</span><span class="nx">ensureIndex</span><span class="p">(</span><span class="p">{</span><span class="nx">pid</span><span class="o">:</span><span class="mi">1</span><span class="p">,</span> <span class="nx">name</span><span class="o">:</span><span class="mi">1</span><span class="p">,</span> <span class="nx">salary</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span><span class="p">});</span>
+</pre>
+<p>Let's perform a normal simple query to retrieve all the users.</p>
+<pre class="code console literal-block">
+<span class="gp">&gt;</span> use <span class="nb">test
+</span><span class="gp">&gt;</span><span class="nb"> </span>db.users.find<span class="o">({</span>pid:<span class="o">{</span><span class="nv">$gt</span>: 1<span class="o">}})</span>
+<span class="go">{   &quot;_id&quot; : ObjectId(&quot;51824040ae699e537241fcef&quot;)
+  , &quot;pid&quot; : 2
+  , &quot;name&quot; : &quot;John&quot;
+  , &quot;salary&quot; : 12000 }
+{   &quot;_id&quot; : ObjectId(&quot;51824040ae699e537241fcf0&quot;)
+  , &quot;pid&quot; : 7
+  , &quot;name&quot; : &quot;Peter&quot;
+  , &quot;salary&quot; : 7000 }
+{   &quot;_id&quot; : ObjectId(&quot;51824040ae699e537241fcf1&quot;)
+  , &quot;pid&quot; : 18
+  , &quot;name&quot; : &quot;Arnold&quot;
+  , &quot;salary&quot; : 32000 }</span>
+</pre>
+<p>Sweet works fine and the explain method returns</p>
+<pre class="code console literal-block">
+<span class="gp">&gt;</span> use <span class="nb">test
+</span><span class="gp">&gt;</span><span class="nb"> </span>db.users.find<span class="o">({</span>pid:<span class="o">{</span><span class="nv">$gt</span>: 1<span class="o">}})</span>.explain<span class="o">()</span>
+<span class="go">{
+  &quot;cursor&quot; : &quot;BtreeCursor pid_1_name_1_salary_1&quot;,
+  &quot;isMultiKey&quot; : false,
+  &quot;n&quot; : 3,
+  &quot;nscannedObjects&quot; : 3,
+  &quot;nscanned&quot; : 3,
+  &quot;nscannedObjectsAllPlans&quot; : 3,
+  &quot;nscannedAllPlans&quot; : 3,
+  &quot;scanAndOrder&quot; : false,
+  &quot;indexOnly&quot; : false,
+  &quot;nYields&quot; : 0,
+  &quot;nChunkSkips&quot; : 0,
+  &quot;millis&quot; : 0,
+  &quot;indexBounds&quot; : {
+    &quot;pid&quot; : [
+      [
+        1,
+        1.7976931348623157e+308
+      ]
+    ],
+    &quot;name&quot; : [
+      [
+        {
+          &quot;$minElement&quot; : 1
+        },
+        {
+          &quot;$maxElement&quot; : 1
+        }
+      ]
+    ],
+    &quot;salary&quot; : [
+      [
+        {
+          &quot;$minElement&quot; : 1
+        },
+        {
+          &quot;$maxElement&quot; : 1
+        }
+      ]
+    ]
+  },
+  &quot;server&quot; : &quot;localhost:27017&quot;
+}</span>
+</pre>
+<p>Showing us that we are using the index during the query. Now let's modify the query slightly to get rid of the <tt class="docutils literal">_id</tt> field in the results and only return the values <tt class="docutils literal">pid</tt>, <tt class="docutils literal">name</tt> and <tt class="docutils literal">salary</tt>.</p>
+<pre class="code console literal-block">
+<span class="gp">&gt;</span> use <span class="nb">test
+</span><span class="gp">&gt;</span><span class="nb"> </span>db.users.find<span class="o">({</span>pid:<span class="o">{</span><span class="nv">$gt</span>: 1<span class="o">}}</span>, <span class="o">{</span>_id:0, pid:1, name:1, salary:1<span class="o">})</span>
+<span class="go">{ &quot;pid&quot; : 2, &quot;name&quot; : &quot;John&quot;, &quot;salary&quot; : 12000 }
+{ &quot;pid&quot; : 7, &quot;name&quot; : &quot;Peter&quot;, &quot;salary&quot; : 7000 }
+{ &quot;pid&quot; : 18, &quot;name&quot; : &quot;Arnold&quot;, &quot;salary&quot; : 32000 }</span>
+</pre>
+<p>And let's run the explain again</p>
+<pre class="code console literal-block">
+<span class="gp">&gt;</span> use <span class="nb">test
+</span><span class="gp">&gt;</span><span class="nb"> </span>db.users.find<span class="o">({</span>pid:<span class="o">{</span><span class="nv">$gt</span>: 1<span class="o">}}</span>, <span class="o">{</span>_id:0, pid:1, name:1, salary:1<span class="o">})</span>.explain<span class="o">()</span>
+<span class="go">{
+  &quot;cursor&quot; : &quot;BtreeCursor pid_1_name_1_salary_1&quot;,
+  &quot;isMultiKey&quot; : false,
+  &quot;n&quot; : 3,
+  &quot;nscannedObjects&quot; : 0,
+  &quot;nscanned&quot; : 3,
+  &quot;nscannedObjectsAllPlans&quot; : 0,
+  &quot;nscannedAllPlans&quot; : 3,
+  &quot;scanAndOrder&quot; : false,
+  &quot;indexOnly&quot; : true,
+  &quot;nYields&quot; : 0,
+  &quot;nChunkSkips&quot; : 0,
+  &quot;millis&quot; : 0,
+  &quot;indexBounds&quot; : {
+    &quot;pid&quot; : [
+      [
+        1,
+        1.7976931348623157e+308
+      ]
+    ],
+    &quot;name&quot; : [
+      [
+        {
+          &quot;$minElement&quot; : 1
+        },
+        {
+          &quot;$maxElement&quot; : 1
+        }
+      ]
+    ],
+    &quot;salary&quot; : [
+      [
+        {
+          &quot;$minElement&quot; : 1
+        },
+        {
+          &quot;$maxElement&quot; : 1
+        }
+      ]
+    ]
+  },
+  &quot;server&quot; : &quot;localhost:27017&quot;
+}</span>
+</pre>
+<p>Notice something different?. Take a look at the <tt class="docutils literal">indexOnly</tt> field. It's now set to <tt class="docutils literal">true</tt> because MongoDB is able to use the data stored in the index to answer the query instead of having to read documents. This can be a powerful feature that can speed up queries by leveraging the indexes and avoiding loading documents from disk. You don't have to return all three values, but can return any combination of the tree values. The only limitation is that you can only return fields that are in the index (in this case <tt class="docutils literal">pid</tt>, <tt class="docutils literal">name</tt> or <tt class="docutils literal">salary</tt>) and <tt class="docutils literal">_id</tt> can never be returned or MongoDB will have to access the actual documents.</p>
+<p>That covers <tt class="docutils literal">covered indexes</tt>. Next we will have a look at what's called a <tt class="docutils literal">sparse</tt> index.</p>
+</div>
+<div class="section" id="sparse-indexes">
+<h1>Sparse Indexes</h1>
+<p>Let's imagine that we have a set of document where only some of the documents have a specific field. If we index this field normally it will include an entry for each document even if they don't have the field. This is obviously not very efficient space wise as we are including empty documents in our index. This is where a <tt class="docutils literal">sparse index</tt> comes in. A <tt class="docutils literal">sparse index</tt> will only include the documents in the index where the field is actually present.</p>
+<p>We assume that we have the following documents inserted in the <tt class="docutils literal">test</tt> database and <tt class="docutils literal">sparse</tt> collection.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span>
+  <span class="nx">pid</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+  <span class="nx">name</span><span class="o">:</span> <span class="s1">'Steve'</span><span class="p">,</span>
+  <span class="nx">salary</span><span class="o">:</span> <span class="mi">10000</span><span class="p">,</span>
+  <span class="nx">city</span><span class="o">:</span> <span class="s1">'New York'</span>
+<span class="p">}</span>
+
+<span class="p">{</span>
+  <span class="nx">pid</span><span class="o">:</span> <span class="mi">2</span><span class="p">,</span>
+  <span class="nx">name</span><span class="o">:</span> <span class="s1">'John'</span><span class="p">,</span>
+  <span class="nx">salary</span><span class="o">:</span> <span class="mi">12000</span>
+<span class="p">}</span>
+
+<span class="p">{</span>
+  <span class="nx">pid</span><span class="o">:</span> <span class="mi">7</span><span class="p">,</span>
+  <span class="nx">name</span><span class="o">:</span> <span class="s1">'Peter'</span><span class="p">,</span>
+  <span class="nx">salary</span><span class="o">:</span> <span class="mi">7000</span><span class="p">,</span>
+  <span class="nx">city</span><span class="o">:</span> <span class="s1">'New York'</span>
+<span class="p">}</span>
+
+<span class="p">{</span>
+  <span class="nx">pid</span><span class="o">:</span> <span class="mi">18</span><span class="p">,</span>
+  <span class="nx">name</span><span class="o">:</span> <span class="s1">'Arnold'</span><span class="p">,</span>
+  <span class="nx">salary</span><span class="o">:</span> <span class="mi">32000</span>
+<span class="p">}</span>
+</pre>
+<p>Let's create a sparse index on the field <tt class="docutils literal">city</tt></p>
+<pre class="code console literal-block">
+<span class="gp">&gt;</span> use <span class="nb">test
+</span><span class="gp">&gt;</span><span class="nb"> </span>db.sparse.ensureIndex<span class="o">({</span>city:1<span class="o">}</span>, <span class="o">{</span>sparse:true<span class="o">})</span>
+</pre>
+<p>The index can be created in the following way with the driver.</p>
+<pre class="code javascript literal-block">
+<span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'employees'</span><span class="p">).</span><span class="nx">ensureIndex</span><span class="p">(</span><span class="p">{</span><span class="nx">city</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">sparse</span><span class="o">:</span><span class="kc">true</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span><span class="p">});</span>
+</pre>
+<p>When we query for the field <tt class="docutils literal">city</tt> we will not only query an index that contains documents that actually have the field populated. Imagine that the total number of documents that contain a city is <tt class="docutils literal">30%</tt> of the collection. This means we only have entries for <tt class="docutils literal">30%</tt> of the documents in the <tt class="docutils literal">sparse index</tt> versus all of the documents in a normal index, saving us lots of diskspace and memory to hold the index. Not much more to say about <tt class="docutils literal">sparse indexes</tt>.</p>
+<p>Until now we have been talking about indexes that contain all documents for a given value (if we have an index on field <tt class="docutils literal">a</tt> and two documents that contain the field <tt class="docutils literal">a</tt> with the same value they are both stored in the index). But what if we want to ensure that only a single document can have a specific value for <tt class="docutils literal">a</tt>. Luckily we can do that with an unique index.</p>
+</div>
+<div class="section" id="i-m-an-unique-flower">
+<h1>I'm An Unique Flower</h1>
+<p>Let's take the situation of a social security number. Only one person can have a specific social security number associated with them. To ensure this is the case we can create an <tt class="docutils literal">unique</tt> index. An <tt class="docutils literal">unique</tt> index is an index that rejects insertion of values that have duplicate values for the fields in the index. Let's get cracking with some examples. First insert an employee <tt class="docutils literal">Peter</tt> and then create the unique index on the field <tt class="docutils literal">ssid</tt>.</p>
+<pre class="code console literal-block">
+<span class="gp">&gt;</span> use <span class="nb">test
+</span><span class="gp">&gt;</span><span class="nb"> </span>db.employees.insert<span class="o">({</span>ssid:<span class="s1">'123'</span>, name:<span class="s1">'Peter'</span><span class="o">})</span>
+<span class="gp">&gt;</span> db.employees.ensureIndex<span class="o">({</span>ssid:1<span class="o">}</span>, <span class="o">{</span>unique:true<span class="o">})</span>
+</pre>
+<p>The index can be created in the following way with the driver.</p>
+<pre class="code javascript literal-block">
+<span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'employees'</span><span class="p">).</span><span class="nx">ensureIndex</span><span class="p">(</span><span class="p">{</span><span class="nx">ssid</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">unique</span><span class="o">:</span><span class="kc">true</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span><span class="p">});</span>
+</pre>
+<p>Cool we have an <tt class="docutils literal">unique index</tt> specified for the field <tt class="docutils literal">ssid</tt>. Let's attempt to insert a duplicate record.</p>
+<pre class="code console literal-block">
+<span class="gp">&gt;</span> use <span class="nb">test
+</span><span class="gp">&gt;</span><span class="nb"> </span>db.employees.insert<span class="o">({</span>ssid:<span class="s1">'123'</span>, name:<span class="s1">'Peter'</span><span class="o">})</span>
+<span class="go">E11000 duplicate key error index: test.employees.$ssid_1  dup key: { : &quot;123&quot; }</span>
+</pre>
+<p>One more thing to note is that this also works for <tt class="docutils literal">compound indexes</tt>. Let's say the <tt class="docutils literal">ssid</tt> and <tt class="docutils literal">name</tt> combination must be unique. Let's try it out.</p>
+<pre class="code console literal-block">
+<span class="gp">&gt;</span> use <span class="nb">test
+</span><span class="gp">&gt;</span><span class="nb"> </span>db.employees.dropIndexes<span class="o">()</span>
+<span class="gp">&gt;</span> db.employees.insert<span class="o">({</span>ssid:<span class="s1">'123'</span>, name:<span class="s1">'Peter'</span><span class="o">})</span>
+<span class="gp">&gt;</span> db.employees.ensureIndex<span class="o">({</span>ssid:1, name:1<span class="o">}</span>, <span class="o">{</span>unique:true<span class="o">})</span>
+<span class="gp">&gt;</span> db.employees.insert<span class="o">({</span>ssid:<span class="s1">'123'</span>, name:<span class="s1">'Peter'</span><span class="o">})</span>
+<span class="go">E11000 duplicate key error index: test.employees.$ssid_1_name_1
+dup key: { : &quot;123&quot;, : &quot;Peter&quot; }
+</span><span class="gp">&gt;</span> db.employees.insert<span class="o">({</span>ssid:<span class="s1">'123'</span>, name:<span class="s1">'Peter2'</span><span class="o">})</span>
+</pre>
+<p>The index can be created in the following way with the driver.</p>
+<pre class="code javascript literal-block">
+<span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'employees'</span><span class="p">)</span>
+  <span class="p">.</span><span class="nx">ensureIndex</span><span class="p">(</span><span class="p">{</span><span class="nx">ssid</span><span class="o">:</span><span class="mi">1</span><span class="p">,</span> <span class="nx">name</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">unique</span><span class="o">:</span><span class="kc">true</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span><span class="p">});</span>
+</pre>
+<p>As you can see it works perfectly with a <tt class="docutils literal">compound index</tt> as well.</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">All documents include the <tt class="docutils literal">_id</tt> field which a unique index. This is to ensure a document in a collection can be <tt class="docutils literal">uniquely</tt> identified.</p>
+</div>
+<p>So far we have been indexing single fields, but what if we want to index fields that are arrays or sub documents?</p>
+</div>
+<div class="section" id="indexing-arrays-and-sub-documents">
+<h1>Indexing Arrays and Sub Documents</h1>
+<p>MongoDB can index both array field and sub documents. But how to go about it. Let's take an example document that contains tags.</p>
+<p>We assume we have the following documents stored in the database <tt class="docutils literal">test</tt> and collection <tt class="docutils literal">docs</tt>.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span>
+  <span class="nx">title</span><span class="o">:</span> <span class="s1">'Abgenders 2'</span><span class="p">,</span>
+  <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s1">'comic'</span><span class="p">,</span> <span class="s1">'scifi'</span><span class="p">,</span> <span class="s1">'parody'</span><span class="p">],</span>
+  <span class="nx">published</span><span class="o">:</span> <span class="p">{</span>
+    <span class="nx">year</span><span class="o">:</span> <span class="mi">2012</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="p">{</span>
+  <span class="nx">title</span><span class="o">:</span> <span class="s1">'Nerds 4'</span><span class="p">,</span>
+  <span class="nx">tags</span><span class="o">:</span> <span class="p">[</span><span class="s1">'comic'</span><span class="p">,</span> <span class="s1">'scifi'</span><span class="p">,</span> <span class="s1">'serious'</span><span class="p">],</span>
+  <span class="nx">published</span><span class="o">:</span> <span class="p">{</span>
+    <span class="nx">year</span><span class="o">:</span> <span class="mi">2011</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre>
+<p>Let's create two indexes to allow us to query by tag and also by date.</p>
+<pre class="code console literal-block">
+<span class="gp">&gt;</span> use <span class="nb">test
+</span><span class="gp">&gt;</span><span class="nb"> </span>db.docs.dropIndexes<span class="o">()</span>
+<span class="gp">&gt;</span> db.docs.ensureIndex<span class="o">({</span>tags: 1<span class="o">})</span>
+<span class="gp">&gt;</span> db.docs.ensureIndex<span class="o">({</span><span class="s1">'published.year'</span>: 1<span class="o">})</span>
+</pre>
+<p>The index can be created in the following way with the driver.</p>
+<pre class="code javascript literal-block">
+<span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'employees'</span><span class="p">).</span><span class="nx">ensureIndex</span><span class="p">(</span><span class="p">{</span><span class="nx">tags</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span><span class="p">});</span>
+<span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'employees'</span><span class="p">).</span><span class="nx">ensureIndex</span><span class="p">(</span><span class="p">{</span><span class="s1">'published.year'</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span><span class="p">});</span>
+</pre>
+<p>Let's execute a query using each of the indexes.</p>
+<pre class="code console literal-block">
+<span class="gp">&gt;</span> use <span class="nb">test
+</span><span class="gp">&gt;</span><span class="nb"> </span>db.docs.find<span class="o">({</span>tags:<span class="s1">'scifi'</span><span class="o">})</span>.explain<span class="o">()</span>
+<span class="go">{
+  &quot;cursor&quot; : &quot;BtreeCursor tags_1&quot;,
+  &quot;isMultiKey&quot; : true,
+  &quot;n&quot; : 2,
+  &quot;nscannedObjects&quot; : 2,
+  &quot;nscanned&quot; : 2,
+  &quot;nscannedObjectsAllPlans&quot; : 2,
+  &quot;nscannedAllPlans&quot; : 2,
+  &quot;scanAndOrder&quot; : false,
+  &quot;indexOnly&quot; : false,
+  &quot;nYields&quot; : 0,
+  &quot;nChunkSkips&quot; : 0,
+  &quot;millis&quot; : 0,
+  &quot;indexBounds&quot; : {
+    &quot;tags&quot; : [
+      [
+        &quot;scifi&quot;,
+        &quot;scifi&quot;
+      ]
+    ]
+  },
+  &quot;server&quot; : &quot;localhost:27017&quot;
+}</span>
+</pre>
+<p>and</p>
+<pre class="code console literal-block">
+<span class="gp">&gt;</span> use <span class="nb">test
+</span><span class="gp">&gt;</span><span class="nb"> </span>db.docs.find<span class="o">({</span><span class="s1">'published.year'</span>:2012<span class="o">})</span>.explain<span class="o">()</span>
+<span class="go">{
+  &quot;cursor&quot; : &quot;BtreeCursor published.year_1&quot;,
+  &quot;isMultiKey&quot; : false,
+  &quot;n&quot; : 1,
+  &quot;nscannedObjects&quot; : 1,
+  &quot;nscanned&quot; : 1,
+  &quot;nscannedObjectsAllPlans&quot; : 1,
+  &quot;nscannedAllPlans&quot; : 1,
+  &quot;scanAndOrder&quot; : false,
+  &quot;indexOnly&quot; : false,
+  &quot;nYields&quot; : 0,
+  &quot;nChunkSkips&quot; : 0,
+  &quot;millis&quot; : 0,
+  &quot;indexBounds&quot; : {
+    &quot;published.year&quot; : [
+      [
+        2012,
+        2012
+      ]
+    ]
+  },
+  &quot;server&quot; : &quot;localhost:27017&quot;
+}</span>
+</pre>
+<p>As we can see we both of the queries uses indexes to retrieve the values. One of the possibilities of being able to index arrays is that you can create a word index lookup. Imagine that you want to be able to look for documents that matches a specific word. You could do this using a <tt class="docutils literal">regular</tt> expression query but this would most likely force a table scan for your query. What if you instead split the text into words, add them to a field <tt class="docutils literal">words</tt> as an array and then <tt class="docutils literal">ensureIndex(words:1)</tt>. Now you can leverage the index to do a quick lookup.</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">In 2.4 or later MongoDB includes an experimental <tt class="docutils literal">text index</tt> that we will talk more about in a later exercise.</p>
+</div>
+</div>
+    </div>
+
+    <div class="one columns" id="right-nav">
+        <center>
+        <p><a href="/book/"><img src="images/48_structure.png"></a></p>
+        <p><a href="#"><img src="images/48_email.png"></a></p>
+        <p><a href="#faq"><img src="images/48_faq.png"></a></p>
+        <p>
+        </p>
+        </center>
+    </div>
+
+  <!-- Included JS Files (Compressed) -->
+  <script src="javascripts/jquery.js"></script>
+  <script src="javascripts/foundation.min.js"></script>
+  
+  <!-- Initialize JS Plugins -->
+  <script src="javascripts/app.js"></script>
+
+</body>
+</html>

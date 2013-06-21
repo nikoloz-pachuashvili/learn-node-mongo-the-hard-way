@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+    <!--[if gt IE 8]><!-->
+<html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8" />
+
+  <!-- Set the viewport width to device width for mobile -->
+  <meta name="viewport" content="width=device-width" />
+
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
+<title>Exercise 12: FindAndModify</title>
+
+  <!-- Included CSS Files (Compressed) -->
+  <link rel="stylesheet" href="stylesheets/foundation.min.css">
+  <link rel="stylesheet" href="stylesheets/pygments.css">
+  <link rel="stylesheet" href="stylesheets/app.css">
+
+  <script src="javascripts/modernizr.foundation.js"></script>
+
+  <!-- IE Fix for HTML5 Tags -->
+  <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+</head>
+<body>
+
+  <div class="row">
+          <h1 class="title">Exercise 12: FindAndModify</h1>
+      </div>
+  </div>
+
+  <div class="row">
+    <div class="eleven columns">
+        <p>In exercise 10 we introduced the <tt class="docutils literal">$pop</tt> command that removes an element from the start or the end of an array in a document. Unfortunately it does not return the actual element. What if we need to modify and retrieve a document in one go ? Thankfully we have a command called <tt class="docutils literal">findAndModify</tt> that allows you to do exactly that.</p>
+<div class="section" id="the-findandmodify-command">
+<h1>The findAndModify Command</h1>
+<p>The definition of the method looks like <tt class="docutils literal">findAndModify (query, sort, doc, options, callback)</tt>. Let's have a look at what the different parameters mean.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="15%" />
+<col width="85%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>query</td>
+<td>The query matching to the document we wish to change</td>
+</tr>
+<tr><td>sort</td>
+<td>The sort order of the documents returned from the query</td>
+</tr>
+<tr><td>doc</td>
+<td>The update statements for the first document returned from the query and sort</td>
+</tr>
+<tr><td>options</td>
+<td>A set of options that allow us to define how the operation will behave</td>
+</tr>
+</tbody>
+</table>
+<p>Let's look at the options that we use to define how our <tt class="docutils literal">findAndModify</tt> command will operate.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="9%" />
+<col width="91%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>remove</td>
+<td>Will remove the document from the collection and return it</td>
+</tr>
+<tr><td>upsert</td>
+<td>Will create a new document if none is found to modify</td>
+</tr>
+<tr><td>new</td>
+<td>Will return the modified document (if false will return the original document before changes. This is ignored if you set remove to true)</td>
+</tr>
+</tbody>
+</table>
+<p>Let's start with the simplest example. We will insert four documents into a collection we call work and then retrieve the highest priority document where work has not been started.</p>
+<div class="highlight"><pre><a name="code--ex12--ex1.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex12--ex1.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex12--ex1.js-pyg.html-3"></a>
+<a name="code--ex12--ex1.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex12--ex1.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex12--ex1.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex12--ex1.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex12--ex1.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex12--ex1.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex12--ex1.js-pyg.html-10"></a>
+<a name="code--ex12--ex1.js-pyg.html-11"></a>  <span class="kd">var</span> <span class="nx">documents</span> <span class="o">=</span> <span class="p">[{</span>
+<a name="code--ex12--ex1.js-pyg.html-12"></a>      <span class="nx">_id</span> <span class="o">:</span> <span class="mi">1</span>
+<a name="code--ex12--ex1.js-pyg.html-13"></a>    <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Buy milk&quot;</span>
+<a name="code--ex12--ex1.js-pyg.html-14"></a>    <span class="p">,</span> <span class="nx">priority</span><span class="o">:</span> <span class="mi">5</span>
+<a name="code--ex12--ex1.js-pyg.html-15"></a>    <span class="p">,</span> <span class="nx">started</span><span class="o">:</span> <span class="kc">false</span>
+<a name="code--ex12--ex1.js-pyg.html-16"></a>    <span class="p">,</span> <span class="nx">done</span><span class="o">:</span> <span class="kc">false</span>
+<a name="code--ex12--ex1.js-pyg.html-17"></a>    <span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span> <span class="kc">null</span>
+<a name="code--ex12--ex1.js-pyg.html-18"></a>    <span class="p">,</span> <span class="nx">endTime</span><span class="o">:</span> <span class="kc">null</span>
+<a name="code--ex12--ex1.js-pyg.html-19"></a>    <span class="p">},</span> <span class="p">{</span>
+<a name="code--ex12--ex1.js-pyg.html-20"></a>      <span class="nx">_id</span> <span class="o">:</span> <span class="mi">2</span>
+<a name="code--ex12--ex1.js-pyg.html-21"></a>    <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Become a Billionaire&quot;</span>
+<a name="code--ex12--ex1.js-pyg.html-22"></a>    <span class="p">,</span> <span class="nx">priority</span><span class="o">:</span> <span class="mi">1</span>
+<a name="code--ex12--ex1.js-pyg.html-23"></a>    <span class="p">,</span> <span class="nx">started</span><span class="o">:</span> <span class="kc">false</span>
+<a name="code--ex12--ex1.js-pyg.html-24"></a>    <span class="p">,</span> <span class="nx">done</span><span class="o">:</span> <span class="kc">false</span>
+<a name="code--ex12--ex1.js-pyg.html-25"></a>    <span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span> <span class="kc">null</span>
+<a name="code--ex12--ex1.js-pyg.html-26"></a>    <span class="p">,</span> <span class="nx">endTime</span><span class="o">:</span> <span class="kc">null</span>
+<a name="code--ex12--ex1.js-pyg.html-27"></a>    <span class="p">},</span> <span class="p">{</span>
+<a name="code--ex12--ex1.js-pyg.html-28"></a>      <span class="nx">_id</span> <span class="o">:</span> <span class="mi">3</span>
+<a name="code--ex12--ex1.js-pyg.html-29"></a>    <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Play DOOM&quot;</span>
+<a name="code--ex12--ex1.js-pyg.html-30"></a>    <span class="p">,</span> <span class="nx">priority</span><span class="o">:</span> <span class="mi">1000</span>
+<a name="code--ex12--ex1.js-pyg.html-31"></a>    <span class="p">,</span> <span class="nx">started</span><span class="o">:</span> <span class="kc">false</span>
+<a name="code--ex12--ex1.js-pyg.html-32"></a>    <span class="p">,</span> <span class="nx">done</span><span class="o">:</span> <span class="kc">false</span>
+<a name="code--ex12--ex1.js-pyg.html-33"></a>    <span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span> <span class="kc">null</span>
+<a name="code--ex12--ex1.js-pyg.html-34"></a>    <span class="p">,</span> <span class="nx">endTime</span><span class="o">:</span> <span class="kc">null</span>
+<a name="code--ex12--ex1.js-pyg.html-35"></a>    <span class="p">}</span>
+<a name="code--ex12--ex1.js-pyg.html-36"></a>  <span class="p">]</span>
+<a name="code--ex12--ex1.js-pyg.html-37"></a>
+<a name="code--ex12--ex1.js-pyg.html-38"></a>  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;work&#39;</span><span class="p">);</span>
+<a name="code--ex12--ex1.js-pyg.html-39"></a>
+<a name="code--ex12--ex1.js-pyg.html-40"></a>  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex12--ex1.js-pyg.html-41"></a>
+<a name="code--ex12--ex1.js-pyg.html-42"></a>    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">(</span><span class="nx">documents</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex12--ex1.js-pyg.html-43"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex12--ex1.js-pyg.html-44"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>
+<a name="code--ex12--ex1.js-pyg.html-45"></a>      <span class="p">}</span>
+<a name="code--ex12--ex1.js-pyg.html-46"></a>
+<a name="code--ex12--ex1.js-pyg.html-47"></a>      <span class="nx">collection</span><span class="p">.</span><span class="nx">findAndModify</span><span class="p">(</span>
+<a name="code--ex12--ex1.js-pyg.html-48"></a>          <span class="p">{</span><span class="nx">started</span><span class="o">:</span><span class="kc">false</span><span class="p">}</span>
+<a name="code--ex12--ex1.js-pyg.html-49"></a>        <span class="p">,</span> <span class="p">{</span><span class="nx">priority</span><span class="o">:-</span><span class="mi">1</span><span class="p">}</span>
+<a name="code--ex12--ex1.js-pyg.html-50"></a>        <span class="p">,</span> <span class="p">{</span><span class="nx">$set</span><span class="o">:</span> <span class="p">{</span><span class="nx">started</span><span class="o">:</span><span class="kc">true</span><span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span><span class="k">new</span> <span class="nb">Date</span><span class="p">()}}</span>
+<a name="code--ex12--ex1.js-pyg.html-51"></a>        <span class="p">,</span> <span class="p">{</span><span class="k">new</span><span class="o">:</span><span class="kc">true</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex12--ex1.js-pyg.html-52"></a>          <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;changed document&quot;</span><span class="p">);</span>
+<a name="code--ex12--ex1.js-pyg.html-53"></a>          <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+<a name="code--ex12--ex1.js-pyg.html-54"></a>
+<a name="code--ex12--ex1.js-pyg.html-55"></a>          <span class="nx">collection</span><span class="p">.</span><span class="nx">find</span><span class="p">({}).</span><span class="nx">toArray</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">docs</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex12--ex1.js-pyg.html-56"></a>            <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;all documents&quot;</span><span class="p">);</span>
+<a name="code--ex12--ex1.js-pyg.html-57"></a>            <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">docs</span><span class="p">);</span>
+<a name="code--ex12--ex1.js-pyg.html-58"></a>
+<a name="code--ex12--ex1.js-pyg.html-59"></a>            <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex12--ex1.js-pyg.html-60"></a>          <span class="p">});</span>
+<a name="code--ex12--ex1.js-pyg.html-61"></a>      <span class="p">});</span>
+<a name="code--ex12--ex1.js-pyg.html-62"></a>    <span class="p">});</span>
+<a name="code--ex12--ex1.js-pyg.html-63"></a>  <span class="p">});</span>
+<a name="code--ex12--ex1.js-pyg.html-64"></a><span class="p">});</span>
+</pre></div><p>Execute the code and you should see the following results.</p>
+<pre class="code console literal-block">
+<span class="go">connected to database
+changed document
+{ _id: 3,
+  done: false,
+  endTime: null,
+  priority: 1000,
+  startTime: Thu Jan 24 2013 11:47:22 GMT+0100 (CET),
+  started: true,
+  title: 'Play DOOM' }
+all documents
+[ { _id: 1,
+    title: 'Buy milk',
+    priority: 5,
+    started: false,
+    done: false,
+    startTime: null,
+    endTime: null },
+  { _id: 2,
+    title: 'Become a Billionaire',
+    priority: 1,
+    started: false,
+    done: false,
+    startTime: null,
+    endTime: null },
+  { _id: 3,
+    done: false,
+    endTime: null,
+    priority: 1000,
+    startTime: Thu Jan 24 2013 11:47:22 GMT+0100 (CET),
+    started: true,
+    title: 'Play DOOM' } ]</span>
+</pre>
+<p>Let's look at the code we just entered, more specifically the line.</p>
+<pre class="code console literal-block">
+<span class="go">collection.findAndModify(
+    {started:false}
+  , {priority:-1}
+  , {$set: {started:true, startTime:new Date()}}
+  , {new:true}, function(err, doc) {
+});</span>
+</pre>
+<p>Let's break down the <tt class="docutils literal">findAndModify</tt> operation we did above.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="5%" />
+<col width="24%" />
+<col width="71%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Parameter</th>
+<th class="head">Statement</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>query</td>
+<td>{started:false}</td>
+<td>Locate all the documents where the field started equals false</td>
+</tr>
+<tr><td>sort</td>
+<td>{priority:-1}</td>
+<td>Sort the documents in descending order (highest priority ones first, meaning the first one will be the one with the biggest priority)</td>
+</tr>
+<tr><td>doc</td>
+<td>{$set: {started:true, startTime:new Date()}}</td>
+<td>If we find a document set started to true and assign a start time</td>
+</tr>
+<tr><td>options</td>
+<td>{new:true}</td>
+<td>Return the changed document</td>
+</tr>
+</tbody>
+</table>
+<p>From the breakdown we can see that we will modify the document with the highest priority where work has not started. Since <tt class="docutils literal">findAndModify</tt> is an <tt class="docutils literal">atomic</tt> command it means that nobody else can modify the document while it's executing on the server. We are using this property in this example to model a queue of work where only one <tt class="docutils literal">worker</tt> works on a given task at a time. In a later exercise we will leverage this property to build a work queue and also a shopping cart.</p>
+<p>Now let's assume we've finished performing the work and need to remove the document from the list of work (maybe to insert into a history collection of work done). Let's modify the code a little bit to do this. Notice that when using the <tt class="docutils literal">remove</tt> option we are not able to modify the document so this has to happen be done in code.</p>
+<div class="highlight"><pre><a name="code--ex12--ex2.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex12--ex2.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex12--ex2.js-pyg.html-3"></a>
+<a name="code--ex12--ex2.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex12--ex2.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex12--ex2.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex12--ex2.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex12--ex2.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex12--ex2.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex12--ex2.js-pyg.html-10"></a>
+<a name="code--ex12--ex2.js-pyg.html-11"></a>  <span class="kd">var</span> <span class="nx">documents</span> <span class="o">=</span> <span class="p">[{</span>
+<a name="code--ex12--ex2.js-pyg.html-12"></a>      <span class="nx">_id</span> <span class="o">:</span> <span class="mi">1</span>
+<a name="code--ex12--ex2.js-pyg.html-13"></a>    <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Buy milk&quot;</span>
+<a name="code--ex12--ex2.js-pyg.html-14"></a>    <span class="p">,</span> <span class="nx">priority</span><span class="o">:</span> <span class="mi">5</span>
+<a name="code--ex12--ex2.js-pyg.html-15"></a>    <span class="p">,</span> <span class="nx">started</span><span class="o">:</span> <span class="kc">false</span>
+<a name="code--ex12--ex2.js-pyg.html-16"></a>    <span class="p">,</span> <span class="nx">done</span><span class="o">:</span> <span class="kc">false</span>
+<a name="code--ex12--ex2.js-pyg.html-17"></a>    <span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span> <span class="kc">null</span>
+<a name="code--ex12--ex2.js-pyg.html-18"></a>    <span class="p">,</span> <span class="nx">endTime</span><span class="o">:</span> <span class="kc">null</span>
+<a name="code--ex12--ex2.js-pyg.html-19"></a>    <span class="p">},</span> <span class="p">{</span>
+<a name="code--ex12--ex2.js-pyg.html-20"></a>      <span class="nx">_id</span> <span class="o">:</span> <span class="mi">2</span>
+<a name="code--ex12--ex2.js-pyg.html-21"></a>    <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Become a Billionaire&quot;</span>
+<a name="code--ex12--ex2.js-pyg.html-22"></a>    <span class="p">,</span> <span class="nx">priority</span><span class="o">:</span> <span class="mi">1</span>
+<a name="code--ex12--ex2.js-pyg.html-23"></a>    <span class="p">,</span> <span class="nx">started</span><span class="o">:</span> <span class="kc">false</span>
+<a name="code--ex12--ex2.js-pyg.html-24"></a>    <span class="p">,</span> <span class="nx">done</span><span class="o">:</span> <span class="kc">false</span>
+<a name="code--ex12--ex2.js-pyg.html-25"></a>    <span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span> <span class="kc">null</span>
+<a name="code--ex12--ex2.js-pyg.html-26"></a>    <span class="p">,</span> <span class="nx">endTime</span><span class="o">:</span> <span class="kc">null</span>
+<a name="code--ex12--ex2.js-pyg.html-27"></a>    <span class="p">},</span> <span class="p">{</span>
+<a name="code--ex12--ex2.js-pyg.html-28"></a>      <span class="nx">_id</span> <span class="o">:</span> <span class="mi">3</span>
+<a name="code--ex12--ex2.js-pyg.html-29"></a>    <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="s2">&quot;Play DOOM&quot;</span>
+<a name="code--ex12--ex2.js-pyg.html-30"></a>    <span class="p">,</span> <span class="nx">priority</span><span class="o">:</span> <span class="mi">1000</span>
+<a name="code--ex12--ex2.js-pyg.html-31"></a>    <span class="p">,</span> <span class="nx">started</span><span class="o">:</span> <span class="kc">false</span>
+<a name="code--ex12--ex2.js-pyg.html-32"></a>    <span class="p">,</span> <span class="nx">done</span><span class="o">:</span> <span class="kc">false</span>
+<a name="code--ex12--ex2.js-pyg.html-33"></a>    <span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span> <span class="kc">null</span>
+<a name="code--ex12--ex2.js-pyg.html-34"></a>    <span class="p">,</span> <span class="nx">endTime</span><span class="o">:</span> <span class="kc">null</span>
+<a name="code--ex12--ex2.js-pyg.html-35"></a>    <span class="p">}</span>
+<a name="code--ex12--ex2.js-pyg.html-36"></a>  <span class="p">]</span>
+<a name="code--ex12--ex2.js-pyg.html-37"></a>
+<a name="code--ex12--ex2.js-pyg.html-38"></a>  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;work&#39;</span><span class="p">);</span>
+<a name="code--ex12--ex2.js-pyg.html-39"></a>
+<a name="code--ex12--ex2.js-pyg.html-40"></a>  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex12--ex2.js-pyg.html-41"></a>
+<a name="code--ex12--ex2.js-pyg.html-42"></a>    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">(</span><span class="nx">documents</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex12--ex2.js-pyg.html-43"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex12--ex2.js-pyg.html-44"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>
+<a name="code--ex12--ex2.js-pyg.html-45"></a>      <span class="p">}</span>
+<a name="code--ex12--ex2.js-pyg.html-46"></a>
+<a name="code--ex12--ex2.js-pyg.html-47"></a>      <span class="nx">collection</span><span class="p">.</span><span class="nx">findAndModify</span><span class="p">(</span>
+<a name="code--ex12--ex2.js-pyg.html-48"></a>          <span class="p">{</span><span class="nx">started</span><span class="o">:</span><span class="kc">false</span><span class="p">}</span>
+<a name="code--ex12--ex2.js-pyg.html-49"></a>        <span class="p">,</span> <span class="p">{</span><span class="nx">priority</span><span class="o">:-</span><span class="mi">1</span><span class="p">}</span>
+<a name="code--ex12--ex2.js-pyg.html-50"></a>        <span class="p">,</span> <span class="p">{</span><span class="nx">$set</span><span class="o">:</span> <span class="p">{</span><span class="nx">started</span><span class="o">:</span><span class="kc">true</span><span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span><span class="k">new</span> <span class="nb">Date</span><span class="p">()}}</span>
+<a name="code--ex12--ex2.js-pyg.html-51"></a>        <span class="p">,</span> <span class="p">{</span><span class="k">new</span><span class="o">:</span><span class="kc">true</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex12--ex2.js-pyg.html-52"></a>          <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;changed document&quot;</span><span class="p">);</span>
+<a name="code--ex12--ex2.js-pyg.html-53"></a>          <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+<a name="code--ex12--ex2.js-pyg.html-54"></a>
+<a name="code--ex12--ex2.js-pyg.html-55"></a>          <span class="nx">collection</span><span class="p">.</span><span class="nx">find</span><span class="p">({}).</span><span class="nx">toArray</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">docs</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex12--ex2.js-pyg.html-56"></a>            <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;all documents&quot;</span><span class="p">);</span>
+<a name="code--ex12--ex2.js-pyg.html-57"></a>            <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">docs</span><span class="p">);</span>
+<a name="code--ex12--ex2.js-pyg.html-58"></a>
+<a name="code--ex12--ex2.js-pyg.html-59"></a>            <span class="nx">collection</span><span class="p">.</span><span class="nx">findAndModify</span><span class="p">(</span>
+<a name="code--ex12--ex2.js-pyg.html-60"></a>                <span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="nx">doc</span><span class="p">.</span><span class="nx">_id</span><span class="p">}</span>
+<a name="code--ex12--ex2.js-pyg.html-61"></a>              <span class="p">,</span> <span class="p">{}</span>
+<a name="code--ex12--ex2.js-pyg.html-62"></a>              <span class="p">,</span> <span class="p">{}</span>
+<a name="code--ex12--ex2.js-pyg.html-63"></a>              <span class="p">,</span> <span class="p">{</span><span class="nx">remove</span><span class="o">:</span><span class="kc">true</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex12--ex2.js-pyg.html-64"></a>                <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;removed document&quot;</span><span class="p">);</span>
+<a name="code--ex12--ex2.js-pyg.html-65"></a>                <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+<a name="code--ex12--ex2.js-pyg.html-66"></a>
+<a name="code--ex12--ex2.js-pyg.html-67"></a>                <span class="nx">collection</span><span class="p">.</span><span class="nx">find</span><span class="p">({}).</span><span class="nx">toArray</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">docs</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex12--ex2.js-pyg.html-68"></a>                  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;all documents&quot;</span><span class="p">);</span>
+<a name="code--ex12--ex2.js-pyg.html-69"></a>                  <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">docs</span><span class="p">);</span>
+<a name="code--ex12--ex2.js-pyg.html-70"></a>
+<a name="code--ex12--ex2.js-pyg.html-71"></a>                  <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex12--ex2.js-pyg.html-72"></a>                <span class="p">});</span>
+<a name="code--ex12--ex2.js-pyg.html-73"></a>              <span class="p">});</span>
+<a name="code--ex12--ex2.js-pyg.html-74"></a>          <span class="p">});</span>
+<a name="code--ex12--ex2.js-pyg.html-75"></a>      <span class="p">});</span>
+<a name="code--ex12--ex2.js-pyg.html-76"></a>    <span class="p">});</span>
+<a name="code--ex12--ex2.js-pyg.html-77"></a>  <span class="p">});</span>
+<a name="code--ex12--ex2.js-pyg.html-78"></a><span class="p">});</span>
+</pre></div><p>The results should look like this.</p>
+<pre class="code console literal-block">
+<span class="go">connected to database
+changed document
+{ _id: 3,
+  done: false,
+  endTime: null,
+  priority: 1000,
+  startTime: Thu Jan 24 2013 12:32:50 GMT+0100 (CET),
+  started: true,
+  title: 'Play DOOM' }
+all documents
+[ { _id: 1,
+    title: 'Buy milk',
+    priority: 5,
+    started: false,
+    done: false,
+    startTime: null,
+    endTime: null },
+  { _id: 2,
+    title: 'Become a Billionaire',
+    priority: 1,
+    started: false,
+    done: false,
+    startTime: null,
+    endTime: null },
+  { _id: 3,
+    done: false,
+    endTime: null,
+    priority: 1000,
+    startTime: Thu Jan 24 2013 12:32:50 GMT+0100 (CET),
+    started: true,
+    title: 'Play DOOM' } ]
+removed document
+{ _id: 3,
+  done: false,
+  endTime: null,
+  priority: 1000,
+  startTime: Thu Jan 24 2013 12:32:50 GMT+0100 (CET),
+  started: true,
+  title: 'Play DOOM' }
+all documents
+[ { _id: 1,
+    title: 'Buy milk',
+    priority: 5,
+    started: false,
+    done: false,
+    startTime: null,
+    endTime: null },
+  { _id: 2,
+    title: 'Become a Billionaire',
+    priority: 1,
+    started: false,
+    done: false,
+    startTime: null,
+    endTime: null } ]</span>
+</pre>
+<p>For the remove option of <tt class="docutils literal">findAndModify</tt> you can use a special version of it on the <tt class="docutils literal">collection</tt> called <tt class="docutils literal">findAndRemove</tt> that just removes the <tt class="docutils literal">update</tt> section of the <tt class="docutils literal">findAndModify</tt> command. If you do want to perform removes I recommend using this method to avoid the confusion of <tt class="docutils literal">remove</tt> not allowing modifications of the document.</p>
+<p>You might have noticed that there is an <tt class="docutils literal">upsert</tt> option for the <tt class="docutils literal">findAndModify</tt> command. This works exactly as the <tt class="docutils literal">upsert</tt> for the <tt class="docutils literal">update</tt> command but of course let's you return the document. Let's take a look at a simple example using it.</p>
+<div class="highlight"><pre><a name="code--ex12--ex3.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex12--ex3.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex12--ex3.js-pyg.html-3"></a>
+<a name="code--ex12--ex3.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex12--ex3.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex12--ex3.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex12--ex3.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex12--ex3.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex12--ex3.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex12--ex3.js-pyg.html-10"></a>
+<a name="code--ex12--ex3.js-pyg.html-11"></a>  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;work&#39;</span><span class="p">);</span>
+<a name="code--ex12--ex3.js-pyg.html-12"></a>
+<a name="code--ex12--ex3.js-pyg.html-13"></a>  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex12--ex3.js-pyg.html-14"></a>
+<a name="code--ex12--ex3.js-pyg.html-15"></a>    <span class="nx">collection</span><span class="p">.</span><span class="nx">findAndModify</span><span class="p">(</span>
+<a name="code--ex12--ex3.js-pyg.html-16"></a>        <span class="p">{</span><span class="nx">started</span><span class="o">:</span><span class="kc">false</span><span class="p">}</span>
+<a name="code--ex12--ex3.js-pyg.html-17"></a>      <span class="p">,</span> <span class="p">{</span><span class="nx">priority</span><span class="o">:-</span><span class="mi">1</span><span class="p">}</span>
+<a name="code--ex12--ex3.js-pyg.html-18"></a>      <span class="p">,</span> <span class="p">{</span><span class="nx">$set</span><span class="o">:</span> <span class="p">{</span><span class="nx">started</span><span class="o">:</span><span class="kc">true</span><span class="p">,</span> <span class="nx">startTime</span><span class="o">:</span><span class="k">new</span> <span class="nb">Date</span><span class="p">()}}</span>
+<a name="code--ex12--ex3.js-pyg.html-19"></a>      <span class="p">,</span> <span class="p">{</span><span class="k">new</span><span class="o">:</span><span class="kc">true</span><span class="p">,</span> <span class="nx">upsert</span><span class="o">:</span><span class="kc">true</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex12--ex3.js-pyg.html-20"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;added document&quot;</span><span class="p">);</span>
+<a name="code--ex12--ex3.js-pyg.html-21"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">doc</span><span class="p">);</span>
+<a name="code--ex12--ex3.js-pyg.html-22"></a>
+<a name="code--ex12--ex3.js-pyg.html-23"></a>        <span class="nx">collection</span><span class="p">.</span><span class="nx">find</span><span class="p">({}).</span><span class="nx">toArray</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">docs</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex12--ex3.js-pyg.html-24"></a>          <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;all documents&quot;</span><span class="p">);</span>
+<a name="code--ex12--ex3.js-pyg.html-25"></a>          <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">docs</span><span class="p">);</span>
+<a name="code--ex12--ex3.js-pyg.html-26"></a>
+<a name="code--ex12--ex3.js-pyg.html-27"></a>          <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex12--ex3.js-pyg.html-28"></a>        <span class="p">});</span>
+<a name="code--ex12--ex3.js-pyg.html-29"></a>    <span class="p">});</span>
+<a name="code--ex12--ex3.js-pyg.html-30"></a>  <span class="p">});</span>
+<a name="code--ex12--ex3.js-pyg.html-31"></a><span class="p">});</span>
+</pre></div><p>You should see the following when executing the code.</p>
+<pre class="code console literal-block">
+<span class="go">connected to database
+added document
+{ _id: 51011f910ac025483df1af06,
+  startTime: Thu Jan 24 2013 12:48:33 GMT+0100 (CET),
+  started: true }
+all documents
+[ { _id: 51011f910ac025483df1af06,
+    startTime: Thu Jan 24 2013 12:48:33 GMT+0100 (CET),
+    started: true } ]</span>
+</pre>
+<p>This pretty much covers the <tt class="docutils literal">findAndModify</tt> and <tt class="docutils literal">findAndRemove</tt> commands.</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">It might be tempting to use <tt class="docutils literal">findAndModify</tt> everywhere you would typically use an update. You should avoid this temptation and use it only when appropriate as it takes out a write lock for the duration of the operation potentially slowing down all the other write operations in the affected database. Most of the time you might discover that you do not in fact need the returned the document and that the operation can be better described as a query and update operation. Use <tt class="docutils literal">findAndModify</tt> when you have to ensure that only a single operation can modify the document in question. The example above with the work queue is a good candidate for the usage of <tt class="docutils literal">findAndModify</tt> and in later exercises we will look at some more concrete examples that are good fits.</p>
+</div>
+</div>
+    </div>
+
+    <div class="one columns" id="right-nav">
+        <center>
+        <p><a href="/book/"><img src="images/48_structure.png"></a></p>
+        <p><a href="#"><img src="images/48_email.png"></a></p>
+        <p><a href="#faq"><img src="images/48_faq.png"></a></p>
+        <p>
+        </p>
+        </center>
+    </div>
+
+  <!-- Included JS Files (Compressed) -->
+  <script src="javascripts/jquery.js"></script>
+  <script src="javascripts/foundation.min.js"></script>
+  
+  <!-- Initialize JS Plugins -->
+  <script src="javascripts/app.js"></script>
+
+</body>
+</html>

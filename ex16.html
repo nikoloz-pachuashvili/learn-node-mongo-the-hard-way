@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+    <!--[if gt IE 8]><!-->
+<html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8" />
+
+  <!-- Set the viewport width to device width for mobile -->
+  <meta name="viewport" content="width=device-width" />
+
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
+<title>Exercise 16: Basic Indexes in MongoDB</title>
+
+  <!-- Included CSS Files (Compressed) -->
+  <link rel="stylesheet" href="stylesheets/foundation.min.css">
+  <link rel="stylesheet" href="stylesheets/pygments.css">
+  <link rel="stylesheet" href="stylesheets/app.css">
+
+  <script src="javascripts/modernizr.foundation.js"></script>
+
+  <!-- IE Fix for HTML5 Tags -->
+  <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+</head>
+<body>
+
+  <div class="row">
+          <h1 class="title">Exercise 16: Basic Indexes in MongoDB</h1>
+      </div>
+  </div>
+
+  <div class="row">
+    <div class="eleven columns">
+        <p>In this exercise we will focus on the basics of creating indexes for MongoDB, using them and understanding how our queries use indexes. To kick off let's insert some documents into a database and create an index on the field salary.</p>
+<div class="highlight"><pre><a name="code--ex16--ex1.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex16--ex1.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex16--ex1.js-pyg.html-3"></a>
+<a name="code--ex16--ex1.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex16--ex1.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex16--ex1.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex16--ex1.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex16--ex1.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex16--ex1.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex16--ex1.js-pyg.html-10"></a>
+<a name="code--ex16--ex1.js-pyg.html-11"></a>  <span class="kd">var</span> <span class="nx">documents</span> <span class="o">=</span> <span class="p">[</span>
+<a name="code--ex16--ex1.js-pyg.html-12"></a>    <span class="p">{</span>
+<a name="code--ex16--ex1.js-pyg.html-13"></a>      <span class="nx">pid</span><span class="o">:</span> <span class="mi">1</span><span class="p">,</span>
+<a name="code--ex16--ex1.js-pyg.html-14"></a>      <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;Steve&#39;</span><span class="p">,</span>
+<a name="code--ex16--ex1.js-pyg.html-15"></a>      <span class="nx">salary</span><span class="o">:</span> <span class="mi">10000</span>
+<a name="code--ex16--ex1.js-pyg.html-16"></a>    <span class="p">},</span>
+<a name="code--ex16--ex1.js-pyg.html-17"></a>    <span class="p">{</span>
+<a name="code--ex16--ex1.js-pyg.html-18"></a>      <span class="nx">pid</span><span class="o">:</span> <span class="mi">2</span><span class="p">,</span>
+<a name="code--ex16--ex1.js-pyg.html-19"></a>      <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;John&#39;</span><span class="p">,</span>
+<a name="code--ex16--ex1.js-pyg.html-20"></a>      <span class="nx">salary</span><span class="o">:</span> <span class="mi">12000</span>
+<a name="code--ex16--ex1.js-pyg.html-21"></a>    <span class="p">},</span>
+<a name="code--ex16--ex1.js-pyg.html-22"></a>    <span class="p">{</span>
+<a name="code--ex16--ex1.js-pyg.html-23"></a>      <span class="nx">pid</span><span class="o">:</span> <span class="mi">7</span><span class="p">,</span>
+<a name="code--ex16--ex1.js-pyg.html-24"></a>      <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;Peter&#39;</span><span class="p">,</span>
+<a name="code--ex16--ex1.js-pyg.html-25"></a>      <span class="nx">salary</span><span class="o">:</span> <span class="mi">7000</span>
+<a name="code--ex16--ex1.js-pyg.html-26"></a>    <span class="p">},</span>
+<a name="code--ex16--ex1.js-pyg.html-27"></a>    <span class="p">{</span>
+<a name="code--ex16--ex1.js-pyg.html-28"></a>      <span class="nx">pid</span><span class="o">:</span> <span class="mi">18</span><span class="p">,</span>
+<a name="code--ex16--ex1.js-pyg.html-29"></a>      <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;Arnold&#39;</span><span class="p">,</span>
+<a name="code--ex16--ex1.js-pyg.html-30"></a>      <span class="nx">salary</span><span class="o">:</span> <span class="mi">32000</span>
+<a name="code--ex16--ex1.js-pyg.html-31"></a>    <span class="p">},</span>
+<a name="code--ex16--ex1.js-pyg.html-32"></a>    <span class="p">{</span>
+<a name="code--ex16--ex1.js-pyg.html-33"></a>      <span class="nx">pid</span><span class="o">:</span> <span class="mi">23</span><span class="p">,</span>
+<a name="code--ex16--ex1.js-pyg.html-34"></a>      <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;Gandalf&#39;</span><span class="p">,</span>
+<a name="code--ex16--ex1.js-pyg.html-35"></a>      <span class="nx">salary</span><span class="o">:</span> <span class="mi">34000</span>
+<a name="code--ex16--ex1.js-pyg.html-36"></a>    <span class="p">}</span>
+<a name="code--ex16--ex1.js-pyg.html-37"></a>  <span class="p">];</span>
+<a name="code--ex16--ex1.js-pyg.html-38"></a>
+<a name="code--ex16--ex1.js-pyg.html-39"></a>  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;salaries&#39;</span><span class="p">);</span>
+<a name="code--ex16--ex1.js-pyg.html-40"></a>  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex16--ex1.js-pyg.html-41"></a>
+<a name="code--ex16--ex1.js-pyg.html-42"></a>    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">(</span><span class="nx">documents</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex16--ex1.js-pyg.html-43"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">err</span><span class="p">;</span>
+<a name="code--ex16--ex1.js-pyg.html-44"></a>      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;added salary documents&quot;</span><span class="p">);</span>
+<a name="code--ex16--ex1.js-pyg.html-45"></a>
+<a name="code--ex16--ex1.js-pyg.html-46"></a>      <span class="nx">collection</span><span class="p">.</span><span class="nx">ensureIndex</span><span class="p">({</span><span class="nx">salary</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">index_name</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex16--ex1.js-pyg.html-47"></a>
+<a name="code--ex16--ex1.js-pyg.html-48"></a>        <span class="nx">collection</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="nx">salary</span><span class="o">:</span><span class="mi">7000</span><span class="p">}).</span><span class="nx">toArray</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">docs</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex16--ex1.js-pyg.html-49"></a>          <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;documents&quot;</span><span class="p">);</span>
+<a name="code--ex16--ex1.js-pyg.html-50"></a>          <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">docs</span><span class="p">);</span>
+<a name="code--ex16--ex1.js-pyg.html-51"></a>          <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex16--ex1.js-pyg.html-52"></a>        <span class="p">});</span>
+<a name="code--ex16--ex1.js-pyg.html-53"></a>      <span class="p">});</span>
+<a name="code--ex16--ex1.js-pyg.html-54"></a>    <span class="p">});</span>
+<a name="code--ex16--ex1.js-pyg.html-55"></a>  <span class="p">});</span>
+<a name="code--ex16--ex1.js-pyg.html-56"></a><span class="p">});</span>
+</pre></div><p>Let's have a look at the new collection method we are using called <tt class="docutils literal">ensureIndex</tt>. The call looks like.</p>
+<pre class="code javascript literal-block">
+<span class="nx">collection</span><span class="p">.</span><span class="nx">ensureIndex</span><span class="p">(</span><span class="p">{</span><span class="nx">salary</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">index_name</span><span class="p">)</span> <span class="p">{</span>
+<span class="p">}</span>
+</pre>
+<p>The <tt class="docutils literal">ensureIndex</tt> method will only add the index if there is not an index already present. This lets you specify the index creation as part of your code to ensure that the specified index exists. A typical place to locate this code is at the boot up time of your application so the indexes are built before your application is ready to process incoming requests (if an web app).</p>
+<p>The meat of the story is the <tt class="docutils literal">{salary:1}</tt> index specifier. This tells MongoDB to build a <tt class="docutils literal">BTree index</tt> over the field <tt class="docutils literal">salary</tt> in all documents present in the collection. If you remember from the introduction on indexes this will create a tree structure allowing us to efficiently query the data. The next line is the actual query.</p>
+<pre class="code javascript literal-block">
+<span class="nx">collection</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="p">{</span><span class="nx">salary</span><span class="o">:</span><span class="mi">7000</span><span class="p">}).</span><span class="nx">toArray</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">docs</span><span class="p">)</span> <span class="p">{</span>
+<span class="p">}</span>
+</pre>
+<p>This will look for any documents where the <tt class="docutils literal">salary is equal to 7000</tt> and the output after running the example is (_id will vary).</p>
+<pre class="code console literal-block">
+<span class="go">connected to database
+added salary documents
+documents
+[ { pid: 7,
+name: 'Peter',
+salary: 7000,
+_id: 51811ee1746bbbc015000003 } ]</span>
+</pre>
+<p>But how can we know if a query is using an index ?. Actually you can do this both from the driver as well as the <tt class="docutils literal">mongo shell</tt>. To be fair it's probably better to do it from the shell but let's cover what that would look like using the driver. The code below <tt class="docutils literal">requires</tt> that the first example has been run first to populate the collection and create the index. Notice that we use a option for the <tt class="docutils literal">find</tt> method called <tt class="docutils literal">explain</tt>. This tells the server to return the <tt class="docutils literal">query plan</tt> or the way it searched for data instead of the actual data for the query.</p>
+<div class="highlight"><pre><a name="code--ex16--ex2.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex16--ex2.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex16--ex2.js-pyg.html-3"></a>
+<a name="code--ex16--ex2.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex16--ex2.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex16--ex2.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex16--ex2.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex16--ex2.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex16--ex2.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex16--ex2.js-pyg.html-10"></a>  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;salaries&#39;</span><span class="p">);</span>
+<a name="code--ex16--ex2.js-pyg.html-11"></a>  <span class="nx">collection</span><span class="p">.</span><span class="nx">find</span><span class="p">({</span><span class="nx">salary</span><span class="o">:</span><span class="mi">7000</span><span class="p">},</span> <span class="p">{</span><span class="nx">explain</span><span class="o">:</span><span class="kc">true</span><span class="p">}).</span><span class="nx">toArray</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">docs</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex16--ex2.js-pyg.html-12"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;documents&quot;</span><span class="p">);</span>
+<a name="code--ex16--ex2.js-pyg.html-13"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">docs</span><span class="p">);</span>
+<a name="code--ex16--ex2.js-pyg.html-14"></a>    <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex16--ex2.js-pyg.html-15"></a>  <span class="p">});</span>
+<a name="code--ex16--ex2.js-pyg.html-16"></a><span class="p">});</span>
+</pre></div><p>After running the example you'll see the following</p>
+<pre class="code console literal-block">
+<span class="go">connected to database
+documents
+[ { cursor: 'BtreeCursor salary_1',
+    isMultiKey: false,
+    n: 1,
+    nscannedObjects: 1,
+    nscanned: 1,
+    nscannedObjectsAllPlans: 1,
+    nscannedAllPlans: 1,
+    scanAndOrder: false,
+    indexOnly: false,
+    nYields: 0,
+    nChunkSkips: 0,
+    millis: 0,
+    indexBounds: { salary: [Object] },
+    allPlans: [ [Object] ],
+    oldPlan: { cursor: 'BtreeCursor salary_1', indexBounds: [Object] },
+    server: 'localhost:27017' } ]</span>
+</pre>
+<p>This can be done more simply from the <tt class="docutils literal">mongo</tt> shell executing the following commands.</p>
+<pre class="code console literal-block">
+<span class="go">mongo
+MongoDB shell version: 2.4.3
+connecting to: test
+</span><span class="gp">&gt;</span> db.salaries.find<span class="o">({</span>salary:7000<span class="o">})</span>.explain<span class="o">(</span><span class="nb">true</span><span class="o">)</span>
+<span class="go">{
+  &quot;cursor&quot; : &quot;BtreeCursor salary_1&quot;,
+  &quot;isMultiKey&quot; : false,
+  &quot;n&quot; : 1,
+  &quot;nscannedObjects&quot; : 1,
+  &quot;nscanned&quot; : 1,
+  &quot;nscannedObjectsAllPlans&quot; : 1,
+  &quot;nscannedAllPlans&quot; : 1,
+  &quot;scanAndOrder&quot; : false,
+  &quot;indexOnly&quot; : false,
+  &quot;nYields&quot; : 0,
+  &quot;nChunkSkips&quot; : 0,
+  &quot;millis&quot; : 0,
+  &quot;indexBounds&quot; : {
+    &quot;salary&quot; : [
+      [
+        7000,
+        7000
+      ]
+    ]
+  },
+  &quot;allPlans&quot; : [
+      {
+        &quot;cursor&quot; : &quot;BtreeCursor salary_1&quot;,
+        &quot;n&quot; : 1,
+        &quot;nscannedObjects&quot; : 1,
+        &quot;nscanned&quot; : 1,
+        &quot;indexBounds&quot; : {
+          &quot;salary&quot; : [
+            [
+              7000,
+              7000
+            ]
+          ]
+        }
+      }
+    ],
+    &quot;oldPlan&quot; : {
+      &quot;cursor&quot; : &quot;BtreeCursor salary_1&quot;,
+      &quot;indexBounds&quot; : {
+        &quot;salary&quot; : [
+          [
+            7000,
+            7000
+          ]
+        ]
+      }
+    },
+  &quot;server&quot; : &quot;localhost:27017&quot;
+}
+</span><span class="gp">&gt;</span> <span class="nb">exit</span>
+<span class="go">bye</span>
+</pre>
+<p>I personally prefer to use the <tt class="docutils literal">mongo</tt> shell to <tt class="docutils literal">explain</tt> queries as it does not require me to write additional code.</p>
+<p>So let's pick apart what the explain document actually means and how it relates to the usage of the documents.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="13%" />
+<col width="12%" />
+<col width="75%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Field</th>
+<th class="head">Value</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>cursor</td>
+<td>BtreeCursor salary_1</td>
+<td>Tells us what kind of cursor was used for the query. In this case it was a BtreeCursor which means it used the <tt class="docutils literal">salary</tt> index.</td>
+</tr>
+<tr><td>isMultiKey</td>
+<td>false</td>
+<td>If true it tells us that one of the fields in the index is an array of values.</td>
+</tr>
+<tr><td>n</td>
+<td>1</td>
+<td>The number of documents that matches the query.</td>
+</tr>
+<tr><td>nscannedObjects</td>
+<td>1</td>
+<td>The number of documents scanned during the query</td>
+</tr>
+<tr><td>nscanned</td>
+<td>1</td>
+<td>The number of documents + index entries scanned during the query.</td>
+</tr>
+<tr><td>nscannedObjectsAllPlans</td>
+<td>1</td>
+<td>The total number of documents scanned for all query plans;</td>
+</tr>
+<tr><td>nscannedAllPlans</td>
+<td>1</td>
+<td>The total number of documents + index entries scanned across all query plans.</td>
+</tr>
+<tr><td>scanAndOrder</td>
+<td>false</td>
+<td>Is true if an index cannot be used to order the documents returned.</td>
+</tr>
+<tr><td>indexOnly</td>
+<td>false</td>
+<td>Is true if the query can be answered using only the data stored in the index.</td>
+</tr>
+<tr><td>nYields</td>
+<td>0</td>
+<td>The number of times MongoDB let somebody else perform work while executing the query.</td>
+</tr>
+<tr><td>nChunkSkips</td>
+<td>0</td>
+<td>Advanced field for sharding, reflects the number of chunks skipped during the search because chunks were being migrated.</td>
+</tr>
+<tr><td>millis</td>
+<td>0</td>
+<td>The miliseconds it took to execute the query.</td>
+</tr>
+<tr><td>indexBounds</td>
+<td>salary:[[7000,7000]]</td>
+<td>Contains what field in the index satisfied the query and what range of the index was used to locate the documents.</td>
+</tr>
+<tr><td>allPlans</td>
+<td>...</td>
+<td>Contains a list of all the query plans MongoDB tried when executing the query</td>
+</tr>
+<tr><td>oldPlan</td>
+<td>...</td>
+<td>Contains the last query plan used for this query (MongoDB caches the most efficient query plan and reuses it)</td>
+</tr>
+<tr><td>&quot;server&quot;</td>
+<td>localhost:27017</td>
+<td>Server the query was run against</td>
+</tr>
+</tbody>
+</table>
+<p>As you can see it's quite a lot of information. The easiest way to understand how to read it is to contrast the information above with a query that does not use an index.</p>
+<pre class="code console literal-block">
+<span class="go">  mongo
+  MongoDB shell version: 2.4.3
+  connecting to: test
+  &gt; db.salaries.find({name: &quot;Steve&quot;}).explain(true)
+  {
+    &quot;cursor&quot; : &quot;BasicCursor&quot;,
+    &quot;isMultiKey&quot; : false,
+    &quot;n&quot; : 1,
+    &quot;nscannedObjects&quot; : 5,
+    &quot;nscanned&quot; : 5,
+    &quot;nscannedObjectsAllPlans&quot; : 5,
+    &quot;nscannedAllPlans&quot; : 5,
+    &quot;scanAndOrder&quot; : false,
+    &quot;indexOnly&quot; : false,
+    &quot;nYields&quot; : 0,
+    &quot;nChunkSkips&quot; : 0,
+    &quot;millis&quot; : 0,
+    &quot;indexBounds&quot; : {
+
+    },
+    &quot;allPlans&quot; : [
+      {
+        &quot;cursor&quot; : &quot;BasicCursor&quot;,
+        &quot;n&quot; : 1,
+        &quot;nscannedObjects&quot; : 5,
+        &quot;nscanned&quot; : 5,
+        &quot;indexBounds&quot; : {
+
+        }
+      }
+    ],
+    &quot;server&quot; : &quot;localhost:27017&quot;
+  }
+  quit
+  bye
+
+Let's look at the two side by side.</span>
+</pre>
+<table border="1" class="docutils">
+<colgroup>
+<col width="37%" />
+<col width="33%" />
+<col width="30%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Field</th>
+<th class="head">Value</th>
+<th class="head">Value</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td><tt class="docutils literal">cursor</tt></td>
+<td><tt class="docutils literal">BtreeCursor salary_1</tt></td>
+<td><tt class="docutils literal">BasicCursor</tt></td>
+</tr>
+<tr><td>isMultiKey</td>
+<td>false</td>
+<td>false</td>
+</tr>
+<tr><td>n</td>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr><td><tt class="docutils literal">nscannedObjects</tt></td>
+<td><tt class="docutils literal">1</tt></td>
+<td><tt class="docutils literal">5</tt></td>
+</tr>
+<tr><td><tt class="docutils literal">nscanned</tt></td>
+<td><tt class="docutils literal">1</tt></td>
+<td><tt class="docutils literal">5</tt></td>
+</tr>
+<tr><td><tt class="docutils literal">nscannedObjectsAllPlans</tt></td>
+<td><tt class="docutils literal">1</tt></td>
+<td><tt class="docutils literal">5</tt></td>
+</tr>
+<tr><td><tt class="docutils literal">nscannedAllPlans</tt></td>
+<td><tt class="docutils literal">1</tt></td>
+<td><tt class="docutils literal">5</tt></td>
+</tr>
+<tr><td>scanAndOrder</td>
+<td>false</td>
+<td>false</td>
+</tr>
+<tr><td>indexOnly</td>
+<td>false</td>
+<td>false</td>
+</tr>
+<tr><td>nYields</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr><td>nChunkSkips</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr><td>millis</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr><td>indexBounds</td>
+<td>salary:[[7000,7000]]</td>
+<td>{}</td>
+</tr>
+<tr><td>allPlans</td>
+<td>...</td>
+<td>...</td>
+</tr>
+<tr><td>oldPlan</td>
+<td>...</td>
+<td>...</td>
+</tr>
+<tr><td>&quot;server&quot;</td>
+<td>localhost:27017</td>
+<td>localhost:27017</td>
+</tr>
+</tbody>
+</table>
+<p>Notice how the <tt class="docutils literal">cursor</tt> field says <tt class="docutils literal">BasicCursor</tt> instead off <tt class="docutils literal">BtreeCursor</tt>. This tells us that the query did not use an index and had to go through all of the documents in the collection to satisfy the query. This directly leads to <tt class="docutils literal">nscannedObjects</tt>, <tt class="docutils literal">nscanned</tt>, <tt class="docutils literal">nscannedObjectsAllPlans</tt> and <tt class="docutils literal">nscannedAllPlans</tt> being <tt class="docutils literal">5</tt> as there are <tt class="docutils literal">5</tt> documents in the collection. Also as MongoDB did not use an index for the query the <tt class="docutils literal">indexBound</tt> is empty as we could not locate a boundary for the query (remember how the Btree is laid out, a boundary is the set of tree node ranges needed to satisfy the query)</p>
+<p>Imagine that there was <tt class="docutils literal">hundreds of thousands</tt> of documents in the collection instead of just 5. A query looking up a name would require each query to scan through all of the documents to locate matching documents. This would very quickly become unsustainable as the slowness of the query would be compounded by many of them happening in parallel. Even worse since MongoDB would have to load every document into it could cause excessive swapping out of memory to disk (moving documents out of RAM to make space for the ones we need to scan) making the queries even slower and limiting the performance of our application. This is why we need to make sure we always use indexes and even more so if the collection of documents is very large. Cool that covers the basics of understanding how we can create a simple index and how we can investigate if a query is using it correctly or not. Next exercise we will build a ton of different indexes and see how they work and perform.</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">In development I tend to use an option for <tt class="docutils literal">mongod</tt> that allows me to catch queries that don't use an index. When you start up the <tt class="docutils literal">mongod</tt> server add the option <tt class="docutils literal"><span class="pre">--notablescan</span></tt> to the <tt class="docutils literal">mongod</tt> command line. If you now attempt to run a query that does not use an index MongoDb will throw an error <tt class="docutils literal"><span class="pre">{&quot;$err&quot;</span> : &quot;table scans not allowed:test.salaries&quot;, &quot;code&quot; : 10111 }</tt></p>
+</div>
+    </div>
+
+    <div class="one columns" id="right-nav">
+        <center>
+        <p><a href="/book/"><img src="images/48_structure.png"></a></p>
+        <p><a href="#"><img src="images/48_email.png"></a></p>
+        <p><a href="#faq"><img src="images/48_faq.png"></a></p>
+        <p>
+        </p>
+        </center>
+    </div>
+
+  <!-- Included JS Files (Compressed) -->
+  <script src="javascripts/jquery.js"></script>
+  <script src="javascripts/foundation.min.js"></script>
+  
+  <!-- Initialize JS Plugins -->
+  <script src="javascripts/app.js"></script>
+
+</body>
+</html>

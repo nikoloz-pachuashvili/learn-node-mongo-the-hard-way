@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+    <!--[if gt IE 8]><!-->
+<html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8" />
+
+  <!-- Set the viewport width to device width for mobile -->
+  <meta name="viewport" content="width=device-width" />
+
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
+<title>Exercise 18: The Importance of Schema Design</title>
+
+  <!-- Included CSS Files (Compressed) -->
+  <link rel="stylesheet" href="stylesheets/foundation.min.css">
+  <link rel="stylesheet" href="stylesheets/pygments.css">
+  <link rel="stylesheet" href="stylesheets/app.css">
+
+  <script src="javascripts/modernizr.foundation.js"></script>
+
+  <!-- IE Fix for HTML5 Tags -->
+  <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+</head>
+<body>
+
+  <div class="row">
+          <h1 class="title">Exercise 18: The Importance of Schema Design</h1>
+      </div>
+  </div>
+
+  <div class="row">
+    <div class="eleven columns">
+        <p>The hardest part of starting to work with MongoDB is to unlearn most of the skills you have applied to data modeling when using a traditional Relational Database. That's not to say that the skills are wasted it's just that the emphasis is on on other factors than when creating a relational model.</p>
+<p>One of the main goals of Relational Databases is to avoid duplication of information as well as the integrity of said data. This is usually accomplished by providing a Database Description Language that allows you to specify constraints and relationships between data items (including one to one, one to many and many to many relationships). The focus on demoralization of the data (avoid duplicated data) means we store the relationships in <tt class="docutils literal">join tables</tt> and merge the data together at query time to reconstitute the final result. There are a lot of fancy words here. Let's make it simpler by showing a model some very simple entities, namely a book and an author.</p>
+<p>Let's write down some facts about the book (I studied at Swinburne in Melbourne the homestead of ORM, object relational modeling).</p>
+<div class="section" id="facts">
+<h1>Facts</h1>
+<div class="section" id="book-facts">
+<h2>Book Facts</h2>
+<ul class="simple">
+<li>A book has a title of <tt class="docutils literal">Moby Dick</tt></li>
+<li>A book had a an unique ISBN number</li>
+<li>A book has a published data</li>
+<li>A book has a publisher</li>
+<li>A book was written by one or more authors</li>
+</ul>
+</div>
+<div class="section" id="author-facts">
+<h2>Author Facts</h2>
+<ul class="simple">
+<li>An author has a name</li>
+<li>An author has written one or more books</li>
+</ul>
+</div>
+<div class="section" id="publisher-facts">
+<h2>Publisher Facts</h2>
+<ul class="simple">
+<li>A publisher has a name</li>
+<li>A publisher has published one or more books</li>
+</ul>
+</div>
+</div>
+<div class="section" id="entity-relational-modeling">
+<h1>Entity Relational Modeling</h1>
+<p>So what would this look like if using an <tt class="docutils literal">Entity Relational Modeling Diagram</tt>. Let's have a look at what a normalized data model for this could look like.</p>
+<img alt="code/ex18/ex8.png" src="code/ex18/ex8.png" />
+<p>Let's translate this into a set of tables we could use in a relational database. First up are the basic entity tables for <tt class="docutils literal">book</tt>, <tt class="docutils literal">publisher</tt> and <tt class="docutils literal">author</tt>.</p>
+<div class="section" id="book-table">
+<h2>Book Table</h2>
+<table border="1" class="docutils">
+<colgroup>
+<col width="38%" />
+<col width="62%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Field</th>
+<th class="head">Type</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>Id</td>
+<td>autoincrement int</td>
+</tr>
+<tr><td>Title</td>
+<td>varchar (255)</td>
+</tr>
+<tr><td>ISBN</td>
+<td>varchar (25)</td>
+</tr>
+<tr><td>Published</td>
+<td>datetime</td>
+</tr>
+<tr><td>Publisher_id</td>
+<td><tt class="docutils literal">Foreign Key Id</tt> to table Publishers</td>
+</tr>
+</tbody>
+</table>
+<p>Since there is only a single <tt class="docutils literal">publisher</tt> we can include a reference to the publisher entity directly in the <tt class="docutils literal">book</tt> table.</p>
+</div>
+<div class="section" id="publisher-table">
+<h2>Publisher Table</h2>
+<table border="1" class="docutils">
+<colgroup>
+<col width="40%" />
+<col width="60%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Field</th>
+<th class="head">Type</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>Id</td>
+<td>autoincrement int</td>
+</tr>
+<tr><td>Name</td>
+<td>varchar (255)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="author-table">
+<h2>Author Table</h2>
+<table border="1" class="docutils">
+<colgroup>
+<col width="40%" />
+<col width="60%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Field</th>
+<th class="head">Type</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>Id</td>
+<td>autoincrement int</td>
+</tr>
+<tr><td>Name</td>
+<td>varchar (255)</td>
+</tr>
+</tbody>
+</table>
+<p>Next up we need to define the relationships between the entities. Luckily for us the relationship between a <tt class="docutils literal">publisher</tt> and a <tt class="docutils literal">book</tt> is that a <tt class="docutils literal">publisher</tt> can publish many <tt class="docutils literal">books</tt> but a <tt class="docutils literal">book</tt> can only have one <tt class="docutils literal">publisher</tt>. This means we don't need a special join table to be able to retrieve both sides of the query. It's enough to just put the <tt class="docutils literal">publisher's id</tt> in the <tt class="docutils literal">book</tt> table.</p>
+<p>On the other hand an <tt class="docutils literal">author</tt> can have written many books and a book can have more than one <tt class="docutils literal">author</tt>. We need to introduce a table to model this relation. This is called a <tt class="docutils literal">join table</tt>. This table well show the relationships between individual books and authors.</p>
+</div>
+<div class="section" id="authorbook-table">
+<h2>AuthorBook Table</h2>
+<table border="1" class="docutils">
+<colgroup>
+<col width="40%" />
+<col width="60%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Field</th>
+<th class="head">Type</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>Book Id</td>
+<td><tt class="docutils literal">Foreign Key Id</tt> to table Books</td>
+</tr>
+<tr><td>Author Id</td>
+<td><tt class="docutils literal">Foreign Key Id</tt> to table Author</td>
+</tr>
+</tbody>
+</table>
+<p>Awesome we have an initial model for how to store a book. Now let's use this in our fancy OO language. Let's define a set of classes that allows us to represent a book, an author and a publisher.</p>
+<div class="highlight"><pre><a name="code--ex18--ex1.js-pyg.html-1"></a><span class="c1">// Helper method to make simple getter / setter</span>
+<a name="code--ex18--ex1.js-pyg.html-2"></a><span class="kd">var</span> <span class="nx">simple_setter_getter</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">object</span><span class="p">,</span> <span class="nx">fields</span><span class="p">,</span> <span class="nx">name</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex18--ex1.js-pyg.html-3"></a>  <span class="nb">Object</span><span class="p">.</span><span class="nx">defineProperty</span><span class="p">(</span><span class="nx">object</span><span class="p">,</span> <span class="nx">name</span><span class="p">,</span> <span class="p">{</span> <span class="nx">enumerable</span><span class="o">:</span> <span class="kc">true</span>
+<a name="code--ex18--ex1.js-pyg.html-4"></a>    <span class="p">,</span> <span class="nx">get</span><span class="o">:</span> <span class="kd">function</span> <span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">fields</span><span class="p">[</span><span class="nx">name</span><span class="p">];</span> <span class="p">}</span>
+<a name="code--ex18--ex1.js-pyg.html-5"></a>    <span class="p">,</span> <span class="nx">set</span><span class="o">:</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">value</span><span class="p">)</span> <span class="p">{</span> <span class="nx">fields</span><span class="p">[</span><span class="nx">name</span><span class="p">]</span> <span class="o">=</span> <span class="nx">value</span><span class="p">;</span> <span class="p">}</span>
+<a name="code--ex18--ex1.js-pyg.html-6"></a>  <span class="p">});</span>
+<a name="code--ex18--ex1.js-pyg.html-7"></a><span class="p">}</span>
+<a name="code--ex18--ex1.js-pyg.html-8"></a>
+<a name="code--ex18--ex1.js-pyg.html-9"></a><span class="c1">// An Author entity</span>
+<a name="code--ex18--ex1.js-pyg.html-10"></a><span class="kd">var</span> <span class="nx">Author</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">_name</span><span class="p">,</span> <span class="nx">_books</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex18--ex1.js-pyg.html-11"></a>  <span class="kd">var</span> <span class="nx">fields</span> <span class="o">=</span> <span class="p">{</span>
+<a name="code--ex18--ex1.js-pyg.html-12"></a>      <span class="nx">name</span><span class="o">:</span> <span class="nx">_name</span>
+<a name="code--ex18--ex1.js-pyg.html-13"></a>    <span class="p">,</span> <span class="nx">books</span><span class="o">:</span> <span class="nx">_books</span> <span class="o">||</span> <span class="p">[]</span>
+<a name="code--ex18--ex1.js-pyg.html-14"></a>  <span class="p">}</span>
+<a name="code--ex18--ex1.js-pyg.html-15"></a>
+<a name="code--ex18--ex1.js-pyg.html-16"></a>  <span class="k">this</span><span class="p">.</span><span class="nx">addBook</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">book</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex18--ex1.js-pyg.html-17"></a>    <span class="nx">fields</span><span class="p">.</span><span class="nx">books</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">book</span><span class="p">);</span>
+<a name="code--ex18--ex1.js-pyg.html-18"></a>  <span class="p">}</span>
+<a name="code--ex18--ex1.js-pyg.html-19"></a>
+<a name="code--ex18--ex1.js-pyg.html-20"></a>  <span class="nx">simple_setter_getter</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">fields</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">);</span>
+<a name="code--ex18--ex1.js-pyg.html-21"></a>  <span class="nx">simple_setter_getter</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">fields</span><span class="p">,</span> <span class="s2">&quot;books&quot;</span><span class="p">);</span>
+<a name="code--ex18--ex1.js-pyg.html-22"></a><span class="p">}</span>
+<a name="code--ex18--ex1.js-pyg.html-23"></a>
+<a name="code--ex18--ex1.js-pyg.html-24"></a><span class="c1">// A Published entity</span>
+<a name="code--ex18--ex1.js-pyg.html-25"></a><span class="kd">var</span> <span class="nx">Publisher</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">_name</span><span class="p">,</span> <span class="nx">_books</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex18--ex1.js-pyg.html-26"></a>  <span class="kd">var</span> <span class="nx">fields</span> <span class="o">=</span> <span class="p">{</span>
+<a name="code--ex18--ex1.js-pyg.html-27"></a>      <span class="nx">name</span><span class="o">:</span> <span class="nx">_name</span>
+<a name="code--ex18--ex1.js-pyg.html-28"></a>    <span class="p">,</span> <span class="nx">books</span><span class="o">:</span> <span class="nx">_books</span> <span class="o">||</span> <span class="p">[]</span>
+<a name="code--ex18--ex1.js-pyg.html-29"></a>  <span class="p">}</span>
+<a name="code--ex18--ex1.js-pyg.html-30"></a>
+<a name="code--ex18--ex1.js-pyg.html-31"></a>  <span class="k">this</span><span class="p">.</span><span class="nx">addBook</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">book</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex18--ex1.js-pyg.html-32"></a>    <span class="nx">fields</span><span class="p">.</span><span class="nx">books</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">book</span><span class="p">);</span>
+<a name="code--ex18--ex1.js-pyg.html-33"></a>  <span class="p">}</span>
+<a name="code--ex18--ex1.js-pyg.html-34"></a>
+<a name="code--ex18--ex1.js-pyg.html-35"></a>  <span class="nx">simple_setter_getter</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">fields</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">);</span>
+<a name="code--ex18--ex1.js-pyg.html-36"></a>  <span class="nx">simple_setter_getter</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">fields</span><span class="p">,</span> <span class="s2">&quot;books&quot;</span><span class="p">);</span>
+<a name="code--ex18--ex1.js-pyg.html-37"></a><span class="p">}</span>
+<a name="code--ex18--ex1.js-pyg.html-38"></a>
+<a name="code--ex18--ex1.js-pyg.html-39"></a><span class="c1">// A Book entity</span>
+<a name="code--ex18--ex1.js-pyg.html-40"></a><span class="kd">var</span> <span class="nx">Book</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">_isbn</span><span class="p">,</span> <span class="nx">_title</span><span class="p">,</span> <span class="nx">_published_date</span><span class="p">,</span> <span class="nx">_authors</span><span class="p">,</span> <span class="nx">_publisher</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex18--ex1.js-pyg.html-41"></a>  <span class="kd">var</span> <span class="nx">fields</span> <span class="o">=</span> <span class="p">{</span>
+<a name="code--ex18--ex1.js-pyg.html-42"></a>      <span class="nx">isbn</span><span class="o">:</span> <span class="nx">_isbn</span>
+<a name="code--ex18--ex1.js-pyg.html-43"></a>    <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="nx">_title</span>
+<a name="code--ex18--ex1.js-pyg.html-44"></a>    <span class="p">,</span> <span class="nx">published_date</span><span class="o">:</span> <span class="nx">_published_date</span>
+<a name="code--ex18--ex1.js-pyg.html-45"></a>    <span class="p">,</span> <span class="nx">authors</span><span class="o">:</span> <span class="nx">_authors</span> <span class="o">||</span> <span class="p">[]</span>
+<a name="code--ex18--ex1.js-pyg.html-46"></a>    <span class="p">,</span> <span class="nx">publisher</span><span class="o">:</span> <span class="nx">_publisher</span>
+<a name="code--ex18--ex1.js-pyg.html-47"></a>  <span class="p">}</span>
+<a name="code--ex18--ex1.js-pyg.html-48"></a>
+<a name="code--ex18--ex1.js-pyg.html-49"></a>  <span class="k">this</span><span class="p">.</span><span class="nx">addAuthor</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">author</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex18--ex1.js-pyg.html-50"></a>    <span class="nx">fields</span><span class="p">.</span><span class="nx">authors</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">author</span><span class="p">);</span>
+<a name="code--ex18--ex1.js-pyg.html-51"></a>  <span class="p">}</span>
+<a name="code--ex18--ex1.js-pyg.html-52"></a>
+<a name="code--ex18--ex1.js-pyg.html-53"></a>  <span class="nx">simple_setter_getter</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">fields</span><span class="p">,</span> <span class="s2">&quot;title&quot;</span><span class="p">);</span>
+<a name="code--ex18--ex1.js-pyg.html-54"></a>  <span class="nx">simple_setter_getter</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">fields</span><span class="p">,</span> <span class="s2">&quot;isbn&quot;</span><span class="p">);</span>
+<a name="code--ex18--ex1.js-pyg.html-55"></a>  <span class="nx">simple_setter_getter</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">fields</span><span class="p">,</span> <span class="s2">&quot;authors&quot;</span><span class="p">);</span>
+<a name="code--ex18--ex1.js-pyg.html-56"></a>  <span class="nx">simple_setter_getter</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">fields</span><span class="p">,</span> <span class="s2">&quot;publisher&quot;</span><span class="p">);</span>
+<a name="code--ex18--ex1.js-pyg.html-57"></a><span class="p">}</span>
+<a name="code--ex18--ex1.js-pyg.html-58"></a>
+<a name="code--ex18--ex1.js-pyg.html-59"></a><span class="c1">// Create a publisher</span>
+<a name="code--ex18--ex1.js-pyg.html-60"></a><span class="kd">var</span> <span class="nx">publisher</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Author</span><span class="p">(</span><span class="s2">&quot;Maxwell Books&quot;</span><span class="p">);</span>
+<a name="code--ex18--ex1.js-pyg.html-61"></a><span class="c1">// Create the first author and book</span>
+<a name="code--ex18--ex1.js-pyg.html-62"></a><span class="kd">var</span> <span class="nx">author1</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Author</span><span class="p">(</span><span class="s2">&quot;James&quot;</span><span class="p">);</span>
+<a name="code--ex18--ex1.js-pyg.html-63"></a><span class="kd">var</span> <span class="nx">book1</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Book</span><span class="p">(</span><span class="s2">&quot;1&quot;</span><span class="p">,</span> <span class="s2">&quot;Wizard&quot;</span><span class="p">,</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">());</span>
+<a name="code--ex18--ex1.js-pyg.html-64"></a>
+<a name="code--ex18--ex1.js-pyg.html-65"></a><span class="c1">// Add the author to the book</span>
+<a name="code--ex18--ex1.js-pyg.html-66"></a><span class="nx">book1</span><span class="p">.</span><span class="nx">addAuthor</span><span class="p">(</span><span class="nx">author1</span><span class="p">);</span>
+<a name="code--ex18--ex1.js-pyg.html-67"></a><span class="c1">// Add the book to the author</span>
+<a name="code--ex18--ex1.js-pyg.html-68"></a><span class="nx">author1</span><span class="p">.</span><span class="nx">addBook</span><span class="p">(</span><span class="nx">book1</span><span class="p">);</span>
+<a name="code--ex18--ex1.js-pyg.html-69"></a><span class="c1">// Add the publisher to the book</span>
+<a name="code--ex18--ex1.js-pyg.html-70"></a><span class="nx">book1</span><span class="p">.</span><span class="nx">publisher</span> <span class="o">=</span> <span class="nx">publisher</span><span class="p">;</span>
+<a name="code--ex18--ex1.js-pyg.html-71"></a><span class="c1">// Add the book to the publisher</span>
+<a name="code--ex18--ex1.js-pyg.html-72"></a><span class="nx">publisher</span><span class="p">.</span><span class="nx">addBook</span><span class="p">(</span><span class="nx">book1</span><span class="p">);</span>
+<a name="code--ex18--ex1.js-pyg.html-73"></a>
+<a name="code--ex18--ex1.js-pyg.html-74"></a><span class="c1">// Create second author and book</span>
+<a name="code--ex18--ex1.js-pyg.html-75"></a><span class="kd">var</span> <span class="nx">author2</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Author</span><span class="p">(</span><span class="s2">&quot;Peter&quot;</span><span class="p">);</span>
+<a name="code--ex18--ex1.js-pyg.html-76"></a><span class="kd">var</span> <span class="nx">book2</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Book</span><span class="p">(</span><span class="s2">&quot;2&quot;</span><span class="p">,</span> <span class="s2">&quot;Space war&quot;</span><span class="p">,</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">(),</span> <span class="p">[],</span> <span class="kc">null</span><span class="p">);</span>
+<a name="code--ex18--ex1.js-pyg.html-77"></a>
+<a name="code--ex18--ex1.js-pyg.html-78"></a><span class="c1">// Add the author to the book</span>
+<a name="code--ex18--ex1.js-pyg.html-79"></a><span class="nx">book2</span><span class="p">.</span><span class="nx">addAuthor</span><span class="p">(</span><span class="nx">author2</span><span class="p">);</span>
+<a name="code--ex18--ex1.js-pyg.html-80"></a><span class="c1">// Add the book to the author</span>
+<a name="code--ex18--ex1.js-pyg.html-81"></a><span class="nx">author2</span><span class="p">.</span><span class="nx">addBook</span><span class="p">(</span><span class="nx">book1</span><span class="p">);</span>
+<a name="code--ex18--ex1.js-pyg.html-82"></a><span class="c1">// Add the publisher to the book</span>
+<a name="code--ex18--ex1.js-pyg.html-83"></a><span class="nx">book2</span><span class="p">.</span><span class="nx">publisher</span> <span class="o">=</span> <span class="nx">publisher</span><span class="p">;</span>
+<a name="code--ex18--ex1.js-pyg.html-84"></a><span class="c1">// Add the book to the publisher</span>
+<a name="code--ex18--ex1.js-pyg.html-85"></a><span class="nx">publisher</span><span class="p">.</span><span class="nx">addBook</span><span class="p">(</span><span class="nx">book2</span><span class="p">);</span>
+</pre></div><p>One thing is clear mapping one of the objects to the underlying data store requires a set of co-ordinated inserts, queries and updates as the objects are very inter-dependent. F.ex for the <tt class="docutils literal">author</tt> object each <tt class="docutils literal">book</tt> must be stored in the <tt class="docutils literal">Book</tt> table before we can safely write to the <tt class="docutils literal">AuthorBook</tt> table.</p>
+<p>This creates a fair bit of complexity. To avoid doing this over and over Object-Relational Mappers were developed to map from a class structure to a Relational database. This layers an additional level of abstraction on top of the relational model to make OO programming more natural and to hide the decomposition that needs to occur to fit the OO model to the relational model.</p>
+<p>There are some pain point related to this, when it comes to changing the data model as you'll likely have to change your data model in 3 places in your code (first in your code, then in your ORM and lastly in the database itself). This incurs significant cognitive cost as you'll have to keep everything straight from top to bottom. Worse situation are if your entity model no longer fits the problem you are trying to solve in code and you need to evolve the schema. This can create a fairly substantial refactoring in your code base as you need to move relationships around and thus migrate data from a schema to another.</p>
+<p>It gets worse when trying to describe tree like structures like objects as a single object might require a multitude of join tables making the mapping less than transparent between the <tt class="docutils literal">class</tt> and the storage layer below. When evolved over time the cost of change increases due to the implied complexity.</p>
+<p>Thus one of the more important aspects of relational data modeling is to do better modeling up front to avoid the cost of mutating the schema later. It's harder to evolve the schema more naturally with the application itself.</p>
+</div>
+</div>
+<div class="section" id="document-modeling">
+<h1>Document Modeling</h1>
+<p>So why are document databases being em-brassed by developers. It's fairly simple. The mapping between an OO language and documents are much closer than between OO languages and relational models. Another aspect is the dynamic schema concept meaning that documents are not set in stone and can evolve without having to modify the underlying Schema definition.</p>
+<p>Let's have a look at how we could model the Book class and it's relationships in a document database. Remember the definition of the Book class.</p>
+<div class="highlight"><pre><a name="code--ex18--ex2.js-pyg.html-1"></a><span class="c1">// A Book entity</span>
+<a name="code--ex18--ex2.js-pyg.html-2"></a><span class="kd">var</span> <span class="nx">Book</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">_isbn</span><span class="p">,</span> <span class="nx">_title</span><span class="p">,</span> <span class="nx">_published_date</span><span class="p">,</span> <span class="nx">_authors</span><span class="p">,</span> <span class="nx">_publisher</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex18--ex2.js-pyg.html-3"></a>  <span class="kd">var</span> <span class="nx">fields</span> <span class="o">=</span> <span class="p">{</span>
+<a name="code--ex18--ex2.js-pyg.html-4"></a>      <span class="nx">isbn</span><span class="o">:</span> <span class="nx">_isbn</span>
+<a name="code--ex18--ex2.js-pyg.html-5"></a>    <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="nx">_title</span>
+<a name="code--ex18--ex2.js-pyg.html-6"></a>    <span class="p">,</span> <span class="nx">published_date</span><span class="o">:</span> <span class="nx">_published_date</span>
+<a name="code--ex18--ex2.js-pyg.html-7"></a>    <span class="p">,</span> <span class="nx">authors</span><span class="o">:</span> <span class="nx">_authors</span> <span class="o">||</span> <span class="p">[]</span>
+<a name="code--ex18--ex2.js-pyg.html-8"></a>    <span class="p">,</span> <span class="nx">publisher</span><span class="o">:</span> <span class="nx">_publisher</span>
+<a name="code--ex18--ex2.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex18--ex2.js-pyg.html-10"></a>
+<a name="code--ex18--ex2.js-pyg.html-11"></a>  <span class="k">this</span><span class="p">.</span><span class="nx">addAuthor</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">author</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex18--ex2.js-pyg.html-12"></a>    <span class="nx">fields</span><span class="p">.</span><span class="nx">authors</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">author</span><span class="p">);</span>
+<a name="code--ex18--ex2.js-pyg.html-13"></a>  <span class="p">}</span>
+<a name="code--ex18--ex2.js-pyg.html-14"></a>
+<a name="code--ex18--ex2.js-pyg.html-15"></a>  <span class="nx">simple_setter_getter</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">fields</span><span class="p">,</span> <span class="s2">&quot;title&quot;</span><span class="p">);</span>
+<a name="code--ex18--ex2.js-pyg.html-16"></a>  <span class="nx">simple_setter_getter</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">fields</span><span class="p">,</span> <span class="s2">&quot;isbn&quot;</span><span class="p">);</span>
+<a name="code--ex18--ex2.js-pyg.html-17"></a>  <span class="nx">simple_setter_getter</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">fields</span><span class="p">,</span> <span class="s2">&quot;authors&quot;</span><span class="p">);</span>
+<a name="code--ex18--ex2.js-pyg.html-18"></a>  <span class="nx">simple_setter_getter</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">fields</span><span class="p">,</span> <span class="s2">&quot;publisher&quot;</span><span class="p">);</span>
+<a name="code--ex18--ex2.js-pyg.html-19"></a><span class="p">}</span>
+</pre></div><p>How could this look as a document? Well let's create a JSON (JavaScript Object Notation) document to show a possible schema design. The first document represents a book, the second one an author and the third one a publisher.</p>
+<div class="section" id="book">
+<h2>Book</h2>
+<div class="highlight"><pre><a name="code--ex18--ex3.json-pyg.html-1"></a><span class="p">{</span>
+<a name="code--ex18--ex3.json-pyg.html-2"></a>    <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">1</span>
+<a name="code--ex18--ex3.json-pyg.html-3"></a>  <span class="p">,</span> <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Moby Dick&quot;</span>
+<a name="code--ex18--ex3.json-pyg.html-4"></a>  <span class="p">,</span> <span class="nt">&quot;isbn&quot;</span><span class="p">:</span> <span class="s2">&quot;978-1853260087&quot;</span>
+<a name="code--ex18--ex3.json-pyg.html-5"></a>  <span class="p">,</span> <span class="nt">&quot;published&quot;</span><span class="p">:</span> <span class="mi">1992</span>
+<a name="code--ex18--ex3.json-pyg.html-6"></a>  <span class="p">,</span> <span class="nt">&quot;authors&quot;</span><span class="p">:</span> <span class="p">[{</span>
+<a name="code--ex18--ex3.json-pyg.html-7"></a>        <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">1</span>
+<a name="code--ex18--ex3.json-pyg.html-8"></a>      <span class="p">,</span> <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Herman Melville&quot;</span>
+<a name="code--ex18--ex3.json-pyg.html-9"></a>    <span class="p">}]</span>
+<a name="code--ex18--ex3.json-pyg.html-10"></a>  <span class="p">,</span> <span class="nt">&quot;publisher&quot;</span><span class="p">:</span> <span class="p">{</span>
+<a name="code--ex18--ex3.json-pyg.html-11"></a>      <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">1</span>
+<a name="code--ex18--ex3.json-pyg.html-12"></a>    <span class="p">,</span> <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Wordsworth Editions Ltd&quot;</span>
+<a name="code--ex18--ex3.json-pyg.html-13"></a>  <span class="p">}</span>
+<a name="code--ex18--ex3.json-pyg.html-14"></a><span class="p">}</span>
+</pre></div></div>
+<div class="section" id="author">
+<h2>Author</h2>
+<div class="highlight"><pre><a name="code--ex18--ex4.json-pyg.html-1"></a><span class="p">{</span>
+<a name="code--ex18--ex4.json-pyg.html-2"></a>    <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">1</span>
+<a name="code--ex18--ex4.json-pyg.html-3"></a>  <span class="p">,</span> <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Herman Melville&quot;</span>
+<a name="code--ex18--ex4.json-pyg.html-4"></a>  <span class="p">,</span> <span class="nt">&quot;books&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<a name="code--ex18--ex4.json-pyg.html-5"></a><span class="p">}</span>
+</pre></div></div>
+<div class="section" id="publisher">
+<h2>Publisher</h2>
+<div class="highlight"><pre><a name="code--ex18--ex5.json-pyg.html-1"></a><span class="p">{</span>
+<a name="code--ex18--ex5.json-pyg.html-2"></a>    <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">1</span>
+<a name="code--ex18--ex5.json-pyg.html-3"></a>  <span class="p">,</span> <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Wordsworth Editions Ltd&quot;</span>
+<a name="code--ex18--ex5.json-pyg.html-4"></a>  <span class="p">,</span> <span class="nt">&quot;books&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<a name="code--ex18--ex5.json-pyg.html-5"></a>  <span class="p">,</span> <span class="nt">&quot;authors&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<a name="code--ex18--ex5.json-pyg.html-6"></a><span class="p">}</span>
+</pre></div><p>Notice somethings? The data and context of the data is bundled together in the document making a document self descriptive. Also we have nested documents in the <tt class="docutils literal">Book</tt> document for the <tt class="docutils literal">authors</tt> and the <tt class="docutils literal">publisher</tt>. This matches very closely to how the actual <tt class="docutils literal">Book</tt> classes internal <tt class="docutils literal">fields</tt> are laid out. The level off abstraction between the model and the data in the database is lower.</p>
+<p>This is especially evident if we decide to introduce a new concept like a review. Let's add the review concept to the <tt class="docutils literal">Book</tt> class.</p>
+<div class="highlight"><pre><a name="code--ex18--ex6.js-pyg.html-1"></a><span class="c1">// A Book entity</span>
+<a name="code--ex18--ex6.js-pyg.html-2"></a><span class="kd">var</span> <span class="nx">Book</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">_isbn</span><span class="p">,</span> <span class="nx">_title</span><span class="p">,</span> <span class="nx">_published_date</span><span class="p">,</span> <span class="nx">_authors</span><span class="p">,</span> <span class="nx">_publisher</span><span class="p">,</span> <span class="nx">_reviews</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex18--ex6.js-pyg.html-3"></a>  <span class="kd">var</span> <span class="nx">fields</span> <span class="o">=</span> <span class="p">{</span>
+<a name="code--ex18--ex6.js-pyg.html-4"></a>      <span class="nx">isbn</span><span class="o">:</span> <span class="nx">_isbn</span>
+<a name="code--ex18--ex6.js-pyg.html-5"></a>    <span class="p">,</span> <span class="nx">title</span><span class="o">:</span> <span class="nx">_title</span>
+<a name="code--ex18--ex6.js-pyg.html-6"></a>    <span class="p">,</span> <span class="nx">published_date</span><span class="o">:</span> <span class="nx">_published_date</span>
+<a name="code--ex18--ex6.js-pyg.html-7"></a>    <span class="p">,</span> <span class="nx">authors</span><span class="o">:</span> <span class="nx">_authors</span> <span class="o">||</span> <span class="p">[]</span>
+<a name="code--ex18--ex6.js-pyg.html-8"></a>    <span class="p">,</span> <span class="nx">publisher</span><span class="o">:</span> <span class="nx">_publisher</span>
+<a name="code--ex18--ex6.js-pyg.html-9"></a>    <span class="p">,</span> <span class="nx">reviews</span><span class="o">:</span> <span class="nx">_reviews</span>
+<a name="code--ex18--ex6.js-pyg.html-10"></a>  <span class="p">}</span>
+<a name="code--ex18--ex6.js-pyg.html-11"></a>
+<a name="code--ex18--ex6.js-pyg.html-12"></a>  <span class="k">this</span><span class="p">.</span><span class="nx">addAuthor</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">author</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex18--ex6.js-pyg.html-13"></a>    <span class="nx">fields</span><span class="p">.</span><span class="nx">authors</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">author</span><span class="p">);</span>
+<a name="code--ex18--ex6.js-pyg.html-14"></a>  <span class="p">}</span>
+<a name="code--ex18--ex6.js-pyg.html-15"></a>
+<a name="code--ex18--ex6.js-pyg.html-16"></a>  <span class="k">this</span><span class="p">.</span><span class="nx">addReview</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">review</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex18--ex6.js-pyg.html-17"></a>    <span class="nx">fields</span><span class="p">.</span><span class="nx">reviews</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">review</span><span class="p">);</span>
+<a name="code--ex18--ex6.js-pyg.html-18"></a>  <span class="p">}</span>
+<a name="code--ex18--ex6.js-pyg.html-19"></a>
+<a name="code--ex18--ex6.js-pyg.html-20"></a>  <span class="nx">simple_setter_getter</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">fields</span><span class="p">,</span> <span class="s2">&quot;title&quot;</span><span class="p">);</span>
+<a name="code--ex18--ex6.js-pyg.html-21"></a>  <span class="nx">simple_setter_getter</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">fields</span><span class="p">,</span> <span class="s2">&quot;isbn&quot;</span><span class="p">);</span>
+<a name="code--ex18--ex6.js-pyg.html-22"></a>  <span class="nx">simple_setter_getter</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">fields</span><span class="p">,</span> <span class="s2">&quot;authors&quot;</span><span class="p">);</span>
+<a name="code--ex18--ex6.js-pyg.html-23"></a>  <span class="nx">simple_setter_getter</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">fields</span><span class="p">,</span> <span class="s2">&quot;publisher&quot;</span><span class="p">);</span>
+<a name="code--ex18--ex6.js-pyg.html-24"></a>  <span class="nx">simple_setter_getter</span><span class="p">(</span><span class="k">this</span><span class="p">,</span> <span class="nx">fields</span><span class="p">,</span> <span class="s2">&quot;reviews&quot;</span><span class="p">);</span>
+<a name="code--ex18--ex6.js-pyg.html-25"></a><span class="p">}</span>
+</pre></div><p>Now let's see how that could be reflected in a the document for the <tt class="docutils literal">Book</tt>.</p>
+<div class="highlight"><pre><a name="code--ex18--ex7.json-pyg.html-1"></a><span class="p">{</span>
+<a name="code--ex18--ex7.json-pyg.html-2"></a>    <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">1</span>
+<a name="code--ex18--ex7.json-pyg.html-3"></a>  <span class="p">,</span> <span class="nt">&quot;title&quot;</span><span class="p">:</span> <span class="s2">&quot;Moby Dick&quot;</span>
+<a name="code--ex18--ex7.json-pyg.html-4"></a>  <span class="p">,</span> <span class="nt">&quot;isbn&quot;</span><span class="p">:</span> <span class="s2">&quot; 978-1853260087&quot;</span>
+<a name="code--ex18--ex7.json-pyg.html-5"></a>  <span class="p">,</span> <span class="nt">&quot;published&quot;</span><span class="p">:</span> <span class="mi">1992</span>
+<a name="code--ex18--ex7.json-pyg.html-6"></a>  <span class="p">,</span> <span class="nt">&quot;authors&quot;</span><span class="p">:</span> <span class="p">[{</span>
+<a name="code--ex18--ex7.json-pyg.html-7"></a>        <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">1</span>
+<a name="code--ex18--ex7.json-pyg.html-8"></a>      <span class="p">,</span> <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Herman Melville&quot;</span>
+<a name="code--ex18--ex7.json-pyg.html-9"></a>    <span class="p">}]</span>
+<a name="code--ex18--ex7.json-pyg.html-10"></a>  <span class="p">,</span> <span class="nt">&quot;publisher&quot;</span><span class="p">:</span> <span class="p">{</span>
+<a name="code--ex18--ex7.json-pyg.html-11"></a>      <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">1</span>
+<a name="code--ex18--ex7.json-pyg.html-12"></a>    <span class="p">,</span> <span class="nt">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Wordsworth Editions Ltd&quot;</span>
+<a name="code--ex18--ex7.json-pyg.html-13"></a>  <span class="p">}</span>
+<a name="code--ex18--ex7.json-pyg.html-14"></a>  <span class="p">,</span> <span class="nt">&quot;reviews&quot;</span><span class="p">:</span> <span class="p">[{</span>
+<a name="code--ex18--ex7.json-pyg.html-15"></a>      <span class="nt">&quot;id&quot;</span><span class="p">:</span> <span class="mi">1</span>
+<a name="code--ex18--ex7.json-pyg.html-16"></a>    <span class="p">,</span> <span class="nt">&quot;review&quot;</span><span class="p">:</span> <span class="s2">&quot;Awesome book, loved the whale&quot;</span>
+<a name="code--ex18--ex7.json-pyg.html-17"></a>    <span class="p">,</span> <span class="nt">&quot;stars&quot;</span><span class="p">:</span> <span class="mi">5</span>
+<a name="code--ex18--ex7.json-pyg.html-18"></a>  <span class="p">}]</span>
+<a name="code--ex18--ex7.json-pyg.html-19"></a><span class="p">}</span>
+</pre></div><p>As you can see the mapping between the OO class and the data stored in the database is close to 1:1. In a relational database this would require an additional <tt class="docutils literal">Review</tt> table and a <tt class="docutils literal">BookReviews</tt> join table requiring additional logic to map back and forth between the OO class and the data model.</p>
+</div>
+</div>
+<div class="section" id="things-to-note">
+<h1>Things To Note</h1>
+<p>Our world is made up of data object that change structure over time. Document databases have become more and more popular as they embrace the concept of evolving data structures better than traditional relational databases and map better to the way computer programming languages model data. In later exercises we will go ahead and build our very own simple ODM (object document mapping) library to help us make the mapping more simple and get a feel on how to map data back and forth. We will also briefly introduce the Mongoose ODM as more full featured version of our simple attempt at abstraction. But first things first. We are going to explore different schema designs and the pros and cons of each.</p>
+</div>
+    </div>
+
+    <div class="one columns" id="right-nav">
+        <center>
+        <p><a href="/book/"><img src="images/48_structure.png"></a></p>
+        <p><a href="#"><img src="images/48_email.png"></a></p>
+        <p><a href="#faq"><img src="images/48_faq.png"></a></p>
+        <p>
+        </p>
+        </center>
+    </div>
+
+  <!-- Included JS Files (Compressed) -->
+  <script src="javascripts/jquery.js"></script>
+  <script src="javascripts/foundation.min.js"></script>
+  
+  <!-- Initialize JS Plugins -->
+  <script src="javascripts/app.js"></script>
+
+</body>
+</html>

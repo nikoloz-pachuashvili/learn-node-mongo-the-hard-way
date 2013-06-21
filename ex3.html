@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+    <!--[if gt IE 8]><!-->
+<html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8" />
+
+  <!-- Set the viewport width to device width for mobile -->
+  <meta name="viewport" content="width=device-width" />
+
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
+<title>Exercise 3: Async programming introduction</title>
+
+  <!-- Included CSS Files (Compressed) -->
+  <link rel="stylesheet" href="stylesheets/foundation.min.css">
+  <link rel="stylesheet" href="stylesheets/pygments.css">
+  <link rel="stylesheet" href="stylesheets/app.css">
+
+  <script src="javascripts/modernizr.foundation.js"></script>
+
+  <!-- IE Fix for HTML5 Tags -->
+  <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+</head>
+<body>
+
+  <div class="row">
+          <h1 class="title">Exercise 3: Async programming introduction</h1>
+      </div>
+  </div>
+
+  <div class="row">
+    <div class="eleven columns">
+        <p>There are several pitfalls that are worth understanding before we get started
+exploring the driver and <tt class="docutils literal">MongoDB</tt> in general. This have to do with the
+essential differences between synchronous and asynchronous programming. It's
+best served by some examples. For the rest of the exercises we will assume that
+you understand how to enter code using the editor for your system.</p>
+<p>Lets take a simple application that fetches a twitter feed a couple of thousand
+times. But before we start let's install another <tt class="docutils literal">npm package</tt> that simplifies
+the fetching of web pages. This module is called <tt class="docutils literal">request</tt>. Perform the following
+tasks to install it and then lets get one with some coding.</p>
+<div class="section" id="mac-osx">
+<h1>Mac OSX</h1>
+<ol class="arabic">
+<li><p class="first">Start up the <tt class="docutils literal">Terminal</tt> application.</p>
+</li>
+<li><p class="first">Go to the directory <tt class="docutils literal"><span class="pre">learn-exercises</span></tt> we created in <tt class="docutils literal">exercise 0</tt>.</p>
+</li>
+<li><p class="first">Install the <tt class="docutils literal">request</tt> package using <tt class="docutils literal">NPM</tt></p>
+<pre class="code console literal-block">
+<span class="go">~ $ npm install request
+npm http GET https://registry.npmjs.org/request
+npm http 200 https://registry.npmjs.org/request
+npm http GET https://registry.npmjs.org/request/-/request-2.12.0.tgz
+npm http 200 https://registry.npmjs.org/request/-/request-2.12.0.tgz
+request&#64;2.12.0 node_modules/request</span>
+</pre>
+</li>
+<li><p class="first">Bring up <tt class="docutils literal">TextWrangler</tt> and enter the script below</p>
+<div class="highlight"><pre><a name="code--ex3--ex1.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;request&#39;</span><span class="p">);</span>
+<a name="code--ex3--ex1.js-pyg.html-2"></a>
+<a name="code--ex3--ex1.js-pyg.html-3"></a><span class="k">for</span><span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">100</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex3--ex1.js-pyg.html-4"></a>  <span class="nx">request</span><span class="p">(</span><span class="s1">&#39;http://www.google.com&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">response</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex3--ex1.js-pyg.html-5"></a>    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">error</span> <span class="o">&amp;&amp;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex3--ex1.js-pyg.html-6"></a>      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Retrieved the web page&quot;</span><span class="p">);</span>
+<a name="code--ex3--ex1.js-pyg.html-7"></a>    <span class="p">}</span>
+<a name="code--ex3--ex1.js-pyg.html-8"></a>  <span class="p">});</span>
+<a name="code--ex3--ex1.js-pyg.html-9"></a><span class="p">}</span>
+<a name="code--ex3--ex1.js-pyg.html-10"></a>
+<a name="code--ex3--ex1.js-pyg.html-11"></a><span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;DONE&quot;</span><span class="p">);</span>
+</pre></div><p>Save it as the file <tt class="docutils literal">ex1.js</tt> in the directory <tt class="docutils literal"><span class="pre">learn-exercises</span></tt></p>
+</li>
+<li><p class="first">From the terminal execute the script <tt class="docutils literal">ex1.js</tt></p>
+<pre class="code console literal-block">
+<span class="go">~ $ node ex1.js
+DONE
+Retrieved the web page
+Retrieved the web page
+Retrieved the web page
+Retrieved the web page
+Retrieved the web page
+Retrieved the web page
+Retrieved the web page
+Retrieved the web page
+(node) warning: possible EventEmitter memory leak detected. 11 listeners added.
+Use emitter.setMaxListeners() to increase limit.
+Trace
+    at Socket.EventEmitter.addListener (events.js:175:15)
+    at Socket.EventEmitter.once (events.js:196:8)
+    at ClientRequest.&lt;anonymous&gt;
+    (/Users/ck/coding/projects/learnexercises/node_modules/request/main.js:521:27)
+    at ClientRequest.g (events.js:192:14)
+    at ClientRequest.EventEmitter.emit (events.js:96:17)
+    at HTTPParser.parserOnIncomingClient [as onIncoming] (http.js:1462:7)
+    at HTTPParser.parserOnHeadersComplete [as onHeadersComplete] (http.js:111:23)
+    at Socket.socketOnData [as ondata] (http.js:1367:20)
+    at TCP.onread (net.js:403:27)
+(node) warning: possible EventEmitter memory leak detected. 11 listeners added.
+Use emitter.setMaxListeners() to increase limit.
+
+Looking at the output from our little program notice that the first line ``DONE``
+was the last line in our program. This shows one of the main pitfals most developers
+fall into when they start using ``Node.js`` and merits a more profound explanation
+and then an example on how to avoid this.</span>
+</pre>
+</li>
+</ol>
+</div>
+<div class="section" id="asynchronous-programming">
+<h1>Asynchronous Programming</h1>
+<p>The traditional way a programming language works is by stopping when we do an operation that requires the program to talk to things like your hard disk or a server on a network until they answer. If you wrote the example above in <tt class="docutils literal">ruby</tt> or <tt class="docutils literal">python</tt> it would process each fetch one after the other and once it had finished it would print <tt class="docutils literal">DONE</tt>.</p>
+<p>But in <tt class="docutils literal">Node.JS</tt> any operation that wants to communicate with a hard disk or server
+returns at once and the results are then returned to the program in an callback. So
+when the program runs all the requests to fetch the google homepage starts at the same
+time and as each is finished the function containing the <tt class="docutils literal">console.log</tt> statement is
+triggered. Since they all get started at the same time <tt class="docutils literal">Node.js</tt> complains that we
+might have a memory leak. If we start enough of these requests it will schedule retrivals
+of the google homepage until our program runs out of memory and crashes.</p>
+<p>But this can be easily fixed. Let's enter it. Write the code and save it as <tt class="docutils literal">ex2.js</tt></p>
+<div class="highlight"><pre><a name="code--ex3--ex2.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;request&#39;</span><span class="p">);</span>
+<a name="code--ex3--ex2.js-pyg.html-2"></a>
+<a name="code--ex3--ex2.js-pyg.html-3"></a><span class="kd">var</span> <span class="nx">load10AtATime</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex3--ex2.js-pyg.html-4"></a>  <span class="kd">var</span> <span class="nx">counter</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+<a name="code--ex3--ex2.js-pyg.html-5"></a>
+<a name="code--ex3--ex2.js-pyg.html-6"></a>  <span class="k">for</span><span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex3--ex2.js-pyg.html-7"></a>    <span class="nx">request</span><span class="p">(</span><span class="s1">&#39;http://www.google.com&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">response</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex3--ex2.js-pyg.html-8"></a>      <span class="nx">counter</span> <span class="o">=</span> <span class="nx">counter</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+<a name="code--ex3--ex2.js-pyg.html-9"></a>
+<a name="code--ex3--ex2.js-pyg.html-10"></a>      <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">error</span> <span class="o">&amp;&amp;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex3--ex2.js-pyg.html-11"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Retrieved the web page&quot;</span><span class="p">);</span>
+<a name="code--ex3--ex2.js-pyg.html-12"></a>      <span class="p">}</span>
+<a name="code--ex3--ex2.js-pyg.html-13"></a>
+<a name="code--ex3--ex2.js-pyg.html-14"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">counter</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="nx">callback</span><span class="p">();</span>
+<a name="code--ex3--ex2.js-pyg.html-15"></a>    <span class="p">});</span>
+<a name="code--ex3--ex2.js-pyg.html-16"></a>  <span class="p">}</span>
+<a name="code--ex3--ex2.js-pyg.html-17"></a><span class="p">}</span>
+<a name="code--ex3--ex2.js-pyg.html-18"></a>
+<a name="code--ex3--ex2.js-pyg.html-19"></a><span class="kd">var</span> <span class="nx">loadBatches</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">numberOfBatches</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex3--ex2.js-pyg.html-20"></a>  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;= Loading batch :: &quot;</span> <span class="o">+</span> <span class="nx">numberOfBatches</span><span class="p">);</span>
+<a name="code--ex3--ex2.js-pyg.html-21"></a>
+<a name="code--ex3--ex2.js-pyg.html-22"></a>  <span class="nx">load10AtATime</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex3--ex2.js-pyg.html-23"></a>    <span class="nx">numberOfBatches</span> <span class="o">=</span> <span class="nx">numberOfBatches</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+<a name="code--ex3--ex2.js-pyg.html-24"></a>
+<a name="code--ex3--ex2.js-pyg.html-25"></a>    <span class="k">if</span><span class="p">(</span><span class="nx">numberOfBatches</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="k">return</span> <span class="nx">callback</span><span class="p">();</span>
+<a name="code--ex3--ex2.js-pyg.html-26"></a>    <span class="nx">loadBatches</span><span class="p">(</span><span class="nx">numberOfBatches</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
+<a name="code--ex3--ex2.js-pyg.html-27"></a>  <span class="p">})</span>
+<a name="code--ex3--ex2.js-pyg.html-28"></a><span class="p">}</span>
+<a name="code--ex3--ex2.js-pyg.html-29"></a>
+<a name="code--ex3--ex2.js-pyg.html-30"></a><span class="nx">loadBatches</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex3--ex2.js-pyg.html-31"></a>  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;DONE&quot;</span><span class="p">);</span>
+<a name="code--ex3--ex2.js-pyg.html-32"></a><span class="p">})</span>
+</pre></div><p>Did I say easily. Hmm maybe not easily. Let's do a review of the code and look at what it
+means. The function <tt class="docutils literal">load10AtATime</tt> has a <tt class="docutils literal">callback</tt> function. This function will only be
+called once the 10 requests have completed. To ensure that all the requests have completed
+we have a count down variable called <tt class="docutils literal">counter</tt> that is only decremented once the result
+is returned from the request. Once <tt class="docutils literal">counter</tt> reaches <tt class="docutils literal">0</tt> we call the function <tt class="docutils literal">callback</tt>
+signaling that we have finished fetching the 10 copies of the google homepage. This function
+thus takes care of loading 10 pages at a time in parallel.</p>
+<p>Calling <tt class="docutils literal">load10AtATime</tt> is the function <tt class="docutils literal">loadBatches</tt>. This function is a recursive function that calls itself 10 times until <tt class="docutils literal">numberOfBatches</tt> is 0 and for each time it calls the <tt class="docutils literal">load10AtATime</tt> function and waits for it to return before executing the next batch. Once <tt class="docutils literal">numberOfBatches</tt> reaches <tt class="docutils literal">0</tt> it calls the callback function to return to the original caller.</p>
+<p>Finally the last part of the code just starts the batch loading by calling it <tt class="docutils literal">loadBatches` with a start value of ``10</tt> and waits for it to finish before printing it out to the console.</p>
+<p>One problem with this code is that if the number of batches is to high you can run out of stack meaning the application will crash. A better way to handle this recurssion is to use a method called <tt class="docutils literal">process.nextTick</tt>. Below is an example of the code will look when using <tt class="docutils literal">process.nextTick</tt>.</p>
+<div class="highlight"><pre><a name="code--ex3--ex3.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;request&#39;</span><span class="p">);</span>
+<a name="code--ex3--ex3.js-pyg.html-2"></a>
+<a name="code--ex3--ex3.js-pyg.html-3"></a><span class="kd">var</span> <span class="nx">load10AtATime</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex3--ex3.js-pyg.html-4"></a>  <span class="kd">var</span> <span class="nx">counter</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+<a name="code--ex3--ex3.js-pyg.html-5"></a>
+<a name="code--ex3--ex3.js-pyg.html-6"></a>  <span class="k">for</span><span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex3--ex3.js-pyg.html-7"></a>    <span class="nx">request</span><span class="p">(</span><span class="s1">&#39;http://www.google.com&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">response</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex3--ex3.js-pyg.html-8"></a>      <span class="nx">counter</span> <span class="o">=</span> <span class="nx">counter</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+<a name="code--ex3--ex3.js-pyg.html-9"></a>
+<a name="code--ex3--ex3.js-pyg.html-10"></a>      <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">error</span> <span class="o">&amp;&amp;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex3--ex3.js-pyg.html-11"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Retrieved the web page&quot;</span><span class="p">);</span>
+<a name="code--ex3--ex3.js-pyg.html-12"></a>      <span class="p">}</span>
+<a name="code--ex3--ex3.js-pyg.html-13"></a>
+<a name="code--ex3--ex3.js-pyg.html-14"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">counter</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="nx">callback</span><span class="p">();</span>
+<a name="code--ex3--ex3.js-pyg.html-15"></a>    <span class="p">});</span>
+<a name="code--ex3--ex3.js-pyg.html-16"></a>  <span class="p">}</span>
+<a name="code--ex3--ex3.js-pyg.html-17"></a><span class="p">}</span>
+<a name="code--ex3--ex3.js-pyg.html-18"></a>
+<a name="code--ex3--ex3.js-pyg.html-19"></a><span class="kd">var</span> <span class="nx">loadBatches</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">numberOfBatches</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex3--ex3.js-pyg.html-20"></a>  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;= Loading batch :: &quot;</span> <span class="o">+</span> <span class="nx">numberOfBatches</span><span class="p">);</span>
+<a name="code--ex3--ex3.js-pyg.html-21"></a>
+<a name="code--ex3--ex3.js-pyg.html-22"></a>  <span class="nx">load10AtATime</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex3--ex3.js-pyg.html-23"></a>    <span class="nx">numberOfBatches</span> <span class="o">=</span> <span class="nx">numberOfBatches</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+<a name="code--ex3--ex3.js-pyg.html-24"></a>
+<a name="code--ex3--ex3.js-pyg.html-25"></a>    <span class="k">if</span><span class="p">(</span><span class="nx">numberOfBatches</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="k">return</span> <span class="nx">callback</span><span class="p">();</span>
+<a name="code--ex3--ex3.js-pyg.html-26"></a>    <span class="nx">process</span><span class="p">.</span><span class="nx">nextTick</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex3--ex3.js-pyg.html-27"></a>      <span class="nx">loadBatches</span><span class="p">(</span><span class="nx">numberOfBatches</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
+<a name="code--ex3--ex3.js-pyg.html-28"></a>    <span class="p">})</span>
+<a name="code--ex3--ex3.js-pyg.html-29"></a>  <span class="p">})</span>
+<a name="code--ex3--ex3.js-pyg.html-30"></a><span class="p">}</span>
+<a name="code--ex3--ex3.js-pyg.html-31"></a>
+<a name="code--ex3--ex3.js-pyg.html-32"></a><span class="nx">loadBatches</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex3--ex3.js-pyg.html-33"></a>  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;DONE&quot;</span><span class="p">);</span>
+<a name="code--ex3--ex3.js-pyg.html-34"></a><span class="p">})</span>
+</pre></div><p><tt class="docutils literal">process.nextTick</tt> schedules the function call for the next tick in the eventloop of Node.js. This happens with a new stack allowing us to avoid running out of stack and crashing if we have are loading to many batches in one go. There is another technique called a <tt class="docutils literal">trampolining</tt> that can do the same but this is left to you to investigate. The main issue is the lack of tail recurrsion. You can read more about it at <a class="reference external" href="http://en.wikipedia">http://en.wikipedia</a> org/wiki/Tail_call including <tt class="docutils literal">trampolining</tt>. That said I prefer to use <tt class="docutils literal">process.nextTick</tt> because it schedules the function call in the eventloop of Node.js letting other code run inbetween.</p>
+<p>I also recommend using some of the excellent libraries for asynchronous programming for Node.js. Let's see how we can accomplish the same using the <tt class="docutils literal">async</tt> npm module. First install the npm module doing</p>
+<pre class="code console literal-block">
+<span class="go">npm install async</span>
+</pre>
+<p>Then fire up the text editor of your choice and enter the following example.</p>
+<div class="highlight"><pre><a name="code--ex3--ex4.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">async</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;async&#39;</span><span class="p">)</span>
+<a name="code--ex3--ex4.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">request</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;request&#39;</span><span class="p">);</span>
+<a name="code--ex3--ex4.js-pyg.html-3"></a>
+<a name="code--ex3--ex4.js-pyg.html-4"></a><span class="kd">var</span> <span class="nx">numberOfBatches</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+<a name="code--ex3--ex4.js-pyg.html-5"></a>
+<a name="code--ex3--ex4.js-pyg.html-6"></a><span class="nx">async</span><span class="p">.</span><span class="nx">whilst</span><span class="p">(</span>
+<a name="code--ex3--ex4.js-pyg.html-7"></a>    <span class="kd">function</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">numberOfBatches</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">;</span> <span class="p">}</span>
+<a name="code--ex3--ex4.js-pyg.html-8"></a>  <span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex3--ex4.js-pyg.html-9"></a>      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;= Loading batch :: &quot;</span> <span class="o">+</span> <span class="nx">numberOfBatches</span><span class="p">);</span>
+<a name="code--ex3--ex4.js-pyg.html-10"></a>      <span class="nx">numberOfBatches</span> <span class="o">=</span> <span class="nx">numberOfBatches</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+<a name="code--ex3--ex4.js-pyg.html-11"></a>
+<a name="code--ex3--ex4.js-pyg.html-12"></a>      <span class="kd">var</span> <span class="nx">counter</span> <span class="o">=</span> <span class="mi">10</span><span class="p">;</span>
+<a name="code--ex3--ex4.js-pyg.html-13"></a>
+<a name="code--ex3--ex4.js-pyg.html-14"></a>      <span class="k">for</span><span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex3--ex4.js-pyg.html-15"></a>        <span class="nx">request</span><span class="p">(</span><span class="s1">&#39;http://www.google.com&#39;</span><span class="p">,</span> <span class="kd">function</span> <span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">response</span><span class="p">,</span> <span class="nx">body</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex3--ex4.js-pyg.html-16"></a>          <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">error</span> <span class="o">&amp;&amp;</span> <span class="nx">response</span><span class="p">.</span><span class="nx">statusCode</span> <span class="o">==</span> <span class="mi">200</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex3--ex4.js-pyg.html-17"></a>            <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Retrieved the web page&quot;</span><span class="p">);</span>
+<a name="code--ex3--ex4.js-pyg.html-18"></a>          <span class="p">}</span>
+<a name="code--ex3--ex4.js-pyg.html-19"></a>
+<a name="code--ex3--ex4.js-pyg.html-20"></a>          <span class="nx">counter</span> <span class="o">=</span> <span class="nx">counter</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+<a name="code--ex3--ex4.js-pyg.html-21"></a>          <span class="k">if</span><span class="p">(</span><span class="nx">counter</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="nx">callback</span><span class="p">();</span>
+<a name="code--ex3--ex4.js-pyg.html-22"></a>        <span class="p">});</span>
+<a name="code--ex3--ex4.js-pyg.html-23"></a>      <span class="p">}</span>
+<a name="code--ex3--ex4.js-pyg.html-24"></a>    <span class="p">}</span>
+<a name="code--ex3--ex4.js-pyg.html-25"></a>  <span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex3--ex4.js-pyg.html-26"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;DONE&quot;</span><span class="p">);</span>
+<a name="code--ex3--ex4.js-pyg.html-27"></a>  <span class="p">}</span>
+<a name="code--ex3--ex4.js-pyg.html-28"></a><span class="p">)</span>
+</pre></div><p>Let's have a quick look at the code. The <tt class="docutils literal">async.whilst</tt> method takes three functions. The first function is the <tt class="docutils literal">while</tt> statement that tells <tt class="docutils literal">whilst</tt> to keep running until the returned value from the first function is <tt class="docutils literal">false</tt>. The second function is the actual work being done in each pass through the <tt class="docutils literal">while</tt>. Once the program is done with it's work it calls the callback and the loop repeats. When the first function returns false <tt class="docutils literal">whilst</tt> calls the last function with the final result. The second function is the same as the previous code example.</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p>Grasping the fundamentals about asynchronous programming is important to the correct behaviour of you applications and also to leverage the high concurrency available in Node.js. Don't worry if you don't grasp it the first time around it can take a while to get used to it especially if you come from another programming platform that is synchronous like ruby, python, perl or php.</p>
+<p class="last">It's worth spending some time practicing it or understanding how the <tt class="docutils literal">async</tt> library works.</p>
+</div>
+</div>
+    </div>
+
+    <div class="one columns" id="right-nav">
+        <center>
+        <p><a href="/book/"><img src="images/48_structure.png"></a></p>
+        <p><a href="#"><img src="images/48_email.png"></a></p>
+        <p><a href="#faq"><img src="images/48_faq.png"></a></p>
+        <p>
+        </p>
+        </center>
+    </div>
+
+  <!-- Included JS Files (Compressed) -->
+  <script src="javascripts/jquery.js"></script>
+  <script src="javascripts/foundation.min.js"></script>
+  
+  <!-- Initialize JS Plugins -->
+  <script src="javascripts/app.js"></script>
+
+</body>
+</html>

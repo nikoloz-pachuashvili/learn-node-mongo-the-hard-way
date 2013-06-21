@@ -1,0 +1,771 @@
+{% import "macros/ork.jinja" as ork with context %}
+Exercise 17: Index Katas
+========================
+
+Let's do a bunch of index Katas to get used to how indexes work in MongoDB. A Kata is a form or pattern. Let's start off with the single value index.
+
+Single Value Index
+------------------
+
+Given the documents inserted into the database ``test`` and collection ``users``.
+
+.. code-block:: javascript
+
+    {
+      pid: 1,
+      name: 'Steve',
+      salary: 10000
+    }
+    
+    {
+      pid: 2,
+      name: 'John',
+      salary: 12000
+    }
+
+    {
+      pid: 7,
+      name: 'Peter',
+      salary: 7000
+    }
+
+    {
+      pid: 18,
+      name: 'Arnold',
+      salary: 32000
+    }
+
+We want to create an index on the ``salary`` field so we can perform two queries using the index. The first one is ``locate all users with the salary 10000`` and the second one is the query ``locate all users that have a salary less then 30000 but larger than 8000``.
+
+Let's create the index using either the driver
+
+.. code-block:: javascript
+
+    db.collection('users').ensureIndex({salary:1}, function(err, result) {});
+
+or the console
+
+.. code-block:: console
+
+    > use test
+    > db.users.ensureIndex({salary:1})
+
+Let's execute the queries mentioned above using the ``console`` and have a look at the resulting explain results.
+
+First the ``locate all users with the salary 10000`` query
+
+.. code-block:: console
+    
+    > use test
+    > db.users.find({salary:10000}).explain()
+    {
+      "cursor" : "BtreeCursor salary_1",
+      "isMultiKey" : false,
+      "n" : 1,
+      "nscannedObjects" : 1,
+      "nscanned" : 1,
+      "nscannedObjectsAllPlans" : 1,
+      "nscannedAllPlans" : 1,
+      "scanAndOrder" : false,
+      "indexOnly" : false,
+      "nYields" : 0,
+      "nChunkSkips" : 0,
+      "millis" : 0,
+      "indexBounds" : {
+        "salary" : [
+          [
+            10000,
+            10000
+          ]
+        ]
+      },
+      "server" : "localhost:27017"
+    }
+
+and then the ``locate all users that have a salary less then 30000 but larger than 8000`` query.
+
+.. code-block:: console
+
+    > use test
+    > db.users.find({salary:{$lt: 30000, $gt: 8000}}).explain()
+    {
+      "cursor" : "BtreeCursor salary_1",
+      "isMultiKey" : false,
+      "n" : 2,
+      "nscannedObjects" : 2,
+      "nscanned" : 2,
+      "nscannedObjectsAllPlans" : 2,
+      "nscannedAllPlans" : 2,
+      "scanAndOrder" : false,
+      "indexOnly" : false,
+      "nYields" : 0,
+      "nChunkSkips" : 0,
+      "millis" : 0,
+      "indexBounds" : {
+        "salary" : [
+          [
+            8000,
+            30000
+          ]
+        ]
+      },
+      "server" : "localhost:27017"
+    }
+
+As you notice we are explicitly making you look the ``explains`` for the queries. We are trying to impart the importance of understanding how you queries use indexes as it's a prime factor in getting the best performance out of all databases. Going forward we will only touch on the explain part when it expands the understanding of how indexes work. Let's move on to a single index with sorting.
+
+Single Value Index With Sorting
+-------------------------------
+
+Let's play with sorting and using an index. For this we need a bigger set of data to play with. Let's generate some using the ``mongo`` shell. Remember it's a JavaScript ``repl`` so we can script it in JavaScript.
+
+.. code-block:: console
+
+    > use test
+    > for(var i = 0; i < 10000; i++) db.sorting.insert({a:i, b:(10000 - i)})
+
+This will generate ``10000`` documents with an a field ``a`` that increases for each insert (as well as an increasing ``b`` field).
+
+.. NOTE::
+  
+  When we create an index we have to specify either ``-1`` or ``1``. This is the ordering of the data in the index. ``-1`` means in ``descending`` (4, 3, 2, 1), while ``1`` means ``ascending`` sort order (1, 2, 3, 4). This impacts how data is scanned in indexes and optimally you should always create the index in the ``sort`` order that will used in most of the queries to make them as efficient as possible.
+
+Now let's add an index to this field.
+
+.. code-block:: console
+
+    > use test
+    > db.sorting.ensureIndex({a:1})
+
+The index can be created in the following way with the driver.
+
+.. code-block:: javascript
+
+    db.collection('employees').ensureIndex({a:1}, function(err, result) {});
+
+Let's look at how it works when we are using a sort.
+
+.. code-block:: console
+
+    > use test
+    > db.sorting.find({a: {$lt:5000, $gt: 1000}}).sort({a:1}).explain()
+    {
+      "cursor" : "BtreeCursor a_1",
+      "isMultiKey" : false,
+      "n" : 3999,
+      "nscannedObjects" : 3999,
+      "nscanned" : 3999,
+      "nscannedObjectsAllPlans" : 3999,
+      "nscannedAllPlans" : 3999,
+      "scanAndOrder" : false,
+      "indexOnly" : false,
+      "nYields" : 0,
+      "nChunkSkips" : 0,
+      "millis" : 6,
+      "indexBounds" : {
+        "a" : [
+          [
+            1000,
+            5000
+          ]
+        ]
+      },
+      "server" : "localhost:27017"
+    }
+
+Contrast that to
+
+.. code-block:: console
+
+    > use test
+    > db.sorting.find({a: {$lt:5000, $gt: 1000}}).sort({a:-1}).explain()
+    {
+      "cursor" : "BtreeCursor a_1 reverse",
+      "isMultiKey" : false,
+      "n" : 3999,
+      "nscannedObjects" : 3999,
+      "nscanned" : 3999,
+      "nscannedObjectsAllPlans" : 3999,
+      "nscannedAllPlans" : 3999,
+      "scanAndOrder" : false,
+      "indexOnly" : false,
+      "nYields" : 0,
+      "nChunkSkips" : 0,
+      "millis" : 6,
+      "indexBounds" : {
+        "a" : [
+          [
+            5000,
+            1000
+          ]
+        ]
+      },
+      "server" : "localhost:27017"
+    }
+
+Notice how ``cursor`` says ``BtreeCursor a_1 reverse`` instead off ``BtreeCursor a_1``. This is because ``MongoDB`` was able to use the index to sort the values by traversing the ``index`` tree in the ``reverse`` order.
+
+But what if we sort on the field ``b`` instead. Let's try it.
+
+.. code-block:: console
+
+    > use test
+    > db.sorting.find({a: {$lt:5000, $gt: 1000}}).sort({b:1}).explain()
+    {
+      "cursor" : "BtreeCursor a_1",
+      "isMultiKey" : false,
+      "n" : 3999,
+      "nscannedObjects" : 3999,
+      "nscanned" : 3999,
+      "nscannedObjectsAllPlans" : 4100,
+      "nscannedAllPlans" : 4100,
+      "scanAndOrder" : true,
+      "indexOnly" : false,
+      "nYields" : 0,
+      "nChunkSkips" : 0,
+      "millis" : 22,
+      "indexBounds" : {
+        "a" : [
+          [
+            1000,
+            5000
+          ]
+        ]
+      },
+      "server" : "localhost:27017"
+    }
+
+Let's look at the field here ``scanAndOrder``. ``scanAndOrder`` is defined as ``Is true if an index cannot be used to order the documents returned.``. In the cases where we are using ``a`` for sorting this is set to ``false`` as the index can be used for the sorting. But in the case of using ``b`` for sorting MongoDB cannot use the ``a`` index for sorting so it uses it to retrieve all the matching documents by the query and then sorts them by ``b`` in memory. 
+
+NOTE::
+  At the moment MongoDB can only use a single index for a query and sort, this will change in the future to allow multiple indexes to be used in a query and sort scenario.
+
+Compound That Index
+-------------------
+
+So we've looked at single value indexes. But what if we want to search by ``a`` as well as ``b`` and also a combination of the two. This is where ``compound indexes`` come in. A ``compound index`` is an index built up of one or fields. Let's use the data from the previous example to play around with the implications for search. But first let's drop the existing indexes and then create the compound index ``{a:1, b:-1}``.
+
+.. code-block:: console
+
+    > use test
+    > db.sorting.dropIndexes()
+    > db.sorting.ensureIndex({a:1, b:1})
+
+The index can be created in the following way with the driver.
+
+.. code-block:: javascript
+
+    db.collection('employees').ensureIndex({a:1, b:1}, function(err, result) {});
+
+Let's do the query over the field ``a`` again and sort over the fields ``a`` and ``b``.
+
+.. code-block:: console
+
+    > use test
+    > db.sorting.find({a: {$lt:5000, $gt: 1000}}).sort({a:1, b:1}).explain()
+    {
+      "cursor" : "BtreeCursor a_1_b_1",
+      "isMultiKey" : false,
+      "n" : 3999,
+      "nscannedObjects" : 3999,
+      "nscanned" : 3999,
+      "nscannedObjectsAllPlans" : 3999,
+      "nscannedAllPlans" : 3999,
+      "scanAndOrder" : false,
+      "indexOnly" : false,
+      "nYields" : 0,
+      "nChunkSkips" : 0,
+      "millis" : 6,
+      "indexBounds" : {
+        "a" : [
+          [
+            1000,
+            5000
+          ]
+        ],
+        "b" : [
+          [
+            {
+              "$minElement" : 1
+            },
+            {
+              "$maxElement" : 1
+            }
+          ]
+        ]
+      },
+      "server" : "localhost:27017"
+    }
+
+Notice how ``scanAndOrder`` is false telling us MongoDB was able to use the index to sort the retrieve as well as sorting the data.
+
+However if we don't specify the sort order as ``{a:1, b:1}`` MongoDB cannot establish that we want to use the ``b`` part of the index to sort and will have to sort all the documents after retrieving them.
+
+.. code-block:: console
+
+    > use test
+    > db.sorting.find({a: {$lt:5000, $gt: 1000}}).sort({b:1}).explain()
+    {
+      "cursor" : "BtreeCursor a_1_b_1",
+      "isMultiKey" : false,
+      "n" : 3999,
+      "nscannedObjects" : 3999,
+      "nscanned" : 3999,
+      "nscannedObjectsAllPlans" : 4100,
+      "nscannedAllPlans" : 4100,
+      "scanAndOrder" : true,
+      "indexOnly" : false,
+      "nYields" : 0,
+      "nChunkSkips" : 0,
+      "millis" : 21,
+      "indexBounds" : {
+        "a" : [
+          [
+            1000,
+            5000
+          ]
+        ],
+        "b" : [
+          [
+            {
+              "$minElement" : 1
+            },
+            {
+              "$maxElement" : 1
+            }
+          ]
+        ]
+      },
+      "server" : "localhost:27017"
+    }
+
+Notice how ``scanAndOrder`` is ``true`` when we just sort by ``{b:1}``. The reason is that when the index is built it's compounded by adding the fields ``a`` and ``b`` together when we use ``ensureIndex({a:1, b:1})`` meaning we need to tell MongoDB the sort order of the first key before the second one. If we wanted to sort by only ``{b:1}`` we would need to reverse the order of the fields in the compound index making it ``{b:1, a:1}`` instead.
+
+Let's take a sample compound index and tell which queries would use the index and which would not be able to.
+
+Assume the index ``{ a: 1, b: 1, c: 1, d: 1 }``
+
+=============================================================== ==================
+Query                                                           Uses Index
+=============================================================== ==================
+db.sorting.find().sort( { a:1 } )                               true
+db.sorting.find().sort( { a:1, b:1 } )                          true
+db.sorting.find( { a:4 } ).sort( { a:1, b:1 } )                 true
+db.sorting.find( { b:5 } ).sort( { a:1, b:1 } )                 true
+db.sorting.find( { a:5 } ).sort( { b:1, c:1 } )                 true
+db.sorting.find( { a:5, c:4, b:3 } ).sort( { d:1 } )            true
+db.sorting.find( { a: { $gt:4 } } ).sort( { a:1, b:1 } )        true
+db.sorting.find( { a: { $gt:5 } } ).sort( { a:1, b:1 } )        true
+db.sorting.find( { a:5, b:3, d:{ $gt:4 } } ).sort( { c:1 } )    true
+db.sorting.find( { a:5, b:3, c:{ $lt:2 }, d:{ $gt:4 } } )       true
+db.sorting.find().sort( { b:1 } )                               ``false``
+db.sorting.find( { b:5 } ).sort( { b:1 } )                      ``false``
+db.sorting.find({ a:{$lt:10, $gt:5} }).sort({ b:1, c:1 })       ``false``
+=============================================================== ==================
+
+Two important rules to keep in mind for your queries.
+
+1. If doing a simple equality match and not matching on the first field ``a`` you need to include the fields previous to the field you are matching on to use the index. Example ``db.sorting.find( { b:5 } ).sort( { a:1, b:1 } )``
+2. If doing a ranged query you need to include the field you are performing the ranged query over as well as proceeding fields. Example ``db.sorting.find({ b:{$lt:10, $gt:5} }).sort({ a:1, b:1, c:1 })``
+
+That covers the basics for ``compound indexes``. Let's move onto something cool that we can do with ``compound indexes`` namely ``covered indexes``.
+
+.. NOTE::
+  
+    When sorting large results sets you want to make sure you are using the index as MongoDB will only sort up to 32MB of document at the moment meaning that if the result set is to big it will not be sorted.
+
+.. NOTE::
+    
+    In development I tend to use an option for ``mongod`` that allows me to catch queries that don't use an index. When you start up the ``mongod`` server add the option ``--notablescan`` to the ``mongod`` command line. If you now attempt to run a query that does not use an index MongoDb will throw an error ``{"$err" : "table scans not allowed:test.salaries", "code" : 10111 }``
+
+I've Got You Covered
+--------------------
+
+So what if you could return results from a query without ever touching the actual documents. Incredible as this sounds it's possible because of ``compound indexes``. There is only one limitation and that is that we cannot return the ``_id`` field. 
+
+Given the documents inserted into the database ``test`` and collection ``users``.
+
+.. code-block:: javascript
+
+    {
+      pid: 1,
+      name: 'Steve',
+      salary: 10000
+    }
+    
+    {
+      pid: 2,
+      name: 'John',
+      salary: 12000
+    }
+
+    {
+      pid: 7,
+      name: 'Peter',
+      salary: 7000
+    }
+
+    {
+      pid: 18,
+      name: 'Arnold',
+      salary: 32000
+    }
+
+No let's create a compound index over the tree fields present.
+
+.. code-block:: console
+
+    > use test
+    > db.users.dropIndexes()
+    > db.users.ensureIndex({pid:1, name:1, salary:1})
+
+The index can be created in the following way with the driver.
+
+.. code-block:: javascript
+
+    db.collection('employees').ensureIndex({pid:1, name:1, salary:1}, function(err, result) {});
+
+Let's perform a normal simple query to retrieve all the users.
+
+.. code-block:: console
+
+    > use test
+    > db.users.find({pid:{$gt: 1}})
+    {   "_id" : ObjectId("51824040ae699e537241fcef")
+      , "pid" : 2
+      , "name" : "John"
+      , "salary" : 12000 }
+    {   "_id" : ObjectId("51824040ae699e537241fcf0")
+      , "pid" : 7
+      , "name" : "Peter"
+      , "salary" : 7000 }
+    {   "_id" : ObjectId("51824040ae699e537241fcf1")
+      , "pid" : 18
+      , "name" : "Arnold"
+      , "salary" : 32000 }    
+
+Sweet works fine and the explain method returns
+
+.. code-block:: console
+
+    > use test
+    > db.users.find({pid:{$gt: 1}}).explain()
+    {
+      "cursor" : "BtreeCursor pid_1_name_1_salary_1",
+      "isMultiKey" : false,
+      "n" : 3,
+      "nscannedObjects" : 3,
+      "nscanned" : 3,
+      "nscannedObjectsAllPlans" : 3,
+      "nscannedAllPlans" : 3,
+      "scanAndOrder" : false,
+      "indexOnly" : false,
+      "nYields" : 0,
+      "nChunkSkips" : 0,
+      "millis" : 0,
+      "indexBounds" : {
+        "pid" : [
+          [
+            1,
+            1.7976931348623157e+308
+          ]
+        ],
+        "name" : [
+          [
+            {
+              "$minElement" : 1
+            },
+            {
+              "$maxElement" : 1
+            }
+          ]
+        ],
+        "salary" : [
+          [
+            {
+              "$minElement" : 1
+            },
+            {
+              "$maxElement" : 1
+            }
+          ]
+        ]
+      },
+      "server" : "localhost:27017"
+    }    
+
+Showing us that we are using the index during the query. Now let's modify the query slightly to get rid of the ``_id`` field in the results and only return the values ``pid``, ``name`` and ``salary``.
+
+.. code-block:: console
+
+    > use test
+    > db.users.find({pid:{$gt: 1}}, {_id:0, pid:1, name:1, salary:1})
+    { "pid" : 2, "name" : "John", "salary" : 12000 }
+    { "pid" : 7, "name" : "Peter", "salary" : 7000 }
+    { "pid" : 18, "name" : "Arnold", "salary" : 32000 }
+
+And let's run the explain again
+
+.. code-block:: console
+
+    > use test
+    > db.users.find({pid:{$gt: 1}}, {_id:0, pid:1, name:1, salary:1}).explain()
+    {
+      "cursor" : "BtreeCursor pid_1_name_1_salary_1",
+      "isMultiKey" : false,
+      "n" : 3,
+      "nscannedObjects" : 0,
+      "nscanned" : 3,
+      "nscannedObjectsAllPlans" : 0,
+      "nscannedAllPlans" : 3,
+      "scanAndOrder" : false,
+      "indexOnly" : true,
+      "nYields" : 0,
+      "nChunkSkips" : 0,
+      "millis" : 0,
+      "indexBounds" : {
+        "pid" : [
+          [
+            1,
+            1.7976931348623157e+308
+          ]
+        ],
+        "name" : [
+          [
+            {
+              "$minElement" : 1
+            },
+            {
+              "$maxElement" : 1
+            }
+          ]
+        ],
+        "salary" : [
+          [
+            {
+              "$minElement" : 1
+            },
+            {
+              "$maxElement" : 1
+            }
+          ]
+        ]
+      },
+      "server" : "localhost:27017"
+    }    
+
+Notice something different?. Take a look at the ``indexOnly`` field. It's now set to ``true`` because MongoDB is able to use the data stored in the index to answer the query instead of having to read documents. This can be a powerful feature that can speed up queries by leveraging the indexes and avoiding loading documents from disk. You don't have to return all three values, but can return any combination of the tree values. The only limitation is that you can only return fields that are in the index (in this case ``pid``, ``name`` or ``salary``) and ``_id`` can never be returned or MongoDB will have to access the actual documents.
+
+That covers ``covered indexes``. Next we will have a look at what's called a ``sparse`` index.
+
+Sparse Indexes
+--------------
+
+Let's imagine that we have a set of document where only some of the documents have a specific field. If we index this field normally it will include an entry for each document even if they don't have the field. This is obviously not very efficient space wise as we are including empty documents in our index. This is where a ``sparse index`` comes in. A ``sparse index`` will only include the documents in the index where the field is actually present.
+
+We assume that we have the following documents inserted in the ``test`` database and ``sparse`` collection.
+
+.. code-block:: javascript
+
+    {
+      pid: 1,
+      name: 'Steve',
+      salary: 10000,
+      city: 'New York'
+    }
+
+    {
+      pid: 2,
+      name: 'John',
+      salary: 12000
+    }
+
+    {
+      pid: 7,
+      name: 'Peter',
+      salary: 7000,
+      city: 'New York'
+    }
+
+    {
+      pid: 18,
+      name: 'Arnold',
+      salary: 32000
+    }
+
+Let's create a sparse index on the field ``city``
+
+.. code-block:: console
+
+    > use test
+    > db.sparse.ensureIndex({city:1}, {sparse:true})
+
+The index can be created in the following way with the driver.
+
+.. code-block:: javascript
+
+    db.collection('employees').ensureIndex({city:1}, {sparse:true}, function(err, result) {});
+
+When we query for the field ``city`` we will not only query an index that contains documents that actually have the field populated. Imagine that the total number of documents that contain a city is ``30%`` of the collection. This means we only have entries for ``30%`` of the documents in the ``sparse index`` versus all of the documents in a normal index, saving us lots of diskspace and memory to hold the index. Not much more to say about ``sparse indexes``.
+
+Until now we have been talking about indexes that contain all documents for a given value (if we have an index on field ``a`` and two documents that contain the field ``a`` with the same value they are both stored in the index). But what if we want to ensure that only a single document can have a specific value for ``a``. Luckily we can do that with an unique index.
+
+I'm An Unique Flower
+--------------------
+
+Let's take the situation of a social security number. Only one person can have a specific social security number associated with them. To ensure this is the case we can create an ``unique`` index. An ``unique`` index is an index that rejects insertion of values that have duplicate values for the fields in the index. Let's get cracking with some examples. First insert an employee ``Peter`` and then create the unique index on the field ``ssid``.
+
+.. code-block:: console
+
+    > use test
+    > db.employees.insert({ssid:'123', name:'Peter'})
+    > db.employees.ensureIndex({ssid:1}, {unique:true})
+
+The index can be created in the following way with the driver.
+
+.. code-block:: javascript
+
+    db.collection('employees').ensureIndex({ssid:1}, {unique:true}, function(err, result) {});
+
+Cool we have an ``unique index`` specified for the field ``ssid``. Let's attempt to insert a duplicate record.
+
+.. code-block:: console
+
+    > use test
+    > db.employees.insert({ssid:'123', name:'Peter'})
+    E11000 duplicate key error index: test.employees.$ssid_1  dup key: { : "123" }
+
+One more thing to note is that this also works for ``compound indexes``. Let's say the ``ssid`` and ``name`` combination must be unique. Let's try it out.
+
+.. code-block:: console
+
+    > use test
+    > db.employees.dropIndexes()
+    > db.employees.insert({ssid:'123', name:'Peter'})
+    > db.employees.ensureIndex({ssid:1, name:1}, {unique:true})
+    > db.employees.insert({ssid:'123', name:'Peter'})
+    E11000 duplicate key error index: test.employees.$ssid_1_name_1  
+    dup key: { : "123", : "Peter" }
+    > db.employees.insert({ssid:'123', name:'Peter2'})
+
+The index can be created in the following way with the driver.
+
+.. code-block:: javascript
+
+    db.collection('employees')
+      .ensureIndex({ssid:1, name:1}, {unique:true}, function(err, result) {});
+
+As you can see it works perfectly with a ``compound index`` as well.
+
+.. NOTE::
+
+  All documents include the ``_id`` field which a unique index. This is to ensure a document in a collection can be ``uniquely`` identified.
+
+So far we have been indexing single fields, but what if we want to index fields that are arrays or sub documents?
+
+Indexing Arrays and Sub Documents
+---------------------------------
+
+MongoDB can index both array field and sub documents. But how to go about it. Let's take an example document that contains tags.
+
+We assume we have the following documents stored in the database ``test`` and collection ``docs``.
+
+.. code-block:: javascript
+
+    {
+      title: 'Abgenders 2',
+      tags: ['comic', 'scifi', 'parody'],
+      published: {
+        year: 2012
+      }
+    }
+
+    {
+      title: 'Nerds 4',
+      tags: ['comic', 'scifi', 'serious'],
+      published: {
+        year: 2011
+      }
+    }
+
+Let's create two indexes to allow us to query by tag and also by date.
+
+.. code-block:: console
+
+    > use test
+    > db.docs.dropIndexes()
+    > db.docs.ensureIndex({tags: 1})
+    > db.docs.ensureIndex({'published.year': 1})
+
+The index can be created in the following way with the driver.
+
+.. code-block:: javascript
+
+    db.collection('employees').ensureIndex({tags:1}, function(err, result) {});
+    db.collection('employees').ensureIndex({'published.year':1}, function(err, result) {});
+
+Let's execute a query using each of the indexes.
+
+.. code-block:: console
+
+    > use test
+    > db.docs.find({tags:'scifi'}).explain()
+    {
+      "cursor" : "BtreeCursor tags_1",
+      "isMultiKey" : true,
+      "n" : 2,
+      "nscannedObjects" : 2,
+      "nscanned" : 2,
+      "nscannedObjectsAllPlans" : 2,
+      "nscannedAllPlans" : 2,
+      "scanAndOrder" : false,
+      "indexOnly" : false,
+      "nYields" : 0,
+      "nChunkSkips" : 0,
+      "millis" : 0,
+      "indexBounds" : {
+        "tags" : [
+          [
+            "scifi",
+            "scifi"
+          ]
+        ]
+      },
+      "server" : "localhost:27017"
+    }    
+
+and
+
+.. code-block:: console
+
+    > use test
+    > db.docs.find({'published.year':2012}).explain()
+    {
+      "cursor" : "BtreeCursor published.year_1",
+      "isMultiKey" : false,
+      "n" : 1,
+      "nscannedObjects" : 1,
+      "nscanned" : 1,
+      "nscannedObjectsAllPlans" : 1,
+      "nscannedAllPlans" : 1,
+      "scanAndOrder" : false,
+      "indexOnly" : false,
+      "nYields" : 0,
+      "nChunkSkips" : 0,
+      "millis" : 0,
+      "indexBounds" : {
+        "published.year" : [
+          [
+            2012,
+            2012
+          ]
+        ]
+      },
+      "server" : "localhost:27017"
+    }
+
+As we can see we both of the queries uses indexes to retrieve the values. One of the possibilities of being able to index arrays is that you can create a word index lookup. Imagine that you want to be able to look for documents that matches a specific word. You could do this using a ``regular`` expression query but this would most likely force a table scan for your query. What if you instead split the text into words, add them to a field ``words`` as an array and then ``ensureIndex(words:1)``. Now you can leverage the index to do a quick lookup.
+
+.. NOTE::
+
+  In 2.4 or later MongoDB includes an experimental ``text index`` that we will talk more about in a later exercise.

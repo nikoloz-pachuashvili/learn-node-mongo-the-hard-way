@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+    <!--[if gt IE 8]><!-->
+<html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8" />
+
+  <!-- Set the viewport width to device width for mobile -->
+  <meta name="viewport" content="width=device-width" />
+
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
+<title>Exercise 20: A RESTFul Programming exercise</title>
+
+  <!-- Included CSS Files (Compressed) -->
+  <link rel="stylesheet" href="stylesheets/foundation.min.css">
+  <link rel="stylesheet" href="stylesheets/pygments.css">
+  <link rel="stylesheet" href="stylesheets/app.css">
+
+  <script src="javascripts/modernizr.foundation.js"></script>
+
+  <!-- IE Fix for HTML5 Tags -->
+  <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+</head>
+<body>
+
+  <div class="row">
+          <h1 class="title">Exercise 20: A RESTFul Programming exercise</h1>
+      </div>
+  </div>
+
+  <div class="row">
+    <div class="eleven columns">
+        <p>Let's get cracking on the RESTful experience for our application. We are of course going to do this simply and from scratch so we won't be using such fancy things as express but instead keep it real with low level code (makes it easier to keep this exercise up to data aswell as we won't be tied to changes in Express.JS so much).</p>
+<p>We are of course ignoring any sort of concept of user security sessions and such trivial real world important features.</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">What's a <tt class="docutils literal">REST API</tt> you might ask. <tt class="docutils literal">HTTP</tt> contains several verbs that make up what we call <tt class="docutils literal">CRUD</tt> operations. These verbs are <tt class="docutils literal">GET</tt>, <tt class="docutils literal">POST</tt>, <tt class="docutils literal">PUT</tt> and <tt class="docutils literal">DELETE</tt>. Think off them as basic verbs of modifying a document. So <tt class="docutils literal">GET</tt> would be equivalent to a <tt class="docutils literal">MongoDB find</tt> operation, <tt class="docutils literal">POST</tt> would be an <tt class="docutils literal">insert</tt>, <tt class="docutils literal">PUT</tt> an <tt class="docutils literal">update</tt> and <tt class="docutils literal">DELETE</tt> a remove. Bare with us as we will cover them in more detail as we implement our <tt class="docutils literal">API</tt>.</p>
+</div>
+<div class="section" id="it-s-alive">
+<h1>It's alive</h1>
+<p>Let's get the code up and running and let's print the most useless but also the most common greeting in all programming tutorial. I present the &quot;Hello World step&quot;.</p>
+<p>Fire up the editor, open the file server.js and get cracking.</p>
+<div class="highlight"><pre><a name="code--ex20--ex1.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">http</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;http&#39;</span><span class="p">);</span>
+<a name="code--ex20--ex1.js-pyg.html-2"></a>
+<a name="code--ex20--ex1.js-pyg.html-3"></a><span class="kd">var</span> <span class="nx">server</span> <span class="o">=</span> <span class="nx">http</span><span class="p">.</span><span class="nx">createServer</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex1.js-pyg.html-4"></a>  <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s2">&quot;hello world!&quot;</span><span class="p">);</span>
+<a name="code--ex20--ex1.js-pyg.html-5"></a><span class="p">});</span>
+<a name="code--ex20--ex1.js-pyg.html-6"></a>
+<a name="code--ex20--ex1.js-pyg.html-7"></a><span class="nx">server</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">9090</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex20--ex1.js-pyg.html-8"></a>  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;listening on &quot;</span><span class="p">,</span> <span class="mi">9090</span><span class="p">);</span>
+<a name="code--ex20--ex1.js-pyg.html-9"></a><span class="p">});</span>
+</pre></div><p>The code will fire up an <tt class="docutils literal">HTTP</tt> server and will listen to the <tt class="docutils literal">9090</tt> socket port. Let's validate that the server is up and running. You can boot up the browser and point it to <tt class="docutils literal"><span class="pre">http://localhost:9090</span></tt> and you should see a web page that says <tt class="docutils literal">Hello world!</tt>. We are going to use a tool that comes with unixes called <tt class="docutils literal">curl</tt> going forward for simplicities sake. But any <tt class="docutils literal">url</tt> used with curl can be used in the browser aswell.</p>
+<pre class="code console literal-block">
+<span class="go">curl http://localhost:9090
+hello world!</span>
+</pre>
+<p>Sweet our website is up and running (not that it does anything yet). Next it's time to connect to mongodb.</p>
+</div>
+<div class="section" id="we-ve-got-power">
+<h1>We've got power</h1>
+<p>It's time to add some <tt class="docutils literal">MongoDB</tt> to our little app. For simplicities sake we are going to just do a global <tt class="docutils literal">MongoDB</tt> <tt class="docutils literal">NPM</tt> install, later we will package up the code using a proper <tt class="docutils literal">package.json</tt> file. Let's execute the following on the console.</p>
+<pre class="code console literal-block">
+<span class="go">npm install -g mongodb</span>
+</pre>
+<p>Let's modify the code slightly so we boot up our HTTP server and also connect to our <tt class="docutils literal">MongoDB</tt> database.</p>
+<div class="highlight"><pre><a name="code--ex20--ex2.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">http</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;http&#39;</span><span class="p">)</span>
+<a name="code--ex20--ex2.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex20--ex2.js-pyg.html-3"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex20--ex2.js-pyg.html-4"></a>
+<a name="code--ex20--ex2.js-pyg.html-5"></a><span class="kd">var</span> <span class="nx">dbInstance</span> <span class="o">=</span> <span class="kc">null</span><span class="p">;</span>
+<a name="code--ex20--ex2.js-pyg.html-6"></a>
+<a name="code--ex20--ex2.js-pyg.html-7"></a><span class="kd">var</span> <span class="nx">server</span> <span class="o">=</span> <span class="nx">http</span><span class="p">.</span><span class="nx">createServer</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex2.js-pyg.html-8"></a>  <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s2">&quot;hello world!&quot;</span><span class="p">);</span>
+<a name="code--ex20--ex2.js-pyg.html-9"></a><span class="p">});</span>
+<a name="code--ex20--ex2.js-pyg.html-10"></a>
+<a name="code--ex20--ex2.js-pyg.html-11"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/library&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex2.js-pyg.html-12"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">err</span><span class="p">;</span>
+<a name="code--ex20--ex2.js-pyg.html-13"></a>  <span class="nx">dbInstance</span> <span class="o">=</span> <span class="nx">db</span><span class="p">;</span>
+<a name="code--ex20--ex2.js-pyg.html-14"></a>  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to mongodb&quot;</span><span class="p">)</span>
+<a name="code--ex20--ex2.js-pyg.html-15"></a>
+<a name="code--ex20--ex2.js-pyg.html-16"></a>  <span class="nx">server</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">9090</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex20--ex2.js-pyg.html-17"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;listening on &quot;</span><span class="p">,</span> <span class="mi">9090</span><span class="p">);</span>
+<a name="code--ex20--ex2.js-pyg.html-18"></a>  <span class="p">});</span>
+<a name="code--ex20--ex2.js-pyg.html-19"></a><span class="p">});</span>
+</pre></div><p>Booting up the application we should see</p>
+<pre class="code console literal-block">
+<span class="go">node server.js
+connected to mongodb
+listening on  9090</span>
+</pre>
+<p>This code ensures we have a live connection before we stat accepting any <tt class="docutils literal">HTTP</tt> requests from users. It's time to get cracking on our <tt class="docutils literal">REST API</tt>. Let's look at what kind of operations we are going to be supporting for our library application.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="49%" />
+<col width="51%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Method Url</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>POST    /book</td>
+<td>Add a new book to the library</td>
+</tr>
+<tr><td>GET     /book/:id</td>
+<td>Get a specific book by id</td>
+</tr>
+<tr><td>REMOVE  /book/:id</td>
+<td>Remove a specific book by id</td>
+</tr>
+<tr><td>PUT     /book/:id/publisher/:publisher_id</td>
+<td>Associate a publisher with this book</td>
+</tr>
+<tr><td>GET     /book/search?query=?</td>
+<td>Search for books by title</td>
+</tr>
+<tr><td>GET     /author/search?query=?</td>
+<td>Search for author</td>
+</tr>
+<tr><td>GET     /author/:id</td>
+<td>Get an author</td>
+</tr>
+<tr><td>POST    /author</td>
+<td>Add a new author</td>
+</tr>
+<tr><td>DELETE  /author/:id</td>
+<td>Remove an existing author</td>
+</tr>
+<tr><td>PUT     /book/:id/author/:author_id</td>
+<td>Associate an author with this book</td>
+</tr>
+<tr><td>GET     /author/:id/books</td>
+<td>Get books by author</td>
+</tr>
+<tr><td>GET     /publisher/search?query=?</td>
+<td>Search for publisher</td>
+</tr>
+<tr><td>GET     /publisher/:id/books</td>
+<td>Get the books by publisher</td>
+</tr>
+<tr><td>GET     /publisher/:id</td>
+<td>Get a publisher</td>
+</tr>
+<tr><td>POST    /publisher</td>
+<td>Add a new publisher</td>
+</tr>
+<tr><td>DELETE  /publisher/:id</td>
+<td>Remove an existing publisher</td>
+</tr>
+<tr><td>POST    /user</td>
+<td>Add a user to the library</td>
+</tr>
+<tr><td>GET     /user/:id</td>
+<td>Get a user off the library</td>
+</tr>
+<tr><td>REMOVE  /user/:id</td>
+<td>Remove a user from the library</td>
+</tr>
+<tr><td>GET     /user/:id/loans</td>
+<td>Get all the books loaned by a specific user</td>
+</tr>
+<tr><td>POST    /user/:id/loan/:book_id</td>
+<td>Borrow a book</td>
+</tr>
+<tr><td>DELETE  /user/:id/loan/:book_id</td>
+<td>Return a book</td>
+</tr>
+<tr><td>PUT     /user/:id/loan/:book_id</td>
+<td>Extend a loan period / modify a loan period</td>
+</tr>
+<tr><td>GET     /loan/overdue</td>
+<td>Get a list of all overdue books</td>
+</tr>
+<tr><td>GET     /loan/overdue/:days</td>
+<td>Get a list of all overdue books in ?days days</td>
+</tr>
+</tbody>
+</table>
+<p>Let's get cracking on adding the initial book API support. The first step is to write a simple router for our application. Let's write it to support the initial book URL's. Fire up the editor and let's get cracking.</p>
+<div class="highlight"><pre><a name="code--ex20--ex3.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">http</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;http&#39;</span><span class="p">)</span>
+<a name="code--ex20--ex3.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex20--ex3.js-pyg.html-3"></a>  <span class="p">,</span> <span class="nx">parse</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;url&#39;</span><span class="p">).</span><span class="nx">parse</span>
+<a name="code--ex20--ex3.js-pyg.html-4"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex20--ex3.js-pyg.html-5"></a>
+<a name="code--ex20--ex3.js-pyg.html-6"></a><span class="kd">var</span> <span class="nx">dbInstance</span> <span class="o">=</span> <span class="kc">null</span><span class="p">;</span>
+<a name="code--ex20--ex3.js-pyg.html-7"></a><span class="kd">var</span> <span class="nx">router</span> <span class="o">=</span> <span class="p">{</span>
+<a name="code--ex20--ex3.js-pyg.html-8"></a>  <span class="nx">routes</span><span class="o">:</span> <span class="p">{</span>
+<a name="code--ex20--ex3.js-pyg.html-9"></a>    <span class="nx">get</span><span class="o">:</span> <span class="p">[],</span> <span class="nx">post</span><span class="o">:</span> <span class="p">[],</span> <span class="k">delete</span><span class="o">:</span> <span class="p">[],</span> <span class="nx">put</span><span class="o">:</span> <span class="p">[]</span>
+<a name="code--ex20--ex3.js-pyg.html-10"></a>  <span class="p">},</span>
+<a name="code--ex20--ex3.js-pyg.html-11"></a>
+<a name="code--ex20--ex3.js-pyg.html-12"></a>  <span class="nx">get</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">route</span><span class="p">,</span> <span class="nx">fn</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex3.js-pyg.html-13"></a>    <span class="k">this</span><span class="p">.</span><span class="nx">compile</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">routes</span><span class="p">.</span><span class="nx">get</span><span class="p">,</span> <span class="nx">route</span><span class="p">,</span> <span class="nx">fn</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-14"></a>  <span class="p">},</span>
+<a name="code--ex20--ex3.js-pyg.html-15"></a>
+<a name="code--ex20--ex3.js-pyg.html-16"></a>  <span class="nx">post</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">route</span><span class="p">,</span> <span class="nx">fn</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex3.js-pyg.html-17"></a>    <span class="k">this</span><span class="p">.</span><span class="nx">compile</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">routes</span><span class="p">.</span><span class="nx">post</span><span class="p">,</span> <span class="nx">route</span><span class="p">,</span> <span class="nx">fn</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-18"></a>  <span class="p">},</span>
+<a name="code--ex20--ex3.js-pyg.html-19"></a>
+<a name="code--ex20--ex3.js-pyg.html-20"></a>  <span class="nx">put</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">route</span><span class="p">,</span> <span class="nx">fn</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex3.js-pyg.html-21"></a>    <span class="k">this</span><span class="p">.</span><span class="nx">compile</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">routes</span><span class="p">.</span><span class="nx">put</span><span class="p">,</span> <span class="nx">route</span><span class="p">,</span> <span class="nx">fn</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-22"></a>  <span class="p">},</span>
+<a name="code--ex20--ex3.js-pyg.html-23"></a>
+<a name="code--ex20--ex3.js-pyg.html-24"></a>  <span class="k">delete</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">route</span><span class="p">,</span> <span class="nx">fn</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex3.js-pyg.html-25"></a>    <span class="k">this</span><span class="p">.</span><span class="nx">compile</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">routes</span><span class="p">.</span><span class="k">delete</span><span class="p">,</span> <span class="nx">route</span><span class="p">,</span> <span class="nx">fn</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-26"></a>  <span class="p">},</span>
+<a name="code--ex20--ex3.js-pyg.html-27"></a>
+<a name="code--ex20--ex3.js-pyg.html-28"></a>  <span class="nx">compile</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">routes</span><span class="p">,</span> <span class="nx">route</span><span class="p">,</span> <span class="nx">fn</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex3.js-pyg.html-29"></a>    <span class="c1">// Rewrite the route as regular expression</span>
+<a name="code--ex20--ex3.js-pyg.html-30"></a>    <span class="kd">var</span> <span class="nx">urlParts</span> <span class="o">=</span> <span class="nx">route</span><span class="p">.</span><span class="nx">split</span><span class="p">(</span><span class="sr">/\//</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-31"></a>    <span class="kd">var</span> <span class="nx">params</span> <span class="o">=</span> <span class="p">[];</span>
+<a name="code--ex20--ex3.js-pyg.html-32"></a>    <span class="kd">var</span> <span class="nx">regexp</span> <span class="o">=</span> <span class="s2">&quot;^&quot;</span> <span class="o">+</span> <span class="nx">urlParts</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">part</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex3.js-pyg.html-33"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">part</span><span class="p">.</span><span class="nx">indexOf</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex3.js-pyg.html-34"></a>        <span class="nx">params</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">part</span><span class="p">.</span><span class="nx">substr</span><span class="p">(</span><span class="mi">1</span><span class="p">));</span>
+<a name="code--ex20--ex3.js-pyg.html-35"></a>        <span class="k">return</span> <span class="s2">&quot;([0-9|a-z|A-Z|_]+)&quot;</span><span class="p">;</span>
+<a name="code--ex20--ex3.js-pyg.html-36"></a>      <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex20--ex3.js-pyg.html-37"></a>        <span class="k">return</span> <span class="nx">part</span><span class="p">;</span>
+<a name="code--ex20--ex3.js-pyg.html-38"></a>      <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-39"></a>    <span class="p">}).</span><span class="nx">join</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;$&quot;</span><span class="p">;</span>
+<a name="code--ex20--ex3.js-pyg.html-40"></a>    <span class="c1">// Final object</span>
+<a name="code--ex20--ex3.js-pyg.html-41"></a>    <span class="kd">var</span> <span class="nx">object</span> <span class="o">=</span> <span class="p">{</span><span class="nx">route</span><span class="o">:</span> <span class="p">{</span><span class="nx">regexp</span><span class="o">:</span> <span class="nx">regexp</span><span class="p">,</span> <span class="nx">params</span><span class="o">:</span> <span class="nx">params</span><span class="p">},</span> <span class="nx">fn</span><span class="o">:</span><span class="nx">fn</span><span class="p">};</span>
+<a name="code--ex20--ex3.js-pyg.html-42"></a>    <span class="c1">// If we have no params we put it at the start</span>
+<a name="code--ex20--ex3.js-pyg.html-43"></a>    <span class="k">if</span><span class="p">(</span><span class="nx">params</span><span class="p">.</span><span class="nx">length</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex3.js-pyg.html-44"></a>      <span class="nx">routes</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="nx">object</span><span class="p">)</span>
+<a name="code--ex20--ex3.js-pyg.html-45"></a>      <span class="c1">// routes.push(object);</span>
+<a name="code--ex20--ex3.js-pyg.html-46"></a>    <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex20--ex3.js-pyg.html-47"></a>      <span class="nx">routes</span><span class="p">.</span><span class="nx">push</span><span class="p">(</span><span class="nx">object</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-48"></a>    <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-49"></a>  <span class="p">},</span>
+<a name="code--ex20--ex3.js-pyg.html-50"></a>
+<a name="code--ex20--ex3.js-pyg.html-51"></a>  <span class="nx">route</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex3.js-pyg.html-52"></a>    <span class="kd">var</span> <span class="nx">method</span> <span class="o">=</span> <span class="nx">req</span><span class="p">.</span><span class="nx">method</span><span class="p">;</span>
+<a name="code--ex20--ex3.js-pyg.html-53"></a>    <span class="kd">var</span> <span class="nx">url</span> <span class="o">=</span> <span class="nx">parse</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">url</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-54"></a>    <span class="kd">var</span> <span class="nx">routes</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">routes</span><span class="p">[</span><span class="nx">method</span><span class="p">.</span><span class="nx">toLowerCase</span><span class="p">()]</span>
+<a name="code--ex20--ex3.js-pyg.html-55"></a>    <span class="c1">// Holds the route we match</span>
+<a name="code--ex20--ex3.js-pyg.html-56"></a>    <span class="kd">var</span> <span class="nx">matching</span> <span class="o">=</span> <span class="kc">null</span><span class="p">;</span>
+<a name="code--ex20--ex3.js-pyg.html-57"></a>    <span class="kd">var</span> <span class="nx">regexpMatch</span> <span class="o">=</span> <span class="kc">null</span><span class="p">;</span>
+<a name="code--ex20--ex3.js-pyg.html-58"></a>
+<a name="code--ex20--ex3.js-pyg.html-59"></a>    <span class="c1">// Locate the matching function</span>
+<a name="code--ex20--ex3.js-pyg.html-60"></a>    <span class="k">for</span><span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">routes</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex3.js-pyg.html-61"></a>      <span class="nx">regexpMatch</span> <span class="o">=</span> <span class="nx">url</span><span class="p">.</span><span class="nx">pathname</span><span class="p">.</span><span class="nx">match</span><span class="p">(</span><span class="nx">routes</span><span class="p">[</span><span class="nx">i</span><span class="p">].</span><span class="nx">route</span><span class="p">.</span><span class="nx">regexp</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-62"></a>
+<a name="code--ex20--ex3.js-pyg.html-63"></a>      <span class="c1">// We have a match</span>
+<a name="code--ex20--ex3.js-pyg.html-64"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">regexpMatch</span> <span class="o">!=</span> <span class="kc">null</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex3.js-pyg.html-65"></a>        <span class="nx">matching</span> <span class="o">=</span> <span class="nx">routes</span><span class="p">[</span><span class="nx">i</span><span class="p">];</span>
+<a name="code--ex20--ex3.js-pyg.html-66"></a>        <span class="k">break</span><span class="p">;</span>
+<a name="code--ex20--ex3.js-pyg.html-67"></a>      <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-68"></a>    <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-69"></a>
+<a name="code--ex20--ex3.js-pyg.html-70"></a>    <span class="c1">// No route found just write to browser</span>
+<a name="code--ex20--ex3.js-pyg.html-71"></a>    <span class="k">if</span><span class="p">(</span><span class="nx">matching</span> <span class="o">==</span> <span class="kc">null</span><span class="p">)</span> <span class="k">return</span> <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s1">&#39;no route found&#39;</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-72"></a>
+<a name="code--ex20--ex3.js-pyg.html-73"></a>    <span class="c1">// Build params result</span>
+<a name="code--ex20--ex3.js-pyg.html-74"></a>    <span class="kd">var</span> <span class="nx">params</span> <span class="o">=</span> <span class="p">{};</span>
+<a name="code--ex20--ex3.js-pyg.html-75"></a>    <span class="c1">// For each param let&#39;s setup the result</span>
+<a name="code--ex20--ex3.js-pyg.html-76"></a>    <span class="k">for</span><span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">matching</span><span class="p">.</span><span class="nx">route</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex3.js-pyg.html-77"></a>      <span class="nx">params</span><span class="p">[</span><span class="nx">matching</span><span class="p">.</span><span class="nx">route</span><span class="p">.</span><span class="nx">params</span><span class="p">[</span><span class="nx">i</span><span class="p">]]</span> <span class="o">=</span> <span class="nx">regexpMatch</span><span class="p">[</span><span class="nx">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">];</span>
+<a name="code--ex20--ex3.js-pyg.html-78"></a>    <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-79"></a>
+<a name="code--ex20--ex3.js-pyg.html-80"></a>    <span class="c1">// Add to the request</span>
+<a name="code--ex20--ex3.js-pyg.html-81"></a>    <span class="nx">req</span><span class="p">.</span><span class="nx">params</span> <span class="o">=</span> <span class="nx">params</span><span class="p">;</span>
+<a name="code--ex20--ex3.js-pyg.html-82"></a>
+<a name="code--ex20--ex3.js-pyg.html-83"></a>    <span class="c1">// Let&#39;s execute the function</span>
+<a name="code--ex20--ex3.js-pyg.html-84"></a>    <span class="nx">matching</span><span class="p">.</span><span class="nx">fn</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-85"></a>  <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-86"></a><span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-87"></a>
+<a name="code--ex20--ex3.js-pyg.html-88"></a><span class="c1">// Methods</span>
+<a name="code--ex20--ex3.js-pyg.html-89"></a><span class="kd">var</span> <span class="nx">createBook</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span> <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s1">&#39;createBook&#39;</span><span class="p">);</span> <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-90"></a><span class="kd">var</span> <span class="nx">getBook</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span> <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s1">&#39;getBook&#39;</span><span class="p">);</span> <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-91"></a><span class="kd">var</span> <span class="nx">deleteBook</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span> <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s1">&#39;deleteBook&#39;</span><span class="p">);</span> <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-92"></a><span class="kd">var</span> <span class="nx">searchByBook</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span> <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s1">&#39;searchByBook&#39;</span><span class="p">);</span> <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-93"></a><span class="kd">var</span> <span class="nx">searchByAuthor</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span> <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s1">&#39;searchByAuthor&#39;</span><span class="p">);</span> <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-94"></a><span class="kd">var</span> <span class="nx">getBooksByAuthor</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span> <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s1">&#39;getBooksByAuthor&#39;</span><span class="p">);</span> <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-95"></a><span class="kd">var</span> <span class="nx">searchByPublisher</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span> <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s1">&#39;searchByPublisher&#39;</span><span class="p">);</span> <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-96"></a><span class="kd">var</span> <span class="nx">getBooksByPublisher</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span> <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s1">&#39;getBooksByPublisher&#39;</span><span class="p">);</span> <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-97"></a><span class="kd">var</span> <span class="nx">getLoansByUser</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span> <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s1">&#39;getLoansByUser&#39;</span><span class="p">);</span> <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-98"></a><span class="kd">var</span> <span class="nx">borrowABook</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span> <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s1">&#39;borrowABook&#39;</span><span class="p">);</span> <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-99"></a><span class="kd">var</span> <span class="nx">returnAABook</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span> <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s1">&#39;returnAABook&#39;</span><span class="p">);</span> <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-100"></a><span class="kd">var</span> <span class="nx">modifyLoan</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span> <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s1">&#39;modifyLoan&#39;</span><span class="p">);</span> <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-101"></a><span class="kd">var</span> <span class="nx">overdueLoans</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span> <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s1">&#39;overdueLoans&#39;</span><span class="p">);</span> <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-102"></a><span class="kd">var</span> <span class="nx">overdueLoansByDays</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span> <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s1">&#39;overdueLoansByDays&#39;</span><span class="p">);</span> <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-103"></a><span class="kd">var</span> <span class="nx">getAuthor</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span> <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s1">&#39;getAuthor&#39;</span><span class="p">);</span> <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-104"></a><span class="kd">var</span> <span class="nx">createAuthor</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span> <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s1">&#39;createAuthor&#39;</span><span class="p">);</span> <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-105"></a><span class="kd">var</span> <span class="nx">deleteAuthor</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span> <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s1">&#39;deleteAuthor&#39;</span><span class="p">);</span> <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-106"></a><span class="kd">var</span> <span class="nx">getPublisher</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span> <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s1">&#39;getPublisher&#39;</span><span class="p">);</span> <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-107"></a><span class="kd">var</span> <span class="nx">createPublisher</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span> <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s1">&#39;createPublisher&#39;</span><span class="p">);</span> <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-108"></a><span class="kd">var</span> <span class="nx">deletePublisher</span>  <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span> <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s1">&#39;deletePublisher&#39;</span><span class="p">);</span> <span class="p">}</span>
+<a name="code--ex20--ex3.js-pyg.html-109"></a>
+<a name="code--ex20--ex3.js-pyg.html-110"></a><span class="c1">// Routes for the book</span>
+<a name="code--ex20--ex3.js-pyg.html-111"></a><span class="nx">router</span><span class="p">.</span><span class="nx">post</span><span class="p">(</span><span class="s2">&quot;/book&quot;</span><span class="p">,</span> <span class="nx">createBook</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-112"></a><span class="nx">router</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s2">&quot;/book/:id&quot;</span><span class="p">,</span> <span class="nx">getBook</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-113"></a><span class="nx">router</span><span class="p">.</span><span class="k">delete</span><span class="p">(</span><span class="s2">&quot;/book/:id&quot;</span><span class="p">,</span> <span class="nx">deleteBook</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-114"></a><span class="nx">router</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s2">&quot;/book/search&quot;</span><span class="p">,</span> <span class="nx">searchByBook</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-115"></a>
+<a name="code--ex20--ex3.js-pyg.html-116"></a><span class="c1">// Routes for the author</span>
+<a name="code--ex20--ex3.js-pyg.html-117"></a><span class="nx">router</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s2">&quot;/author/search&quot;</span><span class="p">,</span> <span class="nx">searchByAuthor</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-118"></a><span class="nx">router</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s2">&quot;/author/:id/books&quot;</span><span class="p">,</span> <span class="nx">getBooksByAuthor</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-119"></a><span class="nx">router</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s2">&quot;/author/:id&quot;</span><span class="p">,</span> <span class="nx">getAuthor</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-120"></a><span class="nx">router</span><span class="p">.</span><span class="nx">post</span><span class="p">(</span><span class="s2">&quot;/author&quot;</span><span class="p">,</span> <span class="nx">createAuthor</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-121"></a><span class="nx">router</span><span class="p">.</span><span class="k">delete</span><span class="p">(</span><span class="s2">&quot;/author/:id&quot;</span><span class="p">,</span> <span class="nx">deleteAuthor</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-122"></a>
+<a name="code--ex20--ex3.js-pyg.html-123"></a><span class="c1">// Routes for the publisher</span>
+<a name="code--ex20--ex3.js-pyg.html-124"></a><span class="nx">router</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s2">&quot;/publisher/search&quot;</span><span class="p">,</span> <span class="nx">searchByPublisher</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-125"></a><span class="nx">router</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s2">&quot;/publisher/:id/books&quot;</span><span class="p">,</span> <span class="nx">getBooksByPublisher</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-126"></a><span class="nx">router</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s2">&quot;/publisher/:id&quot;</span><span class="p">,</span> <span class="nx">getPublisher</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-127"></a><span class="nx">router</span><span class="p">.</span><span class="nx">post</span><span class="p">(</span><span class="s2">&quot;/publisher&quot;</span><span class="p">,</span> <span class="nx">createPublisher</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-128"></a><span class="nx">router</span><span class="p">.</span><span class="k">delete</span><span class="p">(</span><span class="s2">&quot;/publisher/:id&quot;</span><span class="p">,</span> <span class="nx">deletePublisher</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-129"></a>
+<a name="code--ex20--ex3.js-pyg.html-130"></a><span class="c1">// Routes for the user</span>
+<a name="code--ex20--ex3.js-pyg.html-131"></a><span class="nx">router</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s2">&quot;/user/:id/loans&quot;</span><span class="p">,</span> <span class="nx">getLoansByUser</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-132"></a><span class="nx">router</span><span class="p">.</span><span class="nx">post</span><span class="p">(</span><span class="s2">&quot;/user/:id/loan&quot;</span><span class="p">,</span> <span class="nx">borrowABook</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-133"></a><span class="nx">router</span><span class="p">.</span><span class="k">delete</span><span class="p">(</span><span class="s2">&quot;/user/:id/loan&quot;</span><span class="p">,</span> <span class="nx">returnAABook</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-134"></a><span class="nx">router</span><span class="p">.</span><span class="nx">put</span><span class="p">(</span><span class="s2">&quot;/user/:id/loan&quot;</span><span class="p">,</span> <span class="nx">modifyLoan</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-135"></a>
+<a name="code--ex20--ex3.js-pyg.html-136"></a><span class="c1">// Routes for handling loans</span>
+<a name="code--ex20--ex3.js-pyg.html-137"></a><span class="nx">router</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s2">&quot;/loan/overdue&quot;</span><span class="p">,</span> <span class="nx">overdueLoans</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-138"></a><span class="nx">router</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s2">&quot;/loan/overdue/:days&quot;</span><span class="p">,</span> <span class="nx">overdueLoansByDays</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-139"></a>
+<a name="code--ex20--ex3.js-pyg.html-140"></a><span class="c1">// Start a server instance</span>
+<a name="code--ex20--ex3.js-pyg.html-141"></a><span class="kd">var</span> <span class="nx">server</span> <span class="o">=</span> <span class="nx">http</span><span class="p">.</span><span class="nx">createServer</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex3.js-pyg.html-142"></a>  <span class="nx">router</span><span class="p">.</span><span class="nx">route</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-143"></a><span class="p">});</span>
+<a name="code--ex20--ex3.js-pyg.html-144"></a>
+<a name="code--ex20--ex3.js-pyg.html-145"></a><span class="c1">// Connect to MongoDB</span>
+<a name="code--ex20--ex3.js-pyg.html-146"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/library&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex3.js-pyg.html-147"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="k">throw</span> <span class="nx">err</span><span class="p">;</span>
+<a name="code--ex20--ex3.js-pyg.html-148"></a>  <span class="nx">dbInstance</span> <span class="o">=</span> <span class="nx">db</span><span class="p">;</span>
+<a name="code--ex20--ex3.js-pyg.html-149"></a>  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to mongodb&quot;</span><span class="p">)</span>
+<a name="code--ex20--ex3.js-pyg.html-150"></a>
+<a name="code--ex20--ex3.js-pyg.html-151"></a>  <span class="nx">server</span><span class="p">.</span><span class="nx">listen</span><span class="p">(</span><span class="mi">9090</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex20--ex3.js-pyg.html-152"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;listening on &quot;</span><span class="p">,</span> <span class="mi">9090</span><span class="p">);</span>
+<a name="code--ex20--ex3.js-pyg.html-153"></a>  <span class="p">});</span>
+<a name="code--ex20--ex3.js-pyg.html-154"></a><span class="p">});</span>
+</pre></div><p>So what's the point of the router. It simplifies our application by letting us use a string to match a <tt class="docutils literal">URL</tt> pattern and <tt class="docutils literal">route</tt> the request to the right function. The magic is in the <tt class="docutils literal">compile</tt> function. What the function does is to rewrite a string like <tt class="docutils literal"><span class="pre">/book/:id</span></tt> to a regular expression that matches on URL's like <tt class="docutils literal">/book/1</tt>. After the regular expression is created it's stored with the available parameters. in an object looking like this.</p>
+<pre class="code javascript literal-block">
+<span class="p">{</span>
+  <span class="nx">route</span><span class="o">:</span> <span class="p">{</span>
+      <span class="nx">regexp</span><span class="o">:</span> <span class="s2">&quot;/book/([0-9|a-z|A-Z|_]+)&quot;</span>
+    <span class="p">,</span> <span class="nx">params</span><span class="o">:</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+  <span class="p">}</span>
+  <span class="p">,</span><span class="nx">fn</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span><span class="p">}</span>
+<span class="p">}</span>
+</pre>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">Notice if there is no <tt class="docutils literal">params</tt> for a <tt class="docutils literal">route</tt> we add it to the start of the list of routes. This is because we want to test the non parametrized <tt class="docutils literal">routes</tt> first as <tt class="docutils literal">routes</tt> that contain parameters could match fixed routes. That's to say <tt class="docutils literal"><span class="pre">/book/([0-9|a-z|A-Z|_]+</span></tt> will match on <tt class="docutils literal">/book/1</tt> as well as <tt class="docutils literal">/book/search</tt>. By putting <tt class="docutils literal">/book/search</tt> first we ensure we can match on specific version before falling back to the <tt class="docutils literal"><span class="pre">/book/([0-9|a-z|A-Z|_]+</span></tt> match.</p>
+</div>
+<p>Each time a new HTTP request happens the incoming <tt class="docutils literal">URL</tt> is decoded using the <tt class="docutils literal">route</tt> method and if it matches a registered <tt class="docutils literal">route</tt> any <tt class="docutils literal">params</tt> are extracted and added to the <tt class="docutils literal">request</tt> object under the <tt class="docutils literal">params</tt> field. So in other words if we register the following method.</p>
+<pre class="code javascript literal-block">
+<span class="kd">var</span> <span class="nx">getBook</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span> <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s1">'getBook'</span><span class="p">);</span> <span class="p">}</span>
+
+<span class="nx">router</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s2">&quot;/book/:id&quot;</span><span class="p">,</span> <span class="nx">getBook</span><span class="p">);</span>
+</pre>
+<p>The method <tt class="docutils literal">getBook</tt> will receive a <tt class="docutils literal">request</tt> object that will contain the <tt class="docutils literal">params</tt> object containing <tt class="docutils literal">id</tt> parameter. Let's say the we fetch <tt class="docutils literal"><span class="pre">http://localhost:9090/book/1</span></tt>. How can we get to the <tt class="docutils literal">id</tt> variable?.</p>
+<pre class="code javascript literal-block">
+<span class="kd">var</span> <span class="nx">getBook</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">id</span> <span class="o">=</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">;</span>
+  <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="s1">'getBook'</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="nx">router</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s2">&quot;/book/:id&quot;</span><span class="p">,</span> <span class="nx">getBook</span><span class="p">);</span>
+</pre>
+<p>As you can see we have set up all the routes we mentioned above. So let's get started implementing them. Let's start with adding the author and publisher as books are depended on these entities.</p>
+<div class="highlight"><pre><a name="code--ex20--ex4.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">writeError</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">res</span><span class="p">,</span> <span class="nx">code</span><span class="p">,</span> <span class="nx">message</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex4.js-pyg.html-2"></a>  <span class="nx">res</span><span class="p">.</span><span class="nx">writeHead</span><span class="p">(</span><span class="nx">code</span><span class="p">,</span> <span class="nx">message</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;content-type&#39;</span><span class="o">:</span> <span class="s1">&#39;text/plain&#39;</span><span class="p">});</span>
+<a name="code--ex20--ex4.js-pyg.html-3"></a>  <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">message</span><span class="p">);</span>
+<a name="code--ex20--ex4.js-pyg.html-4"></a><span class="p">}</span>
+<a name="code--ex20--ex4.js-pyg.html-5"></a>
+<a name="code--ex20--ex4.js-pyg.html-6"></a><span class="kd">var</span> <span class="nx">postJSONHelper</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex4.js-pyg.html-7"></a>  <span class="kd">var</span> <span class="nx">data</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">;</span>
+<a name="code--ex20--ex4.js-pyg.html-8"></a>
+<a name="code--ex20--ex4.js-pyg.html-9"></a>  <span class="nx">req</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">chunk</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex4.js-pyg.html-10"></a>    <span class="nx">data</span> <span class="o">+=</span> <span class="nx">chunk</span><span class="p">;</span>
+<a name="code--ex20--ex4.js-pyg.html-11"></a>  <span class="p">})</span>
+<a name="code--ex20--ex4.js-pyg.html-12"></a>
+<a name="code--ex20--ex4.js-pyg.html-13"></a>  <span class="nx">req</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex20--ex4.js-pyg.html-14"></a>    <span class="k">try</span> <span class="p">{</span>
+<a name="code--ex20--ex4.js-pyg.html-15"></a>      <span class="kd">var</span> <span class="nx">obj</span> <span class="o">=</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">data</span><span class="p">);</span>
+<a name="code--ex20--ex4.js-pyg.html-16"></a>      <span class="nx">callback</span><span class="p">(</span><span class="kc">null</span><span class="p">,</span> <span class="nx">obj</span><span class="p">);</span>
+<a name="code--ex20--ex4.js-pyg.html-17"></a>    <span class="p">}</span> <span class="k">catch</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex4.js-pyg.html-18"></a>      <span class="nx">callback</span><span class="p">(</span><span class="nx">err</span><span class="p">);</span>
+<a name="code--ex20--ex4.js-pyg.html-19"></a>    <span class="p">}</span>
+<a name="code--ex20--ex4.js-pyg.html-20"></a>  <span class="p">})</span>
+<a name="code--ex20--ex4.js-pyg.html-21"></a><span class="p">}</span>
+<a name="code--ex20--ex4.js-pyg.html-22"></a>
+<a name="code--ex20--ex4.js-pyg.html-23"></a><span class="c1">// Methods for the author</span>
+<a name="code--ex20--ex4.js-pyg.html-24"></a><span class="c1">// POST /author</span>
+<a name="code--ex20--ex4.js-pyg.html-25"></a><span class="kd">var</span> <span class="nx">createAuthor</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex4.js-pyg.html-26"></a>  <span class="nx">postJSONHelper</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">object</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex4.js-pyg.html-27"></a>    <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+<a name="code--ex20--ex4.js-pyg.html-28"></a>      <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span><span class="p">,</span> <span class="mi">406</span><span class="p">,</span> <span class="s1">&#39;Illegal JSON&#39;</span><span class="p">);</span>
+<a name="code--ex20--ex4.js-pyg.html-29"></a>
+<a name="code--ex20--ex4.js-pyg.html-30"></a>    <span class="c1">// Insert the user</span>
+<a name="code--ex20--ex4.js-pyg.html-31"></a>    <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;authors&#39;</span><span class="p">).</span><span class="nx">insert</span><span class="p">(</span><span class="nx">object</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex4.js-pyg.html-32"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+<a name="code--ex20--ex4.js-pyg.html-33"></a>        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="s1">&#39;Failed to insert document&#39;</span><span class="p">);</span>
+<a name="code--ex20--ex4.js-pyg.html-34"></a>
+<a name="code--ex20--ex4.js-pyg.html-35"></a>      <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">doc</span><span class="p">[</span><span class="mi">0</span><span class="p">]));</span>
+<a name="code--ex20--ex4.js-pyg.html-36"></a>    <span class="p">});</span>
+<a name="code--ex20--ex4.js-pyg.html-37"></a>  <span class="p">});</span>
+<a name="code--ex20--ex4.js-pyg.html-38"></a><span class="p">}</span>
+<a name="code--ex20--ex4.js-pyg.html-39"></a>
+<a name="code--ex20--ex4.js-pyg.html-40"></a><span class="c1">// GET /author/:id</span>
+<a name="code--ex20--ex4.js-pyg.html-41"></a><span class="kd">var</span> <span class="nx">getAuthor</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex4.js-pyg.html-42"></a>  <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;authors&#39;</span><span class="p">)</span>
+<a name="code--ex20--ex4.js-pyg.html-43"></a>    <span class="p">.</span><span class="nx">findOne</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex4.js-pyg.html-44"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span> <span class="o">||</span> <span class="nx">doc</span> <span class="o">==</span> <span class="kc">null</span><span class="p">)</span>
+<a name="code--ex20--ex4.js-pyg.html-45"></a>        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+<a name="code--ex20--ex4.js-pyg.html-46"></a>          <span class="p">,</span> <span class="mi">404</span>
+<a name="code--ex20--ex4.js-pyg.html-47"></a>          <span class="p">,</span> <span class="s1">&#39;Failed to retrieve document from database for id &#39;</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+<a name="code--ex20--ex4.js-pyg.html-48"></a>
+<a name="code--ex20--ex4.js-pyg.html-49"></a>      <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">doc</span><span class="p">));</span>
+<a name="code--ex20--ex4.js-pyg.html-50"></a>  <span class="p">});</span>
+<a name="code--ex20--ex4.js-pyg.html-51"></a><span class="p">}</span>
+<a name="code--ex20--ex4.js-pyg.html-52"></a>
+<a name="code--ex20--ex4.js-pyg.html-53"></a><span class="c1">// DELETE /author/:id</span>
+<a name="code--ex20--ex4.js-pyg.html-54"></a><span class="kd">var</span> <span class="nx">deleteAuthor</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex4.js-pyg.html-55"></a>  <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;authors&#39;</span><span class="p">)</span>
+<a name="code--ex20--ex4.js-pyg.html-56"></a>    <span class="p">.</span><span class="nx">remove</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">deleted</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex20--ex4.js-pyg.html-57"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+<a name="code--ex20--ex4.js-pyg.html-58"></a>        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+<a name="code--ex20--ex4.js-pyg.html-59"></a>          <span class="p">,</span> <span class="mi">500</span>
+<a name="code--ex20--ex4.js-pyg.html-60"></a>          <span class="p">,</span> <span class="s1">&#39;Failed to delete document from database for id &#39;</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+<a name="code--ex20--ex4.js-pyg.html-61"></a>
+<a name="code--ex20--ex4.js-pyg.html-62"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">deleted</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+<a name="code--ex20--ex4.js-pyg.html-63"></a>        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+<a name="code--ex20--ex4.js-pyg.html-64"></a>          <span class="p">,</span> <span class="mi">404</span>
+<a name="code--ex20--ex4.js-pyg.html-65"></a>          <span class="p">,</span> <span class="s1">&#39;No document with id &#39;</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span> <span class="o">+</span> <span class="s1">&#39; found in database&#39;</span><span class="p">);</span>
+<a name="code--ex20--ex4.js-pyg.html-66"></a>
+<a name="code--ex20--ex4.js-pyg.html-67"></a>      <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">}));</span>
+<a name="code--ex20--ex4.js-pyg.html-68"></a>  <span class="p">});</span>
+<a name="code--ex20--ex4.js-pyg.html-69"></a><span class="p">}</span>
+</pre></div><p>Let's try out to create a new book, fetch it and remove it. Notice that the <tt class="docutils literal">_id</tt> field will vary for you so make sure to modify the curl commands to use the correct id.</p>
+<pre class="code console literal-block">
+<span class="go">curl -X POST -d &quot;{\&quot;name\&quot;:\&quot;James Kirk\&quot;}&quot; http://localhost:9090/author
+{&quot;name&quot;:&quot;James Kirk&quot;,&quot;_id&quot;:&quot;51921ef8b67cc57333000001&quot;}
+
+curl -X GET http://localhost:9090/author/51921ef8b67cc57333000001
+{&quot;name&quot;:&quot;James Kirk&quot;,&quot;_id&quot;:&quot;51921ef8b67cc57333000001&quot;}
+
+curl -X DELETE http://localhost:9090/author/51921ef8b67cc57333000001
+{&quot;_id&quot;:&quot;51921ef8b67cc57333000001&quot;}</span>
+</pre>
+<p>Awesome we now have a couple of CRUD operations that we can use to add an author, fetch an existing author by id and delete an author by id. So let's look at the methods we have added starting with the <tt class="docutils literal">createAuthor</tt> method.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// Methods for the author
+// POST /author
+</span><span class="kd">var</span> <span class="nx">createAuthor</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">postJSONHelper</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">object</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+      <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span><span class="p">,</span> <span class="mi">406</span><span class="p">,</span> <span class="s1">'Illegal JSON'</span><span class="p">);</span>
+
+    <span class="c1">// Insert the user
+</span>    <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'authors'</span><span class="p">).</span><span class="nx">insert</span><span class="p">(</span><span class="nx">object</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="s1">'Failed to insert document'</span><span class="p">);</span>
+
+      <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">doc</span><span class="p">[</span><span class="mi">0</span><span class="p">]));</span>
+    <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>Notice the two helper methods called <tt class="docutils literal">postJSONHelper</tt> and <tt class="docutils literal">writeError</tt>. Let's stop a moment and take a look at the code for those two methods.</p>
+<pre class="code javascript literal-block">
+<span class="kd">var</span> <span class="nx">writeError</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">res</span><span class="p">,</span> <span class="nx">code</span><span class="p">,</span> <span class="nx">message</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">res</span><span class="p">.</span><span class="nx">writeHead</span><span class="p">(</span><span class="nx">code</span><span class="p">,</span> <span class="nx">message</span><span class="p">,</span> <span class="p">{</span><span class="s1">'content-type'</span><span class="o">:</span> <span class="s1">'text/plain'</span><span class="p">});</span>
+  <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">message</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kd">var</span> <span class="nx">postJSONHelper</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">data</span> <span class="o">=</span> <span class="s1">''</span><span class="p">;</span>
+
+  <span class="nx">req</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">'data'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">chunk</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">data</span> <span class="o">+=</span> <span class="nx">chunk</span><span class="p">;</span>
+  <span class="p">})</span>
+
+  <span class="nx">req</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">'end'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">try</span> <span class="p">{</span>
+      <span class="kd">var</span> <span class="nx">obj</span> <span class="o">=</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">data</span><span class="p">);</span>
+      <span class="nx">callback</span><span class="p">(</span><span class="kc">null</span><span class="p">,</span> <span class="nx">obj</span><span class="p">);</span>
+    <span class="p">}</span> <span class="k">catch</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">callback</span><span class="p">(</span><span class="nx">err</span><span class="p">);</span>
+    <span class="p">}</span>
+  <span class="p">})</span>
+<span class="p">}</span>
+</pre>
+<p>The <tt class="docutils literal">postJSONHelper</tt> method is a simple utility method to deal with <tt class="docutils literal">HTTP</tt> <tt class="docutils literal">POST</tt> events as node.js actually reads in the body of a <tt class="docutils literal">HTTP</tt> <tt class="docutils literal">POST</tt> as a stream meaning we have to read in data an concatenate it until we received the <tt class="docutils literal">end</tt> event. To avoid having to do this in each <tt class="docutils literal">POST</tt> route we make a very simple helper function to do it for us so we can reduce the duplicated code.</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">The reason the <tt class="docutils literal">POST</tt> body is a stream is that it could be used to send a big file that you might not want to store in memory in it's entirety. An example could be if you wanted to save a large video file to <tt class="docutils literal">GridFS</tt>. In this case you would want to write the file into <tt class="docutils literal">GridFS</tt> in <tt class="docutils literal">chunks</tt> avoid having to store the entire file in memory while saving it.</p>
+</div>
+<p>The <tt class="docutils literal">writeError</tt> is a bit different. To understand why we decided to use it we have to understand what a <tt class="docutils literal">HTTP</tt> code is. Have a look at the web page <a class="reference external" href="http://en.wikipedia.org/wiki/List_of_HTTP_status_codes">http://en.wikipedia.org/wiki/List_of_HTTP_status_codes</a>. <tt class="docutils literal">HTTP</tt> codes are numeric values that inform the calling application about the state of the http call. For example if an author does not exist we would use a <tt class="docutils literal">404</tt> status code. Let's take a look at the ones we have used and what they mean.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="27%" />
+<col width="73%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">CODE</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>404</td>
+<td>Not Found</td>
+</tr>
+<tr><td>406</td>
+<td>Not Acceptable</td>
+</tr>
+<tr><td>500</td>
+<td>Internal Server Error</td>
+</tr>
+</tbody>
+</table>
+<p>As we can see we are using the <tt class="docutils literal">404</tt> when we cannot find the document identified by the passed in <tt class="docutils literal">id</tt>. We use the <tt class="docutils literal">406</tt> code to signal that the <tt class="docutils literal">JSON</tt> document could not be parsed and <tt class="docutils literal">500</tt> when there is a MongoDB error that is not related to the application logic. The codes lets us tell calling clients that an error has occurred in a more standardized way making it easy for the calling application to reason about the results being returned from our <tt class="docutils literal">REST API</tt>.</p>
+<p>Returning to the <tt class="docutils literal">createAuthor</tt> method we see that if we have a successful insert we return the document as JSON to the client with the newly added <tt class="docutils literal">_id</tt> field that contains the unique identifier for this document.</p>
+<p>Let's look at the <tt class="docutils literal">getAuthor</tt> method next.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// GET /author/:id
+</span><span class="kd">var</span> <span class="nx">getAuthor</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'authors'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">findOne</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span> <span class="o">||</span> <span class="nx">doc</span> <span class="o">==</span> <span class="kc">null</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">404</span>
+          <span class="p">,</span> <span class="s1">'Failed to retrieve document from database for id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+      <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">doc</span><span class="p">));</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>The main thing here is that we take the incoming <tt class="docutils literal">id</tt> field that's returned in the <tt class="docutils literal">param</tt> object by the router and wrap it in an <tt class="docutils literal">ObjectID</tt>. This is because an <tt class="docutils literal">ObjectID</tt> is a 12 byte binary value while the passed in id is a 24 byte hex decimal string representation. By creating a new ObjectID <tt class="docutils literal">new ObjectID(req.params.id)</tt> we let the <tt class="docutils literal">MongoDB</tt> driver parse the hex decimal string and convert it to a proper 12 byte <tt class="docutils literal">ObjectID</tt> matching the ones we have in our documents.</p>
+<p>We then use the <tt class="docutils literal">collection.findOne</tt> method to return the document or if none is available a <tt class="docutils literal">404</tt> code response alerting the calling application that we have no such document.</p>
+<p>Finally let's have a look at how we allow for removing authors.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// DELETE /author/:id
+</span><span class="kd">var</span> <span class="nx">deleteAuthor</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">dbInstance</span>
+    <span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'authors'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">deleted</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">500</span>
+          <span class="p">,</span> <span class="s1">'Failed to delete document from database for id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+      <span class="k">if</span><span class="p">(</span><span class="nx">deleted</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">404</span>
+          <span class="p">,</span> <span class="s1">'No document with id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span> <span class="o">+</span> <span class="s1">' found in database'</span><span class="p">);</span>
+
+      <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">}));</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>Just as for <tt class="docutils literal">getAuthor</tt> we convert the <tt class="docutils literal">id</tt> value to a proper <tt class="docutils literal">ObjectID</tt> and then use the <tt class="docutils literal">collection.remove</tt> function to attempt to remove it. If the <tt class="docutils literal">deleted</tt> value is <tt class="docutils literal">1</tt> we know we removed the document and return a JSON object with the <tt class="docutils literal">_id</tt> we just removed. Otherwise we notify the user setting code <tt class="docutils literal">404</tt> that the document does not exist.</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">You might have a question. What if the author already has books entered into the system? Won't this leave Book records that don't have an author in the system associated with them ? The answer is yes. This would usually be solved in a relational database by creating foreign key relationship that would make it impossible to delete an <tt class="docutils literal">Author</tt> if he had associated books. In <tt class="docutils literal">MongoDB</tt> this integrity checking is left to the application itself. It's worth to notice however that most applications avoid foreign key relationship for the reason that they make the schema to rigid.</p>
+</div>
+<p>So let's change the <tt class="docutils literal">deleteAuthor</tt> method to ensure we can only delete <tt class="docutils literal">Authors</tt> that do not have books associated with them yet.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// DELETE /author/:id
+</span><span class="kd">var</span> <span class="nx">deleteAuthor</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">count</span><span class="p">(</span><span class="p">{</span><span class="s2">&quot;authors.id&quot;</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">count</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">500</span>
+          <span class="p">,</span> <span class="s1">'Failed to delete document from database for id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+      <span class="k">if</span><span class="p">(</span><span class="nx">count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">406</span>
+          <span class="p">,</span> <span class="s1">'Author with '</span>
+            <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span>
+            <span class="o">+</span> <span class="s2">&quot; cannot be deleted as it's associated with existing books&quot;</span><span class="p">);</span>
+
+      <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'authors'</span><span class="p">)</span>
+        <span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">deleted</span><span class="p">)</span> <span class="p">{</span>
+          <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+              <span class="p">,</span> <span class="mi">500</span>
+              <span class="p">,</span> <span class="s1">'Failed to delete document from database for id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+          <span class="k">if</span><span class="p">(</span><span class="nx">deleted</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+              <span class="p">,</span> <span class="mi">404</span>
+              <span class="p">,</span> <span class="s1">'No document with id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span> <span class="o">+</span> <span class="s1">' found in database'</span><span class="p">);</span>
+
+          <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">}));</span>
+      <span class="p">});</span>
+    <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>The main difference is that we <tt class="docutils literal">count</tt> the number of books that have the author with the passed in <tt class="docutils literal">id</tt>. If the <tt class="docutils literal">count</tt> is larger than <tt class="docutils literal">0</tt> it means we cannot delete the <tt class="docutils literal">Author</tt> as it would break the data integrity.</p>
+<p>Next up is the publisher <tt class="docutils literal">CRUD</tt> methods <tt class="docutils literal">createPublisher</tt>, <tt class="docutils literal">getPublisher</tt> and <tt class="docutils literal">deletePublisher</tt>. These methods are very similar to the get authors. Let's start with the <tt class="docutils literal">createPublisher</tt> method.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// POST /publisher
+</span><span class="kd">var</span> <span class="nx">createPublisher</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">postJSONHelper</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">object</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+      <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span><span class="p">,</span> <span class="mi">406</span><span class="p">,</span> <span class="s1">'Illegal JSON'</span><span class="p">);</span>
+
+    <span class="c1">// Insert the user
+</span>    <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'publishers'</span><span class="p">).</span><span class="nx">insert</span><span class="p">(</span><span class="nx">object</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="s1">'Failed to insert document'</span><span class="p">);</span>
+
+      <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">doc</span><span class="p">[</span><span class="mi">0</span><span class="p">]));</span>
+    <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>The only main difference here is changing the collection we are using to the publisher one. Similarly the <tt class="docutils literal">getPublisher</tt> method looks a lot like the <tt class="docutils literal">getAuthor</tt> method.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// GET /publisher/:id
+</span><span class="kd">var</span> <span class="nx">getPublisher</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'publishers'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">findOne</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span> <span class="o">||</span> <span class="nx">doc</span> <span class="o">==</span> <span class="kc">null</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">404</span>
+          <span class="p">,</span> <span class="s1">'Failed to retrieve document from database for id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+      <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">doc</span><span class="p">));</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>The only main difference being that we are retrieving the documents from the <tt class="docutils literal">publishers</tt> collection not the <tt class="docutils literal">authors</tt> collection. Just as in the <tt class="docutils literal">deleteAuthors</tt> method the <tt class="docutils literal">deletePublisher</tt> method needs to enforce that we are not actually deleting a publisher that has books associated with it.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// DELETE /publisher/:id
+</span><span class="kd">var</span> <span class="nx">deletePublisher</span>  <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">count</span><span class="p">(</span><span class="p">{</span><span class="s2">&quot;publisher_id&quot;</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">count</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">500</span>
+          <span class="p">,</span> <span class="s1">'Failed to delete document from database for id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+      <span class="k">if</span><span class="p">(</span><span class="nx">count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">406</span>
+          <span class="p">,</span> <span class="s1">'Publisher with '</span>
+            <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span>
+            <span class="o">+</span> <span class="s2">&quot; cannot be deleted as it's associated with existing books&quot;</span><span class="p">);</span>
+
+      <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'publishers'</span><span class="p">)</span>
+        <span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">deleted</span><span class="p">)</span> <span class="p">{</span>
+          <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+              <span class="p">,</span> <span class="mi">500</span>
+              <span class="p">,</span> <span class="s1">'Failed to delete document from database for id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+          <span class="k">if</span><span class="p">(</span><span class="nx">deleted</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+              <span class="p">,</span> <span class="mi">404</span>
+              <span class="p">,</span> <span class="s1">'No document with id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span> <span class="o">+</span> <span class="s1">' found in database'</span><span class="p">);</span>
+
+          <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">}));</span>
+      <span class="p">});</span>
+    <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>Let's make sure the methods correctly by testing it from the command line using curl. <tt class="docutils literal">Note</tt> that the id returned will vary on your system so make sure you change <tt class="docutils literal">51921ef8b67cc57333000001</tt> where appropriate to your own id.</p>
+<pre class="code console literal-block">
+<span class="go">curl -X POST -d &quot;{\&quot;name\&quot;:\&quot;T Books\&quot;}&quot; http://localhost:9090/publisher
+{&quot;name&quot;:&quot;T Books&quot;,&quot;_id&quot;:&quot;51921ef8b67cc57333000001&quot;}
+
+curl -X GET http://localhost:9090/publisher/51921ef8b67cc57333000001
+{&quot;name&quot;:&quot;T Books&quot;,&quot;_id&quot;:&quot;51921ef8b67cc57333000001&quot;}
+
+curl -X DELETE http://localhost:9090/publisher/51921ef8b67cc57333000001
+{&quot;_id&quot;:&quot;51921ef8b67cc57333000001&quot;}</span>
+</pre>
+<p>Awesome we only have two more sets of CRUD operations to implement, namely the <tt class="docutils literal">User</tt> and <tt class="docutils literal">Book</tt> related <tt class="docutils literal">CRUD</tt> operations before we move on in the next chapter to the more advanced REST API method of managing the books.</p>
+<p>Let's do the user ones first. They consist off the <tt class="docutils literal">createUser</tt>, <tt class="docutils literal">getUser</tt> and <tt class="docutils literal">deleteUser</tt> methods and are very similar to the previous <tt class="docutils literal">Author</tt> and <tt class="docutils literal">Publisher</tt> methods. Let's look at them in turn starting with the <tt class="docutils literal">createUser</tt> method.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// POST /user
+</span><span class="kd">var</span> <span class="nx">createUser</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">postJSONHelper</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">object</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+      <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span><span class="p">,</span> <span class="mi">406</span><span class="p">,</span> <span class="s1">'Illegal JSON'</span><span class="p">);</span>
+
+    <span class="c1">// Insert the user
+</span>    <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'users'</span><span class="p">).</span><span class="nx">insert</span><span class="p">(</span><span class="nx">object</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="s1">'Failed to insert document'</span><span class="p">);</span>
+
+      <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">doc</span><span class="p">[</span><span class="mi">0</span><span class="p">]));</span>
+    <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>Just as in <tt class="docutils literal">getAuthor</tt> and <tt class="docutils literal">getPublisher</tt> the <tt class="docutils literal">getUser</tt> method is very simple and just return the document from the collection if it finds it.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// GET /user/:id
+</span><span class="kd">var</span> <span class="nx">getUser</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'users'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">findOne</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span> <span class="o">||</span> <span class="nx">doc</span> <span class="o">==</span> <span class="kc">null</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">404</span>
+          <span class="p">,</span> <span class="s1">'Failed to retrieve document from database for id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+      <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">doc</span><span class="p">));</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>The main difference in the <tt class="docutils literal">deleteUser</tt> method vs <tt class="docutils literal">deleteAuthor</tt> or <tt class="docutils literal">deletePublisher</tt> is that we can only remove a user if he has no outstanding books in the system. To ensure that we do a count of books in the library where the book is registered as loaned_out to the user with the <tt class="docutils literal">id</tt> we wish to delete. If there are any books outstanding the <tt class="docutils literal">API</tt> will fail and report that the user still has books out for loan.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// DELETE /user/:id
+</span><span class="kd">var</span> <span class="nx">deleteUser</span>  <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">count</span><span class="p">(</span><span class="p">{</span><span class="s2">&quot;loaned_out_to.user_id&quot;</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">count</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">500</span>
+          <span class="p">,</span> <span class="s1">'Failed to delete document from database for id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+      <span class="k">if</span><span class="p">(</span><span class="nx">count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">406</span>
+          <span class="p">,</span> <span class="s1">'User with '</span>
+            <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span>
+            <span class="o">+</span> <span class="s2">&quot; cannot be deleted as it's associated with existing books&quot;</span><span class="p">);</span>
+
+      <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'users'</span><span class="p">)</span>
+        <span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">deleted</span><span class="p">)</span> <span class="p">{</span>
+          <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+              <span class="p">,</span> <span class="mi">500</span>
+              <span class="p">,</span> <span class="s1">'Failed to delete document from database for id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+          <span class="k">if</span><span class="p">(</span><span class="nx">deleted</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+              <span class="p">,</span> <span class="mi">404</span>
+              <span class="p">,</span> <span class="s1">'No document with id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span> <span class="o">+</span> <span class="s1">' found in database'</span><span class="p">);</span>
+
+          <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">}));</span>
+      <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>As before let's verify that the <tt class="docutils literal">API</tt> work correctly by using <tt class="docutils literal">curl</tt>.</p>
+<pre class="code console literal-block">
+<span class="go">curl -X POST -d &quot;{\&quot;name\&quot;:\&quot;James Bond\&quot;}&quot; http://localhost:9090/user
+{&quot;name&quot;:&quot;James Bond&quot;,&quot;_id&quot;:&quot;51921ef8b67cc57333000001&quot;}
+
+curl -X GET http://localhost:9090/user/51921ef8b67cc57333000001
+{&quot;name&quot;:&quot;James Bond&quot;,&quot;_id&quot;:&quot;51921ef8b67cc57333000001&quot;}
+
+curl -X DELETE http://localhost:9090/user/51921ef8b67cc57333000001
+{&quot;_id&quot;:&quot;51921ef8b67cc57333000001&quot;}</span>
+</pre>
+<p>We are nearly done. Let's look at the final <tt class="docutils literal">Book</tt> <tt class="docutils literal">CRUD</tt> operations <tt class="docutils literal">createBook</tt>, <tt class="docutils literal">getBook</tt> and <tt class="docutils literal">deleteBook</tt>. If you've noticed there is a pattern to the CRUD operations and they look very similar with the exception being the <tt class="docutils literal">deleteXXX</tt> methods. Let's take a quick look at the <tt class="docutils literal">createBook</tt> method.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// POST /book
+</span><span class="kd">var</span> <span class="nx">createBook</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">postJSONHelper</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">object</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+      <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span><span class="p">,</span> <span class="mi">406</span><span class="p">,</span> <span class="s1">'Illegal JSON'</span><span class="p">);</span>
+
+    <span class="c1">// Insert the user
+</span>    <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">).</span><span class="nx">insert</span><span class="p">(</span><span class="nx">object</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="s1">'Failed to insert document'</span><span class="p">);</span>
+
+      <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">doc</span><span class="p">[</span><span class="mi">0</span><span class="p">]));</span>
+    <span class="p">});</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>Looks very similar to the previous <tt class="docutils literal">createXXX</tt> methods for <tt class="docutils literal">Author</tt>, <tt class="docutils literal">Publisher</tt> and <tt class="docutils literal">User</tt>. Let's look at the <tt class="docutils literal">getBook</tt> method.</p>
+<pre class="code javascript literal-block">
+<span class="c1">// GET /book/:id
+</span><span class="kd">var</span> <span class="nx">getBook</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">findOne</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span> <span class="o">||</span> <span class="nx">doc</span> <span class="o">==</span> <span class="kc">null</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">404</span>
+          <span class="p">,</span> <span class="s1">'Failed to retrieve document from database for id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+      <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">doc</span><span class="p">));</span>
+  <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>Again very similar to the previous <tt class="docutils literal">getXXX</tt> methods. How about the <tt class="docutils literal">deleteBook</tt> method ?</p>
+<pre class="code javascript literal-block">
+<span class="c1">// DELETE /book/:id
+</span><span class="kd">var</span> <span class="nx">deleteBook</span>  <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">findOne</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">book</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">500</span>
+          <span class="p">,</span> <span class="s1">'Failed to delete document from database for id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+      <span class="k">if</span><span class="p">(</span><span class="o">!</span><span class="nx">book</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">406</span>
+          <span class="p">,</span> <span class="s1">'Book with '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span> <span class="o">+</span> <span class="s2">&quot; was not found&quot;</span><span class="p">);</span>
+
+      <span class="k">if</span><span class="p">(</span><span class="nx">book</span><span class="p">.</span><span class="nx">loaned_out_to</span> <span class="o">&amp;&amp;</span> <span class="nx">book</span><span class="p">.</span><span class="nx">loaned_out_to</span><span class="p">.</span><span class="nx">length</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+          <span class="p">,</span> <span class="mi">500</span>
+          <span class="p">,</span> <span class="s1">'Book with '</span>
+            <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span>
+            <span class="o">+</span> <span class="s2">&quot; was not deleted as copies are currently loaned out&quot;</span><span class="p">);</span>
+
+      <span class="nx">dbInstance</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">'books'</span><span class="p">)</span>
+        <span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="k">new</span> <span class="nx">ObjectID</span><span class="p">(</span><span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">)},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">deleted</span><span class="p">)</span> <span class="p">{</span>
+          <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+              <span class="p">,</span> <span class="mi">500</span>
+              <span class="p">,</span> <span class="s1">'Failed to delete document from database for id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">);</span>
+
+          <span class="k">if</span><span class="p">(</span><span class="nx">deleted</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nx">writeError</span><span class="p">(</span><span class="nx">res</span>
+              <span class="p">,</span> <span class="mi">404</span>
+              <span class="p">,</span> <span class="s1">'No document with id '</span> <span class="o">+</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span> <span class="o">+</span> <span class="s1">' found in database'</span><span class="p">);</span>
+
+          <span class="nx">res</span><span class="p">.</span><span class="nx">end</span><span class="p">(</span><span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="nx">req</span><span class="p">.</span><span class="nx">params</span><span class="p">.</span><span class="nx">id</span><span class="p">}));</span>
+      <span class="p">});</span>
+    <span class="p">});</span>
+<span class="p">}</span>
+</pre>
+<p>As we can see the main difference here is that we don't let the book be deleted if there are any copies out for loan. This is ensured by checking the <tt class="docutils literal">loaned_out_to</tt> array on the returned <tt class="docutils literal">Book</tt>. If it's empty we can go ahead and delete the <tt class="docutils literal">Book</tt> as nobody is in possession of it. Notice that we are not checking the <tt class="docutils literal">Authors</tt> or <tt class="docutils literal">Publishers</tt> collections as they do not store any information directly associated with the <tt class="docutils literal">Book</tt> so removing a Book does not cause <tt class="docutils literal">Authors</tt> and <tt class="docutils literal">Pulishers</tt> to link to non-existing books.</p>
+<p>Let's verify the correct behavior off the <tt class="docutils literal">API</tt> by using <tt class="docutils literal">Curl</tt> again to test the <tt class="docutils literal">REST</tt> endpoints.</p>
+<pre class="code console literal-block">
+<span class="go">curl -X POST -d &quot;{\&quot;name\&quot;:\&quot;Wizard of Oz\&quot;}&quot; http://localhost:9090/book
+{&quot;name&quot;:&quot;Wizard of Oz&quot;,&quot;_id&quot;:&quot;51921ef8b67cc57333000001&quot;}
+
+curl -X GET http://localhost:9090/book/51921ef8b67cc57333000001
+{&quot;name&quot;:&quot;Wizard of Oz&quot;,&quot;_id&quot;:&quot;51921ef8b67cc57333000001&quot;}
+
+curl -X DELETE http://localhost:9090/book/51921ef8b67cc57333000001
+{&quot;_id&quot;:&quot;51921ef8b67cc57333000001&quot;}</span>
+</pre>
+<p>We are now ready to move forward and add the remaining methods for our library API.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="49%" />
+<col width="51%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">Method Url</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>PUT     /book/:id/publisher/:publisher_id</td>
+<td>Associate a publisher with this book</td>
+</tr>
+<tr><td>PUT     /book/:id/author/:author_id</td>
+<td>Associate an author with this book</td>
+</tr>
+<tr><td>GET     /book/search?query=?</td>
+<td>Search for books by title</td>
+</tr>
+<tr><td>GET     /author/search?query=?</td>
+<td>Search for author</td>
+</tr>
+<tr><td>GET     /author/:id/books</td>
+<td>Get books by author</td>
+</tr>
+<tr><td>GET     /publisher/search?query=?</td>
+<td>Search for publisher</td>
+</tr>
+<tr><td>GET     /publisher/:id/books</td>
+<td>Get the books by publisher</td>
+</tr>
+<tr><td>GET     /user/:id/loans</td>
+<td>Get all the books loaned by a specific user</td>
+</tr>
+<tr><td>POST    /user/:id/loan/:book_id</td>
+<td>Borrow a book</td>
+</tr>
+<tr><td>DELETE  /user/:id/loan/:book_id</td>
+<td>Return a book</td>
+</tr>
+<tr><td>PUT     /user/:id/loan/:book_id</td>
+<td>Extend a loan period / modify a loan period</td>
+</tr>
+<tr><td>GET     /loan/overdue</td>
+<td>Get a list of all overdue books</td>
+</tr>
+<tr><td>GET     /loan/overdue/:days</td>
+<td>Get a list of all overdue books in ?days days</td>
+</tr>
+</tbody>
+</table>
+<p>So let's move on and finish up our API.</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">You might have noticed that we are not doing any validation on the documents as in checking if they have the minimum number of expected fields. We will touch on this briefly later but have chosen not to include it yet as it would complicate our example more than necessary.</p>
+</div>
+</div>
+    </div>
+
+    <div class="one columns" id="right-nav">
+        <center>
+        <p><a href="/book/"><img src="images/48_structure.png"></a></p>
+        <p><a href="#"><img src="images/48_email.png"></a></p>
+        <p><a href="#faq"><img src="images/48_faq.png"></a></p>
+        <p>
+        </p>
+        </center>
+    </div>
+
+  <!-- Included JS Files (Compressed) -->
+  <script src="javascripts/jquery.js"></script>
+  <script src="javascripts/foundation.min.js"></script>
+  
+  <!-- Initialize JS Plugins -->
+  <script src="javascripts/app.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+    <!--[if gt IE 8]><!-->
+<html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8" />
+
+  <!-- Set the viewport width to device width for mobile -->
+  <meta name="viewport" content="width=device-width" />
+
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
+<title>Exercise 8: Write Concerns</title>
+
+  <!-- Included CSS Files (Compressed) -->
+  <link rel="stylesheet" href="stylesheets/foundation.min.css">
+  <link rel="stylesheet" href="stylesheets/pygments.css">
+  <link rel="stylesheet" href="stylesheets/app.css">
+
+  <script src="javascripts/modernizr.foundation.js"></script>
+
+  <!-- IE Fix for HTML5 Tags -->
+  <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+</head>
+<body>
+
+  <div class="row">
+          <h1 class="title">Exercise 8: Write Concerns</h1>
+      </div>
+  </div>
+
+  <div class="row">
+    <div class="eleven columns">
+        <p>Remember we briefly mentioned something called <tt class="docutils literal">write concerns</tt> earlier when we introduced the option <tt class="docutils literal">w:0</tt> on the insert. Write concerns is one of the more crucial concepts to understand when using MongoDB. They allow you to set the guarantee of persitance that you want for your documents. This means you can set your app to wait for MongoDB to save the document to memory, disk or send it over to other members in a cluster (more on clusters later). At one end of the spectrum is <tt class="docutils literal">w:0</tt> which means no <tt class="docutils literal">acknowledgement</tt> from MongoDB. This means the driver does not ask MongoDB if the write succeded or not (fire and forget). You application will never know if the data was correctly written to MongoDB unless you attempt to retrieve the data later. This might now sound like a good idea but it comes with one good upside, namely raw insert performance. Let's say you are inserting analytical data from a mouse tracking application. The analytics might be all about aggregation so a single missing data point does not matter but the insert speed does. So to avoid that the application has to wait for an acknowledgement from MongoDB you set <tt class="docutils literal">w:0</tt> and don't incur the cost of the acknowledgement.</p>
+<p>So what kind of values can write concerns be and what do they mean. Below is a table outlining the write concerns and what they mean.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="6%" />
+<col width="94%" />
+</colgroup>
+<thead valign="bottom">
+<tr><th class="head">WriteConcern</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr><td>w:0</td>
+<td>No acknowlegement of the write from MongoDB</td>
+</tr>
+<tr><td>w:1</td>
+<td>MongoDB acknowleges when the document has been safely written to memory</td>
+</tr>
+<tr><td>w:2 or larger</td>
+<td>MongoDB acknowleges when the document has been safely written to memory in N servers</td>
+</tr>
+<tr><td>w:'majority'</td>
+<td>MongoDB acknowleges when the document has been safely written to memory in a majority of servers (f.ex if you have 1 primary and 4 secondaries this would be 3 servers as 3 out of 5 is a majority of servers)</td>
+</tr>
+<tr><td>j:true</td>
+<td>MongoDB acknowleges when the document has been safely written to the MongoDB journal</td>
+</tr>
+<tr><td>fsync:true</td>
+<td>MongoDB acknowleges when the document has been safely written to disk</td>
+</tr>
+</tbody>
+</table>
+<p>Quite a bit of new terminology. Let's look through the different write concerns and explain what they mean. I will introduce the concept of a <tt class="docutils literal">replicaset</tt> here but only as a concept as we will go more indepth in later exercises. In short a <tt class="docutils literal">replicaset</tt> is a MongoDB cluster that in the simplest form concists of a <tt class="docutils literal">primary</tt> which accepts writes (inserts/update/removes) and one or more <tt class="docutils literal">secondaries</tt> that only accept reads (queries).</p>
+<p>Let's look at how MongoDB actually works under the cover when you want to ackowledge an insert. The first thing we need to understand is that MongoDB seperates the writing of the data from the ackowledgement. They are in fact two different commands. So when the driver does a non ackowledge write using <tt class="docutils literal">w:0</tt> it only sends the write command. If your application needs written to memory ackowledgement with <tt class="docutils literal">w:1</tt> it will send a write command and a <tt class="docutils literal">getLastError</tt> command together.</p>
+<p>The <tt class="docutils literal">getLastError</tt> command is the command that returns the the status of the last executed operation on a specific socket. It will wait until the specified write concern is fulfilled. Let's try it ourselves. Let's fire up the <tt class="docutils literal">mongo</tt> console.</p>
+<pre class="code console literal-block">
+<span class="go">~ $ mongo
+MongoDB shell version: 2.2
+connecting to: test
+</span><span class="gp">&gt;</span> use <span class="nb">test</span>
+<span class="go">switched to db test
+</span><span class="gp">&gt;</span> db.getlasterrortest.insert<span class="o">({</span>_id: 1<span class="o">})</span>
+<span class="gp">&gt;</span> db.getlasterrortest.insert<span class="o">({</span>_id: 1<span class="o">})</span>
+<span class="go">E11000 duplicate key error index: test.getlasterrortest.$_id_  dup key: { : 1.0 }
+</span><span class="gp">&gt;</span> db.getLastError<span class="o">()</span>
+<span class="go">E11000 duplicate key error index: test.getlasterrortest.$_id_  dup key: { : 1.0 }
+</span><span class="gp">&gt;</span> db.getlasterrortest.insert<span class="o">({</span>_id: 2<span class="o">})</span>
+<span class="gp">&gt;</span> db.getLastError<span class="o">()</span>
+<span class="go">null</span>
+</pre>
+<p>As we can see the <tt class="docutils literal">getLastError</tt> returns the last command status for our connection. Once we insert a new record with no error <tt class="docutils literal">getLastError</tt> returns <tt class="docutils literal">null</tt>.</p>
+<p>So let's play with the write concerns in a bit of code. Get your editor and start typing.</p>
+<div class="highlight"><pre><a name="code--ex8--ex1.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex8--ex1.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex8--ex1.js-pyg.html-3"></a>
+<a name="code--ex8--ex1.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex1.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex1.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex8--ex1.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex8--ex1.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex8--ex1.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex8--ex1.js-pyg.html-10"></a>
+<a name="code--ex8--ex1.js-pyg.html-11"></a>  <span class="kd">var</span> <span class="nx">mydocuments</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;playing_with_write_concerns&#39;</span><span class="p">);</span>
+<a name="code--ex8--ex1.js-pyg.html-12"></a>  <span class="kd">var</span> <span class="nx">start</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">().</span><span class="nx">getTime</span><span class="p">();</span>
+<a name="code--ex8--ex1.js-pyg.html-13"></a>
+<a name="code--ex8--ex1.js-pyg.html-14"></a>  <span class="nx">mydocuments</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">w</span><span class="o">:</span> <span class="mi">0</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex1.js-pyg.html-15"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;time w:0 ~ &quot;</span> <span class="o">+</span> <span class="p">(</span><span class="k">new</span> <span class="nb">Date</span><span class="p">().</span><span class="nx">getTime</span><span class="p">()</span> <span class="o">-</span> <span class="nx">start</span><span class="p">))</span>
+<a name="code--ex8--ex1.js-pyg.html-16"></a>
+<a name="code--ex8--ex1.js-pyg.html-17"></a>    <span class="nx">mydocuments</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">w</span><span class="o">:</span> <span class="mi">0</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex1.js-pyg.html-18"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex1.js-pyg.html-19"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Duplicate document&quot;</span><span class="p">)</span>
+<a name="code--ex8--ex1.js-pyg.html-20"></a>      <span class="p">}</span>
+<a name="code--ex8--ex1.js-pyg.html-21"></a>
+<a name="code--ex8--ex1.js-pyg.html-22"></a>      <span class="nx">mydocuments</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">w</span><span class="o">:</span> <span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex1.js-pyg.html-23"></a>        <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex1.js-pyg.html-24"></a>          <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Duplicate document&quot;</span><span class="p">)</span>
+<a name="code--ex8--ex1.js-pyg.html-25"></a>        <span class="p">}</span>
+<a name="code--ex8--ex1.js-pyg.html-26"></a>
+<a name="code--ex8--ex1.js-pyg.html-27"></a>        <span class="nx">start</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">().</span><span class="nx">getTime</span><span class="p">();</span>
+<a name="code--ex8--ex1.js-pyg.html-28"></a>
+<a name="code--ex8--ex1.js-pyg.html-29"></a>        <span class="nx">mydocuments</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">2</span><span class="p">},</span> <span class="p">{</span><span class="nx">w</span><span class="o">:</span> <span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex1.js-pyg.html-30"></a>          <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;time w:1 ~ &quot;</span> <span class="o">+</span> <span class="p">(</span><span class="k">new</span> <span class="nb">Date</span><span class="p">().</span><span class="nx">getTime</span><span class="p">()</span> <span class="o">-</span> <span class="nx">start</span><span class="p">))</span>
+<a name="code--ex8--ex1.js-pyg.html-31"></a>
+<a name="code--ex8--ex1.js-pyg.html-32"></a>          <span class="nx">start</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">().</span><span class="nx">getTime</span><span class="p">();</span>
+<a name="code--ex8--ex1.js-pyg.html-33"></a>
+<a name="code--ex8--ex1.js-pyg.html-34"></a>          <span class="nx">mydocuments</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">3</span><span class="p">},</span> <span class="p">{</span><span class="nx">j</span><span class="o">:</span><span class="kc">true</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex1.js-pyg.html-35"></a>            <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;time j:true ~ &quot;</span> <span class="o">+</span> <span class="p">(</span><span class="k">new</span> <span class="nb">Date</span><span class="p">().</span><span class="nx">getTime</span><span class="p">()</span> <span class="o">-</span> <span class="nx">start</span><span class="p">))</span>
+<a name="code--ex8--ex1.js-pyg.html-36"></a>
+<a name="code--ex8--ex1.js-pyg.html-37"></a>            <span class="nx">mydocuments</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">3</span><span class="p">},</span> <span class="p">{</span><span class="nx">j</span><span class="o">:</span><span class="kc">true</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex1.js-pyg.html-38"></a>              <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex1.js-pyg.html-39"></a>                <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Duplicate document&quot;</span><span class="p">)</span>
+<a name="code--ex8--ex1.js-pyg.html-40"></a>              <span class="p">}</span>
+<a name="code--ex8--ex1.js-pyg.html-41"></a>
+<a name="code--ex8--ex1.js-pyg.html-42"></a>              <span class="nx">start</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">().</span><span class="nx">getTime</span><span class="p">();</span>
+<a name="code--ex8--ex1.js-pyg.html-43"></a>
+<a name="code--ex8--ex1.js-pyg.html-44"></a>              <span class="nx">mydocuments</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">4</span><span class="p">},</span> <span class="p">{</span><span class="nx">fsync</span><span class="o">:</span><span class="kc">true</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex1.js-pyg.html-45"></a>                <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;time fsync:true ~ &quot;</span> <span class="o">+</span> <span class="p">(</span><span class="k">new</span> <span class="nb">Date</span><span class="p">().</span><span class="nx">getTime</span><span class="p">()</span> <span class="o">-</span> <span class="nx">start</span><span class="p">))</span>
+<a name="code--ex8--ex1.js-pyg.html-46"></a>
+<a name="code--ex8--ex1.js-pyg.html-47"></a>                <span class="nx">mydocuments</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">4</span><span class="p">},</span> <span class="p">{</span><span class="nx">fsync</span><span class="o">:</span><span class="kc">true</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex1.js-pyg.html-48"></a>                  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex1.js-pyg.html-49"></a>                    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;Duplicate document&quot;</span><span class="p">)</span>
+<a name="code--ex8--ex1.js-pyg.html-50"></a>                  <span class="p">}</span>
+<a name="code--ex8--ex1.js-pyg.html-51"></a>
+<a name="code--ex8--ex1.js-pyg.html-52"></a>                  <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex8--ex1.js-pyg.html-53"></a>                <span class="p">});</span>
+<a name="code--ex8--ex1.js-pyg.html-54"></a>              <span class="p">});</span>
+<a name="code--ex8--ex1.js-pyg.html-55"></a>            <span class="p">});</span>
+<a name="code--ex8--ex1.js-pyg.html-56"></a>          <span class="p">});</span>
+<a name="code--ex8--ex1.js-pyg.html-57"></a>        <span class="p">});</span>
+<a name="code--ex8--ex1.js-pyg.html-58"></a>      <span class="p">});</span>
+<a name="code--ex8--ex1.js-pyg.html-59"></a>    <span class="p">});</span>
+<a name="code--ex8--ex1.js-pyg.html-60"></a>  <span class="p">});</span>
+<a name="code--ex8--ex1.js-pyg.html-61"></a><span class="p">});</span>
+</pre></div><p>When I run it on my local machine the output looks something like.</p>
+<pre class="code console literal-block">
+<span class="go">connected to database
+time w:0 ~ 0
+Duplicate document
+time w:1 ~ 0
+time j:true ~ 31
+Duplicate document
+time fsync:true ~ 35
+Duplicate document</span>
+</pre>
+<p>Let's look at the usage of the write concerns. We are doing 4 different types in this code. The first one is <tt class="docutils literal">w:0</tt>, the second one is <tt class="docutils literal">w:1</tt> the third <tt class="docutils literal">j:true</tt> and the last one <tt class="docutils literal">fsync:true</tt>. Note that when we try to insert a duplicate document using <tt class="docutils literal">w:0</tt> we don't recieve any error message back as we are not sending the <tt class="docutils literal">getLastError</tt> command to the MongoDB server. Once we use <tt class="docutils literal">w:1, j:true or fsync:true</tt> we get an error message back when we try to insert a duplicate document. The example also calculates the time it took to insert a document when using <tt class="docutils literal">w:0, w:1, j:true, fsync:true</tt> and as we can see there is a marked jump in time take from <tt class="docutils literal">w:1</tt> to <tt class="docutils literal">j:true</tt> and <tt class="docutils literal">fsync:true</tt>. This is because when you put <tt class="docutils literal">j:true</tt> <tt class="docutils literal">getLastError</tt> waits for the document to be written to the MongoDB <tt class="docutils literal">journal</tt>. The <tt class="docutils literal">journal</tt> flushes to disk every <tt class="docutils literal">100</tt> ms so in the worst case it will take <tt class="docutils literal">100</tt> miliseconds before you get an acknowledgement but most likely it will be less than <tt class="docutils literal">100</tt> miliseconds. However if you wait for <tt class="docutils literal">j:true</tt> you have a guarantee that you can recover the data if the MongoDB database should crash.</p>
+<p>For <tt class="docutils literal">fsync:true</tt> the server needs to write the document to memory and then write that memory to disk which can be quite slow depending on how much data MongoDB has to write and what kind of disk you have (SSD or HD). Safe to say you should avoid <tt class="docutils literal">fsync:true</tt> if possible.</p>
+<p>We can see that <tt class="docutils literal">w:1</tt> is close to <tt class="docutils literal">w:0</tt> and this will for the most part be true. There are some corner cases where this is not true and that is if MongoDB has to make some space in memory before it can write the document. In this case it might take longer as it needs to be shuffle memory around to make some space for the new document. Some of the more observant might point out that <tt class="docutils literal">w:0</tt> cannot be measures as it does not perform a <tt class="docutils literal">getLastError</tt>. That's very true but it still shows that there is little difference between <tt class="docutils literal">w:0</tt> and <tt class="docutils literal">w:1</tt> when it comes to general performance.</p>
+<div class="section" id="problems-in-paradise">
+<h1>Problems In Paradise</h1>
+<p>So one of the traps you can fall into is that you decide to do all the inserts using <tt class="docutils literal">w:0</tt> only to discover that you run out of memory on huge inserts of documents. This happens because Node.js is capable of processing more documents for insert than MongoDB and your network can handle so they back up in the socket buffers until you run out of memory. Or you find that you are writing so much to MongoDB that is has problems responding to other operations.</p>
+<p>Luckily there is a way to control the flow of the inserts and the clue lies in <tt class="docutils literal">getLastError</tt>. Let's type in the example below and have a look at how the flow control works.</p>
+<div class="highlight"><pre><a name="code--ex8--ex2.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex8--ex2.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex8--ex2.js-pyg.html-3"></a>
+<a name="code--ex8--ex2.js-pyg.html-4"></a><span class="kd">var</span> <span class="nx">batch</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">collection</span><span class="p">,</span> <span class="nx">documents</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex2.js-pyg.html-5"></a>  <span class="kd">var</span> <span class="nx">counter</span> <span class="o">=</span> <span class="nx">documents</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span>
+<a name="code--ex8--ex2.js-pyg.html-6"></a>
+<a name="code--ex8--ex2.js-pyg.html-7"></a>  <span class="k">for</span><span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">documents</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex2.js-pyg.html-8"></a>    <span class="kd">var</span> <span class="nx">writeConcern</span> <span class="o">=</span> <span class="nx">i</span> <span class="o">==</span> <span class="nx">documents</span><span class="p">.</span><span class="nx">length</span> <span class="o">?</span> <span class="p">{</span><span class="nx">w</span><span class="o">:</span><span class="mi">1</span><span class="p">}</span> <span class="o">:</span> <span class="p">{</span><span class="nx">w</span><span class="o">:</span><span class="mi">0</span><span class="p">};</span>
+<a name="code--ex8--ex2.js-pyg.html-9"></a>
+<a name="code--ex8--ex2.js-pyg.html-10"></a>    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">(</span><span class="nx">documents</span><span class="p">[</span><span class="nx">i</span><span class="p">],</span> <span class="nx">writeConcern</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">doc</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex2.js-pyg.html-11"></a>      <span class="nx">counter</span> <span class="o">=</span> <span class="nx">counter</span> <span class="o">-</span> <span class="mi">1</span><span class="p">;</span>
+<a name="code--ex8--ex2.js-pyg.html-12"></a>
+<a name="code--ex8--ex2.js-pyg.html-13"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">counter</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex2.js-pyg.html-14"></a>        <span class="nx">callback</span><span class="p">(</span><span class="kc">null</span><span class="p">);</span>
+<a name="code--ex8--ex2.js-pyg.html-15"></a>      <span class="p">}</span>
+<a name="code--ex8--ex2.js-pyg.html-16"></a>    <span class="p">});</span>
+<a name="code--ex8--ex2.js-pyg.html-17"></a>  <span class="p">}</span>
+<a name="code--ex8--ex2.js-pyg.html-18"></a><span class="p">}</span>
+<a name="code--ex8--ex2.js-pyg.html-19"></a>
+<a name="code--ex8--ex2.js-pyg.html-20"></a><span class="kd">var</span> <span class="nx">runBatches</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">collection</span><span class="p">,</span> <span class="nx">batchSize</span><span class="p">,</span> <span class="nx">numberOfBatches</span><span class="p">,</span> <span class="nx">documents</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex2.js-pyg.html-21"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">numberOfBatches</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="k">return</span> <span class="nx">callback</span><span class="p">();</span>
+<a name="code--ex8--ex2.js-pyg.html-22"></a>  <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;number of batches left = &quot;</span> <span class="o">+</span> <span class="nx">numberOfBatches</span><span class="p">);</span>
+<a name="code--ex8--ex2.js-pyg.html-23"></a>
+<a name="code--ex8--ex2.js-pyg.html-24"></a>  <span class="nx">batch</span><span class="p">(</span><span class="nx">collection</span><span class="p">,</span> <span class="nx">documents</span><span class="p">.</span><span class="nx">splice</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nx">batchSize</span><span class="p">),</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex2.js-pyg.html-25"></a>    <span class="nx">process</span><span class="p">.</span><span class="nx">nextTick</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex8--ex2.js-pyg.html-26"></a>      <span class="nx">runBatches</span><span class="p">(</span><span class="nx">collection</span><span class="p">,</span> <span class="nx">batchSize</span><span class="p">,</span> <span class="nx">numberOfBatches</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="nx">documents</span><span class="p">,</span> <span class="nx">callback</span><span class="p">);</span>
+<a name="code--ex8--ex2.js-pyg.html-27"></a>    <span class="p">});</span>
+<a name="code--ex8--ex2.js-pyg.html-28"></a>  <span class="p">});</span>
+<a name="code--ex8--ex2.js-pyg.html-29"></a><span class="p">}</span>
+<a name="code--ex8--ex2.js-pyg.html-30"></a>
+<a name="code--ex8--ex2.js-pyg.html-31"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex2.js-pyg.html-32"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex2.js-pyg.html-33"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex8--ex2.js-pyg.html-34"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex8--ex2.js-pyg.html-35"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex8--ex2.js-pyg.html-36"></a>  <span class="p">}</span>
+<a name="code--ex8--ex2.js-pyg.html-37"></a>
+<a name="code--ex8--ex2.js-pyg.html-38"></a>  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;mybatchdocs&#39;</span><span class="p">);</span>
+<a name="code--ex8--ex2.js-pyg.html-39"></a>  <span class="kd">var</span> <span class="nx">documents</span> <span class="o">=</span> <span class="p">[];</span>
+<a name="code--ex8--ex2.js-pyg.html-40"></a>  <span class="kd">var</span> <span class="nx">batchSize</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">;</span>
+<a name="code--ex8--ex2.js-pyg.html-41"></a>  <span class="kd">var</span> <span class="nx">numberOfDocuments</span> <span class="o">=</span> <span class="mi">100005</span><span class="p">;</span>
+<a name="code--ex8--ex2.js-pyg.html-42"></a>  <span class="kd">var</span> <span class="nx">numberOfBatches</span> <span class="o">=</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">round</span><span class="p">(</span><span class="nx">numberOfDocuments</span> <span class="o">/</span> <span class="nx">batchSize</span><span class="p">);</span>
+<a name="code--ex8--ex2.js-pyg.html-43"></a>  <span class="kd">var</span> <span class="nx">leftOverDocuments</span> <span class="o">=</span> <span class="nx">numberOfDocuments</span> <span class="o">%</span> <span class="nx">batchSize</span><span class="p">;</span>
+<a name="code--ex8--ex2.js-pyg.html-44"></a>
+<a name="code--ex8--ex2.js-pyg.html-45"></a>  <span class="k">for</span><span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">numberOfDocuments</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex2.js-pyg.html-46"></a>    <span class="nx">documents</span><span class="p">.</span><span class="nx">push</span><span class="p">({</span><span class="nx">i</span><span class="o">:</span><span class="nx">i</span><span class="p">});</span>
+<a name="code--ex8--ex2.js-pyg.html-47"></a>  <span class="p">}</span>
+<a name="code--ex8--ex2.js-pyg.html-48"></a>
+<a name="code--ex8--ex2.js-pyg.html-49"></a>  <span class="nx">runBatches</span><span class="p">(</span><span class="nx">collection</span><span class="p">,</span> <span class="nx">batchSize</span><span class="p">,</span> <span class="nx">numberOfBatches</span><span class="p">,</span> <span class="nx">documents</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex2.js-pyg.html-50"></a>
+<a name="code--ex8--ex2.js-pyg.html-51"></a>    <span class="k">if</span><span class="p">(</span><span class="nx">leftOverDocuments</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="k">return</span> <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex8--ex2.js-pyg.html-52"></a>
+<a name="code--ex8--ex2.js-pyg.html-53"></a>    <span class="nx">batch</span><span class="p">(</span><span class="nx">collection</span><span class="p">,</span> <span class="nx">documents</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex2.js-pyg.html-54"></a>      <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex8--ex2.js-pyg.html-55"></a>    <span class="p">});</span>
+<a name="code--ex8--ex2.js-pyg.html-56"></a>  <span class="p">});</span>
+<a name="code--ex8--ex2.js-pyg.html-57"></a><span class="p">});</span>
+</pre></div><p>The first part of the code after the <tt class="docutils literal">MongoClient.connect</tt> is to generate an array of documents (in this case <tt class="docutils literal">100005</tt> documents). After creating the documents we calculate the number of batches needed when the batchsize is <tt class="docutils literal">1000</tt>. And after getting the right number of batches we use the <tt class="docutils literal">modulo operator %</tt> in the statement <tt class="docutils literal">var leftOverDocuments = numberOfDocuments % batchSize;</tt> to determine how many documents are left outside the batches. In this case the number of batches are <tt class="docutils literal">100</tt> and the left over number of documents <tt class="docutils literal">5</tt></p>
+<p>We then call the <tt class="docutils literal">runBatches</tt> function with the collection, batchSize, numberOfBatches and documents. The <tt class="docutils literal">runBatches</tt> function calls the <tt class="docutils literal">batch</tt> function that inserts <tt class="docutils literal">999</tt> with the write concern <tt class="docutils literal">w:0</tt> and then the last one of the <tt class="docutils literal">1000</tt> with the write concern <tt class="docutils literal">w:1</tt>. Once the <tt class="docutils literal">batch</tt> function finishes we call <tt class="docutils literal">runBatches</tt> again with <tt class="docutils literal">numberOfBatches - 1</tt> until <tt class="docutils literal">numberOfBatches</tt> equals <tt class="docutils literal">0</tt> (notice that we call <tt class="docutils literal">numberOfBatches</tt> using <tt class="docutils literal">process.nextTick()</tt> to make sure we don't run out of stack space). After the batch inserts are done we check if we have any left over documents and do a final <tt class="docutils literal">batch</tt> insert with any leftover documents.</p>
+<p>The benefit of this is that we are inserting <tt class="docutils literal">1000</tt> documents and for each <tt class="docutils literal">1000</tt> documents we are doing a write concern of <tt class="docutils literal">w:1</tt> to let MongoDB catch up. This lets us throttle the insert rate, get the benefit of no ackowledgement using <tt class="docutils literal">w:0</tt> but at the same time avoiding overflowing the socket buffers.</p>
+</div>
+<div class="section" id="setting-default-write-concern">
+<h1>Setting Default Write Concern</h1>
+<p>The Node.js driver lets you set the default write concern at different levels. <tt class="docutils literal">MongoClient</tt> already comes with the default write concern set to <tt class="docutils literal">w:1</tt> but your application can set it at the <tt class="docutils literal">Db</tt>, <tt class="docutils literal">Collection</tt> or individual operation. Let's enter some example code showing how to set it at different levels.</p>
+<div class="highlight"><pre><a name="code--ex8--ex3.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex8--ex3.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex8--ex3.js-pyg.html-3"></a>
+<a name="code--ex8--ex3.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test?w=0&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex3.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex3.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex8--ex3.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex8--ex3.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex8--ex3.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex8--ex3.js-pyg.html-10"></a>
+<a name="code--ex8--ex3.js-pyg.html-11"></a>  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;my_write_concern_docs&#39;</span><span class="p">);</span>
+<a name="code--ex8--ex3.js-pyg.html-12"></a>
+<a name="code--ex8--ex3.js-pyg.html-13"></a>  <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">});</span>
+<a name="code--ex8--ex3.js-pyg.html-14"></a>
+<a name="code--ex8--ex3.js-pyg.html-15"></a>  <span class="kd">var</span> <span class="nx">collectionWithWriteConcernSet</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;my_write_concern_docs&#39;</span><span class="p">,</span> <span class="p">{</span><span class="nx">w</span><span class="o">:</span><span class="mi">1</span><span class="p">});</span>
+<a name="code--ex8--ex3.js-pyg.html-16"></a>
+<a name="code--ex8--ex3.js-pyg.html-17"></a>  <span class="nx">collectionWithWriteConcernSet</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex3.js-pyg.html-18"></a>    <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex3.js-pyg.html-19"></a>      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>
+<a name="code--ex8--ex3.js-pyg.html-20"></a>    <span class="p">}</span>
+<a name="code--ex8--ex3.js-pyg.html-21"></a>
+<a name="code--ex8--ex3.js-pyg.html-22"></a>    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">j</span><span class="o">:</span><span class="kc">true</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex3.js-pyg.html-23"></a>      <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex8--ex3.js-pyg.html-24"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;write concern on collection caught duplicate key error&quot;</span><span class="p">);</span>
+<a name="code--ex8--ex3.js-pyg.html-25"></a>      <span class="p">}</span>
+<a name="code--ex8--ex3.js-pyg.html-26"></a>
+<a name="code--ex8--ex3.js-pyg.html-27"></a>      <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex8--ex3.js-pyg.html-28"></a>    <span class="p">});</span>
+<a name="code--ex8--ex3.js-pyg.html-29"></a>  <span class="p">});</span>
+<a name="code--ex8--ex3.js-pyg.html-30"></a><span class="p">});</span>
+</pre></div><p>When you run the script the output should look something like this.</p>
+<pre class="code console literal-block">
+<span class="go">connected to database
+write concern on collection caught duplicate key error
+write concern on collection caught duplicate key error</span>
+</pre>
+<p>Let's dissect the code and look at how it works. The first insert is the <tt class="docutils literal"><span class="pre">collection.insert({_id:1})</span></tt> when we connected to the db we used the connection string <tt class="docutils literal"><span class="pre">mongodb://localhost:27017/test?w=0</span></tt> where <tt class="docutils literal">w=0</tt> means no ackowledgement by default. This is inherited by the collection when we do <tt class="docutils literal">var collection = <span class="pre">db.collection('my_write_concern_docs');</span></tt> meaning that the first insert is done with <tt class="docutils literal">w:0</tt>. The second insert shows how we can override the default write concern set for the database for a collection. <tt class="docutils literal">var collectionWithWriteConcernSet = <span class="pre">db.collection('my_write_concern_docs',</span> <span class="pre">{w:1});</span></tt> creates a new collection object where all operations will default to <tt class="docutils literal">w:1</tt>. This causes the insert to fail as we try to insert a duplicate document. The last insert shows how we can override the write concern on an individual insert operation. In this case we take the <tt class="docutils literal">collection</tt> variable which has the default write concern <tt class="docutils literal">w:0</tt> and override it for the insert to be <tt class="docutils literal">j:true</tt> by doing <tt class="docutils literal"><span class="pre">collection.insert({_id:1},</span> {j:true}, <span class="pre">.......</span></tt>.</p>
+<p>As we can see write concerns can be specified at the <tt class="docutils literal">Db</tt>, <tt class="docutils literal">Collection</tt> and the individual operation level and if not set the individual operation inherits from the <tt class="docutils literal">Collection</tt> settings while the <tt class="docutils literal">Collection</tt> inherits the write concern from the <tt class="docutils literal">Db</tt> if not set.</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last"><tt class="docutils literal">Replicasets</tt> and write concerns will be covered in later exercises. One of the things to keep in mind about write concerns is that the cost of higher guarantees of durability comes with an insert performance cost. So think carefully if you need your documents to be replicated across multiple <tt class="docutils literal">secondaries</tt> or if you are good enough with them being ackowledged as written to the memory of the <tt class="docutils literal">primary</tt> server. A typical mistake is to be to paranoid about losing data and setting the highest possible durability you can do and getting very bad insert performance as a consequence.</p>
+</div>
+</div>
+    </div>
+
+    <div class="one columns" id="right-nav">
+        <center>
+        <p><a href="/book/"><img src="images/48_structure.png"></a></p>
+        <p><a href="#"><img src="images/48_email.png"></a></p>
+        <p><a href="#faq"><img src="images/48_faq.png"></a></p>
+        <p>
+        </p>
+        </center>
+    </div>
+
+  <!-- Included JS Files (Compressed) -->
+  <script src="javascripts/jquery.js"></script>
+  <script src="javascripts/foundation.min.js"></script>
+  
+  <!-- Initialize JS Plugins -->
+  <script src="javascripts/app.js"></script>
+
+</body>
+</html>

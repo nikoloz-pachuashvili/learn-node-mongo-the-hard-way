@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+    <!--[if gt IE 8]><!-->
+<html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8" />
+
+  <!-- Set the viewport width to device width for mobile -->
+  <meta name="viewport" content="width=device-width" />
+
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
+<title>Exercise 4: Connecting to a single MongoDB instance from Node.js</title>
+
+  <!-- Included CSS Files (Compressed) -->
+  <link rel="stylesheet" href="stylesheets/foundation.min.css">
+  <link rel="stylesheet" href="stylesheets/pygments.css">
+  <link rel="stylesheet" href="stylesheets/app.css">
+
+  <script src="javascripts/modernizr.foundation.js"></script>
+
+  <!-- IE Fix for HTML5 Tags -->
+  <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+</head>
+<body>
+
+  <div class="row">
+          <h1 class="title">Exercise 4: Connecting to a single MongoDB instance from Node.js</h1>
+      </div>
+  </div>
+
+  <div class="row">
+    <div class="eleven columns">
+        <p>In this exercise we will look at how to connect to <tt class="docutils literal">MongoDB</tt> from Node.js. We will write a simple program that connects to the server and then disconnects itself. We are assuming the npm <tt class="docutils literal">mongodb</tt> package is already installed (if not revisit exercise 1). Fire up your text editor and enter the following program.</p>
+<div class="highlight"><pre><a name="code--ex4--ex1.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex4--ex1.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex4--ex1.js-pyg.html-3"></a>
+<a name="code--ex4--ex1.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex4--ex1.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex4--ex1.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex4--ex1.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex4--ex1.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex4--ex1.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex4--ex1.js-pyg.html-10"></a>
+<a name="code--ex4--ex1.js-pyg.html-11"></a>  <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex4--ex1.js-pyg.html-12"></a><span class="p">})</span>
+</pre></div><p>Notice the weird string <tt class="docutils literal"><span class="pre">mongodb://localhost:27017/test</span></tt> this is called an <tt class="docutils literal">URI</tt> connection string and is used by the driver to allow you to specify how to connect to a MongoDB server without specifying it programatically. This is useful if you need to use the same program against multiple different MongoDB setups as you can just store a seperate string for each environment.</p>
+<p>The <tt class="docutils literal">MongoClient.connect</tt> takes a function with 2 parameters where the first one is named <tt class="docutils literal">err</tt> and the second <tt class="docutils literal">db</tt>. This is how Node.js works and if you look at the documentation on the Node.js site <a class="reference external" href="http://nodejs.org/">http://nodejs.org/</a> you'll notice that all functions take the same function. If the function worked correctly the <tt class="docutils literal">err</tt> parameter will be set to <tt class="docutils literal">null</tt>. If it's not set to <tt class="docutils literal">null</tt> there was an error during the <tt class="docutils literal">MongoClient.connect</tt> call. To check if there was an error the code does <tt class="docutils literal">if(err)</tt> that will return true if <tt class="docutils literal">err</tt> is anything but <tt class="docutils literal">null</tt> and then prints an error message before closing the connection.</p>
+<p>But say we have 2 different databases we want to use. Can we do just do <tt class="docutils literal">MongoClient.connect</tt> calls. The answer is yes but that it's not optimal. The reason is that <tt class="docutils literal">MongoClient.connect</tt> sets up a connection pool for each call meaning that if you call <tt class="docutils literal">MongoClient.connect</tt> a lot you might find that you are opening a lot of uneccessary connection to the MongoDB server. Luckily we can avoid this simply. Enter the following code in you text editor.</p>
+<div class="highlight"><pre><a name="code--ex4--ex2.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex4--ex2.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex4--ex2.js-pyg.html-3"></a>
+<a name="code--ex4--ex2.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex4--ex2.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex4--ex2.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex4--ex2.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex4--ex2.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex4--ex2.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex4--ex2.js-pyg.html-10"></a>
+<a name="code--ex4--ex2.js-pyg.html-11"></a>  <span class="kd">var</span> <span class="nx">test2</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">db</span><span class="p">(</span><span class="s1">&#39;test2&#39;</span><span class="p">);</span>
+<a name="code--ex4--ex2.js-pyg.html-12"></a>
+<a name="code--ex4--ex2.js-pyg.html-13"></a>  <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex4--ex2.js-pyg.html-14"></a><span class="p">})</span>
+</pre></div><p>Notice the line <tt class="docutils literal"><span class="pre">db.db('test2')</span></tt>. This creates a new Db object where all operations will go against the db <tt class="docutils literal">test2</tt> but will share the underlying connection pool with the first database <tt class="docutils literal">test</tt>. This lets your program get efficient reuse of the connection pool we created using <tt class="docutils literal">MongoClient.connect</tt>.</p>
+<p>That's covered <tt class="docutils literal">MongoClient.connect</tt>. Sometime we want better programatic control of our connections to MongoDB. Luckily <tt class="docutils literal">MongoClient</tt> allows for this aswell. Spin up the text editor again and enter the following program.</p>
+<div class="highlight"><pre><a name="code--ex4--ex3.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex4--ex3.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span>
+<a name="code--ex4--ex3.js-pyg.html-3"></a>  <span class="p">,</span> <span class="nx">Server</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">Server</span><span class="p">;</span>
+<a name="code--ex4--ex3.js-pyg.html-4"></a>
+<a name="code--ex4--ex3.js-pyg.html-5"></a><span class="kd">var</span> <span class="nx">mongoclient</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">MongoClient</span><span class="p">(</span><span class="k">new</span> <span class="nx">Server</span><span class="p">(</span><span class="s1">&#39;localhost&#39;</span><span class="p">,</span> <span class="mi">27017</span><span class="p">));</span>
+<a name="code--ex4--ex3.js-pyg.html-6"></a><span class="nx">mongoclient</span><span class="p">.</span><span class="nx">open</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">mongoclient</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex4--ex3.js-pyg.html-7"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex4--ex3.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex4--ex3.js-pyg.html-9"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex4--ex3.js-pyg.html-10"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex4--ex3.js-pyg.html-11"></a>  <span class="p">}</span>
+<a name="code--ex4--ex3.js-pyg.html-12"></a>
+<a name="code--ex4--ex3.js-pyg.html-13"></a>  <span class="kd">var</span> <span class="nx">test</span> <span class="o">=</span> <span class="nx">mongoclient</span><span class="p">.</span><span class="nx">db</span><span class="p">(</span><span class="s1">&#39;test&#39;</span><span class="p">);</span>
+<a name="code--ex4--ex3.js-pyg.html-14"></a>  <span class="kd">var</span> <span class="nx">test2</span> <span class="o">=</span> <span class="nx">mongoclient</span><span class="p">.</span><span class="nx">db</span><span class="p">(</span><span class="s1">&#39;test2&#39;</span><span class="p">);</span>
+<a name="code--ex4--ex3.js-pyg.html-15"></a>
+<a name="code--ex4--ex3.js-pyg.html-16"></a>  <span class="nx">mongoclient</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex4--ex3.js-pyg.html-17"></a><span class="p">})</span>
+</pre></div><p>Notice the line <tt class="docutils literal">Server = mongodb.Server</tt>. It allows us to define the settings for connecting to a server instance. The line <tt class="docutils literal">new MongoClient(new <span class="pre">Server('localhost',</span> 27017))</tt> creates an instance of <tt class="docutils literal">MongoClient</tt> that is ready to connect to the MongoDB server at localhost on port 27017. The program then calls <tt class="docutils literal">.open</tt> on the <tt class="docutils literal">MongoClient</tt> instance. The main difference from the previous connection example using <tt class="docutils literal">MongoClient.connect</tt> is that the function returns the <tt class="docutils literal">MongoClient</tt> instance instead of a <tt class="docutils literal">db</tt> instance. To get hold of the <tt class="docutils literal">db</tt> instances we have to call the function <tt class="docutils literal"><span class="pre">.db('test')</span></tt> on the <tt class="docutils literal">MongoClient</tt> instance. The code does this twice to retrieve a db instance for the databases <tt class="docutils literal">test</tt> and <tt class="docutils literal">test2</tt> before finally closing the connection to the MongoDB database.</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">MongoDB can be configured to run as a cluster or sharded system. In later exercises we will learn how to connect to this configuarations. It's very similar to the current examples but has some slight differences. You can read more about the <tt class="docutils literal">URI</tt> format at <a class="reference external" href="http://docs.mongodb.org/manual/reference/connection-string/">http://docs.mongodb.org/manual/reference/connection-string/</a></p>
+</div>
+    </div>
+
+    <div class="one columns" id="right-nav">
+        <center>
+        <p><a href="/book/"><img src="images/48_structure.png"></a></p>
+        <p><a href="#"><img src="images/48_email.png"></a></p>
+        <p><a href="#faq"><img src="images/48_faq.png"></a></p>
+        <p>
+        </p>
+        </center>
+    </div>
+
+  <!-- Included JS Files (Compressed) -->
+  <script src="javascripts/jquery.js"></script>
+  <script src="javascripts/foundation.min.js"></script>
+  
+  <!-- Initialize JS Plugins -->
+  <script src="javascripts/app.js"></script>
+
+</body>
+</html>

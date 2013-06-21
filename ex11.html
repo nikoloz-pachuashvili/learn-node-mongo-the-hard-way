@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+
+<!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
+<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+    <!--[if gt IE 8]><!-->
+<html class="no-js" lang="en"> <!--<![endif]-->
+<head>
+  <meta charset="utf-8" />
+
+  <!-- Set the viewport width to device width for mobile -->
+  <meta name="viewport" content="width=device-width" />
+
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.9.1: http://docutils.sourceforge.net/" />
+<title>Exercise 11: Final Update</title>
+
+  <!-- Included CSS Files (Compressed) -->
+  <link rel="stylesheet" href="stylesheets/foundation.min.css">
+  <link rel="stylesheet" href="stylesheets/pygments.css">
+  <link rel="stylesheet" href="stylesheets/app.css">
+
+  <script src="javascripts/modernizr.foundation.js"></script>
+
+  <!-- IE Fix for HTML5 Tags -->
+  <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+</head>
+<body>
+
+  <div class="row">
+          <h1 class="title">Exercise 11: Final Update</h1>
+      </div>
+  </div>
+
+  <div class="row">
+    <div class="eleven columns">
+        <p>The last two elements we are going to touch when it comes to the <tt class="docutils literal">update</tt> operation is the <tt class="docutils literal">upsert</tt> and the <tt class="docutils literal">multi</tt> option. Let's start with a simple example to illustrate the usage of the <tt class="docutils literal">upsert</tt> option.</p>
+<div class="highlight"><pre><a name="code--ex11--ex1.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex11--ex1.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex11--ex1.js-pyg.html-3"></a>
+<a name="code--ex11--ex1.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex11--ex1.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex11--ex1.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex11--ex1.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex11--ex1.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex11--ex1.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex11--ex1.js-pyg.html-10"></a>
+<a name="code--ex11--ex1.js-pyg.html-11"></a>  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;upserts&#39;</span><span class="p">);</span>
+<a name="code--ex11--ex1.js-pyg.html-12"></a>
+<a name="code--ex11--ex1.js-pyg.html-13"></a>  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex11--ex1.js-pyg.html-14"></a>
+<a name="code--ex11--ex1.js-pyg.html-15"></a>    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">,</span> <span class="nx">value</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex11--ex1.js-pyg.html-16"></a>      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;added document&quot;</span><span class="p">);</span>
+<a name="code--ex11--ex1.js-pyg.html-17"></a>
+<a name="code--ex11--ex1.js-pyg.html-18"></a>      <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">_id</span><span class="o">:</span><span class="mi">1</span><span class="p">},</span> <span class="p">{</span><span class="nx">$set</span><span class="o">:</span> <span class="p">{</span><span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span><span class="p">}},</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex11--ex1.js-pyg.html-19"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;will fail&quot;</span><span class="p">);</span>
+<a name="code--ex11--ex1.js-pyg.html-20"></a>        <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">err</span><span class="p">);</span>
+<a name="code--ex11--ex1.js-pyg.html-21"></a>
+<a name="code--ex11--ex1.js-pyg.html-22"></a>        <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">value</span><span class="o">:</span><span class="mi">2</span><span class="p">},</span> <span class="p">{</span><span class="nx">$set</span><span class="o">:</span> <span class="p">{</span><span class="nx">upserted</span><span class="o">:</span><span class="kc">true</span><span class="p">}},</span> <span class="p">{</span><span class="nx">upsert</span><span class="o">:</span><span class="kc">true</span><span class="p">}</span>
+<a name="code--ex11--ex1.js-pyg.html-23"></a>          <span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex11--ex1.js-pyg.html-24"></a>            <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;upserted document&quot;</span><span class="p">);</span>
+<a name="code--ex11--ex1.js-pyg.html-25"></a>
+<a name="code--ex11--ex1.js-pyg.html-26"></a>            <span class="nx">collection</span><span class="p">.</span><span class="nx">find</span><span class="p">().</span><span class="nx">toArray</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">docs</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex11--ex1.js-pyg.html-27"></a>              <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;documents&quot;</span><span class="p">);</span>
+<a name="code--ex11--ex1.js-pyg.html-28"></a>              <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">docs</span><span class="p">);</span>
+<a name="code--ex11--ex1.js-pyg.html-29"></a>              <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex11--ex1.js-pyg.html-30"></a>            <span class="p">});</span>
+<a name="code--ex11--ex1.js-pyg.html-31"></a>        <span class="p">});</span>
+<a name="code--ex11--ex1.js-pyg.html-32"></a>      <span class="p">});</span>
+<a name="code--ex11--ex1.js-pyg.html-33"></a>    <span class="p">});</span>
+<a name="code--ex11--ex1.js-pyg.html-34"></a>  <span class="p">});</span>
+<a name="code--ex11--ex1.js-pyg.html-35"></a><span class="p">});</span>
+</pre></div><p>The results should look like this.</p>
+<pre class="code console literal-block">
+<span class="go">connected to database
+added document
+will fail
+{ [MongoError: Mod on _id not allowed]
+  name: 'MongoError',
+  err: 'Mod on _id not allowed',
+  code: 10148,
+  n: 0,
+  connectionId: 153,
+  ok: 1 }
+upserted document
+documents
+[ { _id: 1, value: 1 },
+  { _id: 510124cc0ac025483df1af08, upserted: true, value: 2 } ]</span>
+</pre>
+<p>The <tt class="docutils literal">upsert</tt> option will run the update creating a new document if no document is found for the query. The first <tt class="docutils literal">upsert</tt> fails because we cannot modify the <tt class="docutils literal">_id</tt> field as it's the unique identifier for the document. The second succeeds as there is not document with the field <tt class="docutils literal">value</tt> set to <tt class="docutils literal">2</tt>. This means the update is run but creates a new document. If there had been a document present it would have been modified as if it was a normal update statement.</p>
+<div class="section" id="multi">
+<h1>Multi</h1>
+<p>As you might have discovered by now the <tt class="docutils literal">update</tt> command updates a single document at the time. But what if we want do update all documents matching a query. This is where the <tt class="docutils literal">multi</tt> command comes in. Let's have a look at an example.</p>
+<div class="highlight"><pre><a name="code--ex11--ex2.js-pyg.html-1"></a><span class="kd">var</span> <span class="nx">mongodb</span> <span class="o">=</span> <span class="nx">require</span><span class="p">(</span><span class="s1">&#39;mongodb&#39;</span><span class="p">)</span>
+<a name="code--ex11--ex2.js-pyg.html-2"></a>  <span class="p">,</span> <span class="nx">MongoClient</span> <span class="o">=</span> <span class="nx">mongodb</span><span class="p">.</span><span class="nx">MongoClient</span><span class="p">;</span>
+<a name="code--ex11--ex2.js-pyg.html-3"></a>
+<a name="code--ex11--ex2.js-pyg.html-4"></a><span class="nx">MongoClient</span><span class="p">.</span><span class="nx">connect</span><span class="p">(</span><span class="s2">&quot;mongodb://localhost:27017/test&quot;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">db</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex11--ex2.js-pyg.html-5"></a>  <span class="k">if</span><span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex11--ex2.js-pyg.html-6"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;failed to connect to the database&quot;</span><span class="p">);</span>
+<a name="code--ex11--ex2.js-pyg.html-7"></a>  <span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+<a name="code--ex11--ex2.js-pyg.html-8"></a>    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;connected to database&quot;</span><span class="p">);</span>
+<a name="code--ex11--ex2.js-pyg.html-9"></a>  <span class="p">}</span>
+<a name="code--ex11--ex2.js-pyg.html-10"></a>
+<a name="code--ex11--ex2.js-pyg.html-11"></a>  <span class="kd">var</span> <span class="nx">documents</span> <span class="o">=</span> <span class="p">[{</span>
+<a name="code--ex11--ex2.js-pyg.html-12"></a>        <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+<a name="code--ex11--ex2.js-pyg.html-13"></a>      <span class="p">,</span> <span class="nx">user</span><span class="o">:</span> <span class="mi">1</span>
+<a name="code--ex11--ex2.js-pyg.html-14"></a>      <span class="p">,</span> <span class="nx">read</span><span class="o">:</span><span class="kc">false</span>
+<a name="code--ex11--ex2.js-pyg.html-15"></a>    <span class="p">},</span> <span class="p">{</span>
+<a name="code--ex11--ex2.js-pyg.html-16"></a>        <span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span>
+<a name="code--ex11--ex2.js-pyg.html-17"></a>      <span class="p">,</span> <span class="nx">user</span><span class="o">:</span> <span class="mi">1</span>
+<a name="code--ex11--ex2.js-pyg.html-18"></a>      <span class="p">,</span> <span class="nx">read</span><span class="o">:</span><span class="kc">false</span>
+<a name="code--ex11--ex2.js-pyg.html-19"></a>    <span class="p">},</span> <span class="p">{</span>
+<a name="code--ex11--ex2.js-pyg.html-20"></a>        <span class="nx">_id</span><span class="o">:</span> <span class="mi">3</span>
+<a name="code--ex11--ex2.js-pyg.html-21"></a>      <span class="p">,</span> <span class="nx">user</span><span class="o">:</span> <span class="mi">2</span>
+<a name="code--ex11--ex2.js-pyg.html-22"></a>      <span class="p">,</span> <span class="nx">read</span><span class="o">:</span><span class="kc">false</span>
+<a name="code--ex11--ex2.js-pyg.html-23"></a>    <span class="p">}</span>
+<a name="code--ex11--ex2.js-pyg.html-24"></a>  <span class="p">];</span>
+<a name="code--ex11--ex2.js-pyg.html-25"></a>
+<a name="code--ex11--ex2.js-pyg.html-26"></a>  <span class="kd">var</span> <span class="nx">collection</span> <span class="o">=</span> <span class="nx">db</span><span class="p">.</span><span class="nx">collection</span><span class="p">(</span><span class="s1">&#39;upserts&#39;</span><span class="p">);</span>
+<a name="code--ex11--ex2.js-pyg.html-27"></a>
+<a name="code--ex11--ex2.js-pyg.html-28"></a>  <span class="nx">collection</span><span class="p">.</span><span class="nx">remove</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+<a name="code--ex11--ex2.js-pyg.html-29"></a>
+<a name="code--ex11--ex2.js-pyg.html-30"></a>    <span class="nx">collection</span><span class="p">.</span><span class="nx">insert</span><span class="p">(</span><span class="nx">documents</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex11--ex2.js-pyg.html-31"></a>      <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;added document&quot;</span><span class="p">);</span>
+<a name="code--ex11--ex2.js-pyg.html-32"></a>
+<a name="code--ex11--ex2.js-pyg.html-33"></a>      <span class="nx">collection</span><span class="p">.</span><span class="nx">update</span><span class="p">({</span><span class="nx">user</span><span class="o">:</span><span class="mi">1</span><span class="p">,</span> <span class="nx">read</span><span class="o">:</span><span class="kc">false</span><span class="p">},</span> <span class="p">{</span><span class="nx">$set</span><span class="o">:</span> <span class="p">{</span><span class="nx">read</span><span class="o">:</span><span class="kc">true</span><span class="p">}},</span> <span class="p">{</span><span class="nx">multi</span><span class="o">:</span><span class="kc">true</span><span class="p">}</span>
+<a name="code--ex11--ex2.js-pyg.html-34"></a>        <span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">result</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex11--ex2.js-pyg.html-35"></a>          <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;updated documents&quot;</span><span class="p">);</span>
+<a name="code--ex11--ex2.js-pyg.html-36"></a>
+<a name="code--ex11--ex2.js-pyg.html-37"></a>          <span class="nx">collection</span><span class="p">.</span><span class="nx">find</span><span class="p">().</span><span class="nx">toArray</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">docs</span><span class="p">)</span> <span class="p">{</span>
+<a name="code--ex11--ex2.js-pyg.html-38"></a>            <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;documents&quot;</span><span class="p">);</span>
+<a name="code--ex11--ex2.js-pyg.html-39"></a>            <span class="nx">console</span><span class="p">.</span><span class="nx">dir</span><span class="p">(</span><span class="nx">docs</span><span class="p">);</span>
+<a name="code--ex11--ex2.js-pyg.html-40"></a>            <span class="nx">db</span><span class="p">.</span><span class="nx">close</span><span class="p">();</span>
+<a name="code--ex11--ex2.js-pyg.html-41"></a>          <span class="p">});</span>
+<a name="code--ex11--ex2.js-pyg.html-42"></a>        <span class="p">});</span>
+<a name="code--ex11--ex2.js-pyg.html-43"></a>    <span class="p">});</span>
+<a name="code--ex11--ex2.js-pyg.html-44"></a>  <span class="p">});</span>
+<a name="code--ex11--ex2.js-pyg.html-45"></a><span class="p">});</span>
+</pre></div><p>The results should look like this.</p>
+<pre class="code console literal-block">
+<span class="go">connected to database
+added document
+updated documents
+documents
+[ { _id: 1, user: 1, read: true },
+  { _id: 2, user: 1, read: true },
+  { _id: 3, user: 2, read: false } ]</span>
+</pre>
+<p>Our <tt class="docutils literal">update</tt> statement will select all the documents that match the expression <tt class="docutils literal">{user:1, read:false}</tt>.</p>
+<pre class="code javascript literal-block">
+<span class="p">[</span><span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="nx">user</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="nx">read</span><span class="o">:</span><span class="kc">false</span>
+<span class="p">},</span> <span class="p">{</span>
+    <span class="nx">_id</span><span class="o">:</span> <span class="mi">2</span>
+  <span class="p">,</span> <span class="nx">user</span><span class="o">:</span> <span class="mi">1</span>
+  <span class="p">,</span> <span class="nx">read</span><span class="o">:</span><span class="kc">false</span>
+<span class="p">}]</span>
+</pre>
+<p>And will then set the <tt class="docutils literal">read</tt> field for both documents to <tt class="docutils literal">true</tt>. This covers the last two options of the <tt class="docutils literal">update</tt> command. In the next exercise we will introduce a way to modify and retrieve a document in one operation called <tt class="docutils literal">findAndModify</tt>.</p>
+<div class="note">
+<p class="first admonition-title">Note</p>
+<p class="last">You might be tempted to use <tt class="docutils literal">update</tt> with <tt class="docutils literal">upsert</tt> set to true instead of <tt class="docutils literal">insert</tt>. This might have a performance impact as you collection grows as the database needs to perform a query and an update operation instead of just an insert operation.</p>
+</div>
+</div>
+    </div>
+
+    <div class="one columns" id="right-nav">
+        <center>
+        <p><a href="/book/"><img src="images/48_structure.png"></a></p>
+        <p><a href="#"><img src="images/48_email.png"></a></p>
+        <p><a href="#faq"><img src="images/48_faq.png"></a></p>
+        <p>
+        </p>
+        </center>
+    </div>
+
+  <!-- Included JS Files (Compressed) -->
+  <script src="javascripts/jquery.js"></script>
+  <script src="javascripts/foundation.min.js"></script>
+  
+  <!-- Initialize JS Plugins -->
+  <script src="javascripts/app.js"></script>
+
+</body>
+</html>
