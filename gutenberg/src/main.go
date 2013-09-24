@@ -3,10 +3,13 @@ package main
 import (
 	"fmt"
 	flag "github.com/ogier/pflag"
-	blackfriday "github.com/russross/blackfriday"
+	// blackfriday "github.com/russross/blackfriday"
+	gutenberg "gutenberg.org"
 	"gutenberg.org/config"
 	"io/ioutil"
+	// "log"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 )
@@ -40,10 +43,10 @@ func usage() {
 }
 
 func main() {
-	fmt.Printf("========================= 0\n")
+	// fmt.Printf("========================= 0\n")
 	flag.Usage = usage
 	flag.Parse()
-	fmt.Printf("========================= 1\n")
+	// fmt.Printf("========================= 1\n")
 
 	if *help {
 		usage()
@@ -86,8 +89,11 @@ func GenerateBook(p *Process, c *config.Config) error {
 			return err
 		}
 
+		// Get the custom Html transformer
+		customTransformer := gutenberg.NewCustomHtml()
+
 		// Render the mardown
-		html := blackfriday.MarkdownCommon(data)
+		html := customTransformer.Transform(data)
 
 		// Let's write the resulting page out
 		err = ioutil.WriteFile(fmt.Sprintf("%s/%s.html", c.OutputDirectory, fileName), html, 0755)
@@ -95,17 +101,60 @@ func GenerateBook(p *Process, c *config.Config) error {
 			return err
 		}
 
-		// fmt.Printf("html = %s\n", html)
+		//
+		//
+		code := "function() {\n" +
+			"  var a = 1\n" +
+			"}\n"
 
-		// title := ""
-		// css := ""
-		// flags := 0
-		// Read the page in and transform
-		// renderer := blackfriday.HtmlRenderer(flags, title, css)
-		// renderer.
+		html, err = ExecuteSourceHighlight("js", []byte(code), c)
 	}
 
 	return nil
+}
+
+func ExecuteSourceHighlight(lang string, source []byte, c *config.Config) ([]byte, error) {
+	tempFileNameIn := fmt.Sprintf("%s/%s.%s", c.OutputDirectory, "temp", lang)
+	tempFileNameOut := fmt.Sprintf("%s/%s.%s", c.OutputDirectory, "temp", "html")
+
+	// Write the file out first
+	err := ioutil.WriteFile(tempFileNameIn, source, 0755)
+	if err != nil {
+		return nil, err
+	}
+
+	// Make sure we have the tool available
+	_, err = exec.LookPath("source-highlight")
+	if err != nil {
+		return nil, err
+	}
+
+	// Format the code using gnu source-highlight
+	cmd := exec.Command("source-highlight",
+		"-s",
+		lang,
+		"-f",
+		"html",
+		"--input",
+		tempFileNameIn,
+		"--output",
+		tempFileNameOut,
+	)
+	// Start the command
+	err = cmd.Start()
+	// Wait for process to finish
+	err = cmd.Wait()
+	if err != nil {
+		return nil, err
+	}
+
+	// Read the converted file
+	html, err := ioutil.ReadFile(tempFileNameOut)
+	if err != nil {
+		return nil, err
+	}
+
+	return html, nil
 }
 
 func WatchMode(delay int64, p *Process, c *config.Config) error {
