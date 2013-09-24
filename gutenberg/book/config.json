@@ -1,0 +1,13 @@
+{
+	"table_of_contents": [
+		"ex0.mk"
+	],	
+	"layouts": {
+		"html": {
+			"index": "layouts/index.gtl",
+			"page": "layouts/page.gtl"
+		}
+	},
+	"output_directory": "./output",
+	"default_output_format": "html"
+}
