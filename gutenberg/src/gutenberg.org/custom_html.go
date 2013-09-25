@@ -3,7 +3,11 @@ package gutenberg
 import (
 	"bytes"
 	blackfriday "github.com/russross/blackfriday"
+	"gutenberg.org/config"
 	"strings"
+	"fmt"
+	"io/ioutil"
+	"os/exec"
 )
 
 type MarkdownTransformer interface {
@@ -19,7 +23,7 @@ func (p *CustomMarkdownTransformer) Transform(input []byte) []byte {
 	return blackfriday.Markdown(input, p.renderer, p.extensions)
 }
 
-func NewCustomHtml() MarkdownTransformer {
+func NewCustomHtml(c *config.Config) MarkdownTransformer {
 	// set up the HTML renderer
 	htmlFlags := 0
 	htmlFlags |= blackfriday.HTML_USE_XHTML
@@ -39,12 +43,57 @@ func NewCustomHtml() MarkdownTransformer {
 
 	// Wrap up everything
 	htmlRenderer := blackfriday.HtmlRenderer(htmlFlags, "", "")
-	customRenderer := &CustomHtml{html: htmlRenderer}
+	customRenderer := &CustomHtml{html: htmlRenderer, config: c}
 	return &CustomMarkdownTransformer{renderer: customRenderer, extensions: extensions}
 }
 
 type CustomHtml struct {
 	html blackfriday.Renderer
+	config *config.Config
+}
+
+func executeSourceHighlight(lang string, source []byte, c *config.Config) ([]byte, error) {
+	tempFileNameIn := fmt.Sprintf("%s/%s.%s", c.OutputDirectory, "temp", lang)
+	tempFileNameOut := fmt.Sprintf("%s/%s.%s", c.OutputDirectory, "temp", "html")
+
+	// Write the file out first
+	err := ioutil.WriteFile(tempFileNameIn, source, 0755)
+	if err != nil {
+		return nil, err
+	}
+
+	// Make sure we have the tool available
+	_, err = exec.LookPath("source-highlight")
+	if err != nil {
+		return nil, err
+	}
+
+	// Format the code using gnu source-highlight
+	cmd := exec.Command("source-highlight",
+		"-s",
+		lang,
+		"-f",
+		"html",
+		"--input",
+		tempFileNameIn,
+		"--output",
+		tempFileNameOut,
+	)
+	// Start the command
+	err = cmd.Start()
+	// Wait for process to finish
+	err = cmd.Wait()
+	if err != nil {
+		return nil, err
+	}
+
+	// Read the converted file
+	html, err := ioutil.ReadFile(tempFileNameOut)
+	if err != nil {
+		return nil, err
+	}
+
+	return html, nil
 }
 
 func (p *CustomHtml) BlockCode(out *bytes.Buffer, text []byte, lang string) {
@@ -74,7 +123,13 @@ func (p *CustomHtml) BlockCode(out *bytes.Buffer, text []byte, lang string) {
 		out.WriteString("\">")
 	}
 
-	attrEscape(out, text)
+	if lang == "console" {
+		attrEscape(out, text)
+	} else {
+		html, _ := executeSourceHighlight(lang, text, p.config)		
+		out.Write(html)
+	}
+
 	out.WriteString("</code></pre>\n")
 }
 

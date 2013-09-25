@@ -22,31 +22,44 @@ type Config struct {
 	Layouts             map[string]Layout `json:"layouts"`
 }
 
-func ReadConfigFromFile(cfgfile *string, source *string) (*Config, error) {
-	var configFile string
-	var sourcePath string
+func SourcePath(source *string) string {
 	// Get the current directory
 	pwd, _ := os.Getwd()
 
 	if *source == "" {
-		sourcePath = pwd
-	} else {
-		sourcePath = *source
+		return pwd
 	}
 
+	return *source
+}
+
+func ConfigFile(sourcePath string, cfgfile *string) string {
 	// If no config file set set the default
 	if *cfgfile == "" {
-		configFile = fmt.Sprintf("%s/config.json", sourcePath)
-	} else {
-		configFile = fmt.Sprintf("%s/%s", sourcePath, configFile)
+		return fmt.Sprintf("%s/config.json", sourcePath)
 	}
 
-	fmt.Printf("pwd = %s\n", pwd)
-	fmt.Printf("cfgfile = %s\n", *cfgfile)
-	fmt.Printf("configFile = %s\n", configFile)
-	fmt.Printf("source = %s\n", *source)
-	fmt.Printf("sourcePath = %s\n", sourcePath)
+	return fmt.Sprintf("%s/%s", sourcePath, *cfgfile)
+}
 
+func ReadConfigFromFile(cfgfile *string, source *string) (*Config, error) {
+	// // Get the current directory
+	// pwd, _ := os.Getwd()
+
+	// if *source == "" {
+	// 	sourcePath = pwd
+	// } else {
+	// 	sourcePath = *source
+	// }
+
+	sourcePath := SourcePath(source)
+	// fmt.Printf("pwd = %s\n", pwd)
+	// fmt.Printf("cfgfile = %s\n", *cfgfile)
+	// fmt.Printf("configFile = %s\n", configFile)
+	// fmt.Printf("source = %s\n", *source)
+	// fmt.Printf("sourcePath = %s\n", sourcePath)
+	// Get the config file
+	configFile := ConfigFile(sourcePath, cfgfile)
 	// Read in the configuration file
 	data, err := ioutil.ReadFile(configFile)
 	if err != nil {
@@ -61,5 +74,6 @@ func ReadConfigFromFile(cfgfile *string, source *string) (*Config, error) {
 		return nil, err
 	}
 
+	// Return the parsed config file
 	return c, nil
 }

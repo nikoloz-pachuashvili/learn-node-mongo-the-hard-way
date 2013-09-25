@@ -7,9 +7,9 @@ import (
 	gutenberg "gutenberg.org"
 	"gutenberg.org/config"
 	"io/ioutil"
-	// "log"
+	"log"
 	"os"
-	"os/exec"
+	// "os/exec"
 	"strings"
 	"time"
 )
@@ -43,10 +43,8 @@ func usage() {
 }
 
 func main() {
-	// fmt.Printf("========================= 0\n")
 	flag.Usage = usage
 	flag.Parse()
-	// fmt.Printf("========================= 1\n")
 
 	if *help {
 		usage()
@@ -64,11 +62,6 @@ func main() {
 
 	// Create output directory if it does not exist
 	err = os.Mkdir(c.OutputDirectory, 0755)
-	// if err != nil {
-	// 	fmt.Printf("Error:: %v\n", err)
-	// 	os.Exit(0)
-	// }
-
 	// Go into watch mode
 	if *watchMode {
 		WatchMode(1000, process, c)
@@ -90,7 +83,7 @@ func GenerateBook(p *Process, c *config.Config) error {
 		}
 
 		// Get the custom Html transformer
-		customTransformer := gutenberg.NewCustomHtml()
+		customTransformer := gutenberg.NewCustomHtml(c)
 
 		// Render the mardown
 		html := customTransformer.Transform(data)
@@ -100,68 +93,30 @@ func GenerateBook(p *Process, c *config.Config) error {
 		if err != nil {
 			return err
 		}
-
-		//
-		//
-		code := "function() {\n" +
-			"  var a = 1\n" +
-			"}\n"
-
-		html, err = ExecuteSourceHighlight("js", []byte(code), c)
 	}
 
 	return nil
 }
 
-func ExecuteSourceHighlight(lang string, source []byte, c *config.Config) ([]byte, error) {
-	tempFileNameIn := fmt.Sprintf("%s/%s.%s", c.OutputDirectory, "temp", lang)
-	tempFileNameOut := fmt.Sprintf("%s/%s.%s", c.OutputDirectory, "temp", "html")
-
-	// Write the file out first
-	err := ioutil.WriteFile(tempFileNameIn, source, 0755)
-	if err != nil {
-		return nil, err
-	}
-
-	// Make sure we have the tool available
-	_, err = exec.LookPath("source-highlight")
-	if err != nil {
-		return nil, err
-	}
-
-	// Format the code using gnu source-highlight
-	cmd := exec.Command("source-highlight",
-		"-s",
-		lang,
-		"-f",
-		"html",
-		"--input",
-		tempFileNameIn,
-		"--output",
-		tempFileNameOut,
-	)
-	// Start the command
-	err = cmd.Start()
-	// Wait for process to finish
-	err = cmd.Wait()
-	if err != nil {
-		return nil, err
-	}
-
-	// Read the converted file
-	html, err := ioutil.ReadFile(tempFileNameOut)
-	if err != nil {
-		return nil, err
-	}
-
-	return html, nil
-}
-
 func WatchMode(delay int64, p *Process, c *config.Config) error {
 	go func() {
 		for true {
+			// Get the parts of the config file
+			sourcePath := config.SourcePath(source)
+			configFile := config.ConfigFile(sourcePath, cfgfile)
+			// Log the attempt to read the configuration file
+			log.Printf("Reading configuration file %s\n", configFile)
+			// Read the configuration
+			c, err := config.ReadConfigFromFile(cfgfile, source)
+			if err != nil {
+				fmt.Printf("Error:: %v\n", err)
+				p.Done <- true
+				break
+			}
+
+			log.Printf("Generating Book\n")
 			// Process and generate the book
-			err := GenerateBook(p, c)
+			err = GenerateBook(p, c)
 			if err != nil {
 				fmt.Printf("Error:: %v\n", err)
 				p.Done <- true

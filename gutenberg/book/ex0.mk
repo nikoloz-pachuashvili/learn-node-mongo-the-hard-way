@@ -1,8 +1,2 @@
-This is an H1 Test
-==================
-
-``` go
-func getTrue() bool {
-    return true
-}
-```
+Exercise 0: The Setup
+=====================
