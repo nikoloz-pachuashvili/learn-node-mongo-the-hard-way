@@ -2,12 +2,14 @@ package gutenberg
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	blackfriday "github.com/russross/blackfriday"
 	"gutenberg.org/config"
-	"strings"
-	"fmt"
 	"io/ioutil"
+	"log"
 	"os/exec"
+	"strings"
 )
 
 type MarkdownTransformer interface {
@@ -48,11 +50,44 @@ func NewCustomHtml(c *config.Config) MarkdownTransformer {
 }
 
 type CustomHtml struct {
-	html blackfriday.Renderer
+	html   blackfriday.Renderer
 	config *config.Config
 }
 
-func executeSourceHighlight(lang string, source []byte, c *config.Config) ([]byte, error) {
+type langParameters struct {
+	File   string `json:"file"`
+	Indent int    `json:"indent"`
+}
+
+func executeSourceHighlight(lang string, text []byte, c *config.Config) ([]byte, error) {
+	var source []byte
+
+	// Check if we have additional parameters
+	if strings.Index(lang, "{") != -1 {
+		// Unpack the parameters
+		paramsString := lang[strings.Index(lang, "{"):]
+		lang = lang[0:strings.Index(lang, "{")]
+		params := &langParameters{}
+		// Deserialize the values
+		err := json.Unmarshal([]byte(paramsString), params)
+		if err != nil {
+			log.Printf("configuration %s is not a valid json object\n", paramsString)
+			return nil, err
+		}
+
+		// Get the right path to the filename
+		fileName := fmt.Sprintf("%s/%s", c.SourcePath, params.File)
+		log.Printf("Read source from file %s\n", fileName)
+		// Read the file in
+		source, err = ioutil.ReadFile(fileName)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		source = text
+	}
+
+	// Set up the temp file names
 	tempFileNameIn := fmt.Sprintf("%s/%s.%s", c.OutputDirectory, "temp", lang)
 	tempFileNameOut := fmt.Sprintf("%s/%s.%s", c.OutputDirectory, "temp", "html")
 
@@ -125,8 +160,8 @@ func (p *CustomHtml) BlockCode(out *bytes.Buffer, text []byte, lang string) {
 
 	if lang == "console" {
 		attrEscape(out, text)
-	} else {
-		html, _ := executeSourceHighlight(lang, text, p.config)		
+	} else if lang != "" {
+		html, _ := executeSourceHighlight(lang, text, p.config)
 		out.Write(html)
 	}
 

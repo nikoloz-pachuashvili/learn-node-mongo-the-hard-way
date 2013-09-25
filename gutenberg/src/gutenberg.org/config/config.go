@@ -20,6 +20,7 @@ type Config struct {
 	DefaultOutputFormat string            `json:"default_output_format"`
 	TableOfContents     []string          `json:"table_of_contents"`
 	Layouts             map[string]Layout `json:"layouts"`
+	SourcePath          string
 }
 
 func SourcePath(source *string) string {

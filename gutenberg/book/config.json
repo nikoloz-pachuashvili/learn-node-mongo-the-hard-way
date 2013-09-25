@@ -2,7 +2,8 @@
 	"table_of_contents": [
 		"ex0.mk",
 		"ex1.mk",
-		"ex2.mk"
+		"ex2.mk",
+		"ex3.mk"
 	],	
 	"layouts": {
 		"html": {

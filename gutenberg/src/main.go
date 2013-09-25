@@ -103,6 +103,7 @@ func WatchMode(delay int64, p *Process, c *config.Config) error {
 		for true {
 			// Get the parts of the config file
 			sourcePath := config.SourcePath(source)
+			// Set the config file name
 			configFile := config.ConfigFile(sourcePath, cfgfile)
 			// Log the attempt to read the configuration file
 			log.Printf("Reading configuration file %s\n", configFile)
@@ -114,8 +115,11 @@ func WatchMode(delay int64, p *Process, c *config.Config) error {
 				break
 			}
 
-			log.Printf("Generating Book\n")
+			// Set the source path
+			c.SourcePath = sourcePath
+
 			// Process and generate the book
+			log.Printf("Generating Book\n")
 			err = GenerateBook(p, c)
 			if err != nil {
 				fmt.Printf("Error:: %v\n", err)
