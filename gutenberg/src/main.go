@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"text/template"
 	"time"
@@ -57,7 +58,7 @@ func main() {
 	err = os.Mkdir(c.OutputDirectory, 0755)
 	// Go into watch mode
 	if *watchMode {
-		WatchMode(*interval, process, c)
+		WatchMode(*interval, process)
 	}
 }
 
@@ -82,30 +83,45 @@ func BuildContext(html string, c *config.Config) map[string]interface{} {
 }
 
 func GenerateBook(p *Process, c *config.Config) error {
-	log.Printf("Configuration \n%q\n", c)
-
 	// Read all the layouts for html
 	htmlLayouts := c.Layouts["html"]
 	pageLayout := htmlLayouts.Page
-	fmt.Printf("html layouts %q\n", pageLayout)
+
+	// Get the right location for the page layout file
+	pageLayoutFile := fmt.Sprintf("%s/%s", p.Source, pageLayout)
+	// Read the page layout file in
+	layoutBytes, err := ioutil.ReadFile(pageLayoutFile)
+	if err != nil {
+		log.Printf("no layout file found for %s\n", pageLayoutFile)
+	}
+
+	// Parse the template into an object
+	pageTemplate, err := template.New("pageTemplate").Parse(string(layoutBytes))
+	if err != nil {
+		log.Printf("invalid template found in %s page template file\n", pageLayoutFile)
+	}
+
+	// Copy over all the assets
+	for _, asset := range c.Assets {
+		assetLocation := fmt.Sprintf("%s/%s", p.Source, asset)
+		fileContent, err := ioutil.ReadFile(assetLocation)
+
+		if err == nil {
+			assetOutputLocation := fmt.Sprintf("%s/%s", c.OutputDirectory, filepath.Base(asset))
+			log.Printf("Saving asset to %s\n", assetOutputLocation)
+
+			err = ioutil.WriteFile(assetOutputLocation, fileContent, 0755)
+			if err != nil {
+				log.Fatalf("Failed to save the asset %s to %s\n", asset, assetOutputLocation)
+			}
+		} else {
+			log.Fatalf("Could not locate the asset %s\n", asset)
+		}
+	}
 
 	// Read all the pages in
 	for _, page := range c.TableOfContents {
-		// Get the right location for the page layout file
-		pageLayoutFile := fmt.Sprintf("%s/%s", p.Source, pageLayout)
-		// Read the page layout file in
-		layoutBytes, err := ioutil.ReadFile(pageLayoutFile)
-		if err != nil {
-			log.Printf("no layout file found for %s\n", pageLayoutFile)
-		}
-
-		// Parse the template into an object
-		pageTemplate, err := template.New("pageTemplate").Parse(string(layoutBytes))
-		if err != nil {
-			log.Printf("invalid template found in %s page template file\n", pageLayoutFile)
-		}
-
-		fmt.Printf("Generate page %s\n", page)
+		log.Printf("Generate page %s\n", page.File)
 
 		// Split the file up so we can get the "name"
 		fileNameParts := strings.Split(page.File, ".")
@@ -156,7 +172,7 @@ func GenerateBook(p *Process, c *config.Config) error {
 	return nil
 }
 
-func WatchMode(delay int64, p *Process, c *config.Config) error {
+func WatchMode(delay int64, p *Process) error {
 	go func() {
 		for true {
 			// Get the parts of the config file

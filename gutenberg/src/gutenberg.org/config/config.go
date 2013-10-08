@@ -39,6 +39,7 @@ type Config struct {
 	Layouts             map[string]Layout      `json:"layouts"`
 	SourcePath          string                 `json:"source_path"`
 	Indexes             map[string]Index       `json:"indexes"`
+	Assets              []string               `json:"assets"`
 }
 
 func SourcePath(source *string) string {

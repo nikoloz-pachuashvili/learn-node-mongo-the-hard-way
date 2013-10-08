@@ -24,6 +24,9 @@
 			}
 		}
 	},
+	"assets": [
+		"assets/css/page.css"
+	],
 	"output_directory": "./output",
 	"default_output_format": "html"
 }

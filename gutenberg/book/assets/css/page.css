@@ -1,0 +1,20 @@
+body {
+	font-family: 'Extra-Light';
+  font-style: normal;
+  font-weight: 100;		
+}
+
+#index {
+	color:blue;
+	float:left;
+	width:15%;
+}
+
+#content {	
+	float:left;
+	width:85%;
+}
+
+#content h1 {
+
+}

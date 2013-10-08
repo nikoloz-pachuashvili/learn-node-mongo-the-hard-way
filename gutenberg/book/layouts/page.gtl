@@ -1,13 +1,17 @@
-<table>
-	<tr>
-		<td width="200px" valign="top">
+<html>
+	<head>
+		<link href="http://fonts.googleapis.com/css?family=Extra-Light|Open+Sans:300" rel="stylesheet" type="text/css"/>
+		<link rel="stylesheet" type="text/css" href="./page.css">
+	</head>
+	<body>
+		<div id="index">
 			<h1>Chapters</h1>
 			{{range $index, $object := .Chapters.HTML.Entries}}
 				<a href="./{{.File}}">{{$index}} {{.Title}}</a></p>
 			{{end}}
-		</td>
-		<td>
+		</div>
+		<div id="content">
 			{{.Page}}
-		</td>
-	</tr>
-</table>
+		</div>
+	</body>
+</html>
