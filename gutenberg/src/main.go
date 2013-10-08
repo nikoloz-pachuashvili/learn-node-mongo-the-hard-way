@@ -1,34 +1,27 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	flag "github.com/ogier/pflag"
-	// blackfriday "github.com/russross/blackfriday"
 	gutenberg "gutenberg.org"
 	"gutenberg.org/config"
 	"io/ioutil"
 	"log"
 	"os"
-	// "os/exec"
 	"strings"
+	"text/template"
 	"time"
 )
 
 var (
-	// baseUrl = flag.StringP("base-url", "b", "", "hostname (and path) to the root eg. http://spf13.com/")
-	cfgfile = flag.String("config", "", "config file (default is path/config.json)")
-	// checkMode   = flag.Bool("check", false, "analyze content and provide feedback")
-	// draft       = flag.BoolP("build-drafts", "D", false, "include content marked as draft")
-	help   = flag.BoolP("help", "h", false, "show this help")
-	source = flag.StringP("source", "s", "", "filesystem path to read files relative from")
-	// destination = flag.StringP("destination", "d", "", "filesystem path to write files to")
-	// verbose     = flag.BoolP("verbose", "v", false, "verbose output")
-	// version     = flag.Bool("version", false, "which version of hugo")
-	// cpuprofile  = flag.Int("profile", 0, "Number of times to create the site and profile it")
+	cfgfile   = flag.String("config", "", "config file (default is path/config.json)")
+	help      = flag.BoolP("help", "h", false, "show this help")
+	source    = flag.StringP("source", "s", "", "filesystem path to read files relative from")
 	watchMode = flag.BoolP("watch", "w", false, "watch filesystem for changes and recreate as needed")
 	server    = flag.BoolP("server", "S", false, "run a (very) simple web server")
 	port      = flag.String("port", "1313", "port to run web server on, default :1313")
-	// uglyUrls    = flag.Bool("uglyurls", false, "if true, use /filename.html instead of /filename/")
+	interval  = flag.Int64P("interval", "i", 1000, "pooling interval for watching")
 )
 
 type Process struct {
@@ -64,20 +57,71 @@ func main() {
 	err = os.Mkdir(c.OutputDirectory, 0755)
 	// Go into watch mode
 	if *watchMode {
-		WatchMode(1000, process, c)
+		WatchMode(*interval, process, c)
 	}
 }
 
+type Page struct {
+	Page string
+}
+
+func BuildContext(html string, c *config.Config) map[string]interface{} {
+	// var result map[string]interface{}
+	result := make(map[string]interface{})
+	result["Page"] = html
+	// Let's add all the indexes available
+	for name, c := range c.Indexes {
+		uppedName := strings.ToUpper((string)([]byte(name)[0:1])) + string([]byte(name)[1:])
+		// Add the result
+		result[uppedName] = c
+	}
+
+	// result := map[string]interface{}
+	// return map[string]interface{}
+	return result
+}
+
 func GenerateBook(p *Process, c *config.Config) error {
+	log.Printf("Configuration \n%q\n", c)
+
+	// Read all the layouts for html
+	htmlLayouts := c.Layouts["html"]
+	pageLayout := htmlLayouts.Page
+	fmt.Printf("html layouts %q\n", pageLayout)
+
+	// Read all the pages in
 	for _, page := range c.TableOfContents {
+		// Get the right location for the page layout file
+		pageLayoutFile := fmt.Sprintf("%s/%s", p.Source, pageLayout)
+		// Read the page layout file in
+		layoutBytes, err := ioutil.ReadFile(pageLayoutFile)
+		if err != nil {
+			log.Printf("no layout file found for %s\n", pageLayoutFile)
+		}
+
+		// Parse the template into an object
+		pageTemplate, err := template.New("pageTemplate").Parse(string(layoutBytes))
+		if err != nil {
+			log.Printf("invalid template found in %s page template file\n", pageLayoutFile)
+		}
+
 		fmt.Printf("Generate page %s\n", page)
 
 		// Split the file up so we can get the "name"
-		fileNameParts := strings.Split(page, ".")
+		fileNameParts := strings.Split(page.File, ".")
 		fileName := strings.Join(fileNameParts[0:(len(fileNameParts)-1)], ".")
 
+		// Read the page
+		pageFile := fmt.Sprintf("%s/%s", p.Source, page.File)
+		// Get the File info
+		// fileInfo, err := os.Stat(pageFile)
+		_, err = os.Stat(pageFile)
+		if err != nil {
+			return err
+		}
+
 		// Read the page into memory
-		data, err := ioutil.ReadFile(fmt.Sprintf("%s/%s", p.Source, page))
+		data, err := ioutil.ReadFile(pageFile)
 		if err != nil {
 			return err
 		}
@@ -87,6 +131,20 @@ func GenerateBook(p *Process, c *config.Config) error {
 
 		// Render the mardown
 		html := customTransformer.Transform(data)
+
+		// Pass to the template if it's defined
+		if pageTemplate != nil {
+			// var buffer bytes.Buffer
+			buffer := bytes.NewBuffer(nil)
+			err = pageTemplate.Execute(buffer, BuildContext(string(html), c))
+			if err != nil {
+				log.Fatalf("Failed to execute template %s\n", pageLayoutFile)
+				os.Exit(0)
+			}
+
+			// Save the data as the new page
+			html = buffer.Bytes()
+		}
 
 		// Let's write the resulting page out
 		err = ioutil.WriteFile(fmt.Sprintf("%s/%s.html", c.OutputDirectory, fileName), html, 0755)

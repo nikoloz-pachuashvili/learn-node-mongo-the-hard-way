@@ -1,14 +1,27 @@
 {
 	"table_of_contents": [
-		"ex0.mk",
-		"ex1.mk",
-		"ex2.mk",
-		"ex3.mk"
+		{"file": "ex0.mk"},
+		{"file": "ex1.mk"},
+		{"file": "ex2.mk"},
+		{"file": "ex3.mk"}
 	],	
 	"layouts": {
 		"html": {
 			"index": "layouts/index.gtl",
 			"page": "layouts/page.gtl"
+		}
+	},
+	"indexes": {
+		"chapters": {
+			"html": {
+				"entries": [
+					{"file": "ex0.html", "title": "Setup"},
+					{"file": "ex1.html", "title": "Package Manager"},
+					{"file": "ex2.html", "title": "Installing Mongo"},
+					{"file": "ex3.html", "title": "Async Intro"}
+				],
+				"layout": "layouts/chapters_layout.gtl"
+			}
 		}
 	},
 	"output_directory": "./output",

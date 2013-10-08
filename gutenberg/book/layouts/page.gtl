@@ -1,1 +1,13 @@
-page.gtl
+<table>
+	<tr>
+		<td width="200px" valign="top">
+			<h1>Chapters</h1>
+			{{range $index, $object := .Chapters.HTML.Entries}}
+				<a href="./{{.File}}">{{$index}} {{.Title}}</a></p>
+			{{end}}
+		</td>
+		<td>
+			{{.Page}}
+		</td>
+	</tr>
+</table>

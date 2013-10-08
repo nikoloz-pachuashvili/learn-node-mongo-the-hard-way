@@ -102,7 +102,7 @@ One problem with this code is that if the number of batches is to high you can r
 
 ```js{"file":"code/ex3/ex3.js"}
 ```
-
+ 
 **process.nextTick** schedules the function call for the next tick in the eventloop of Node.js. This happens with a new stack allowing us to avoid running out of stack and crashing if we have are loading to many batches in one go. There is another technique called a **trampolining** that can do the same but this is left to you to investigate. The main issue is the lack of tail recurrsion. You can read more about it at http://en.wikipedia org/wiki/Tail_call including **trampolining**. That said I prefer to use **process.nextTick** because it schedules the function call in the eventloop of Node.js letting other code run inbetween.
 
 I also recommend using some of the excellent libraries for asynchronous programming for Node.js. Let's see how we can accomplish the same using the **async** npm module. First install the npm module doing
