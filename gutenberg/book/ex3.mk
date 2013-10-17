@@ -28,7 +28,7 @@ Mac OSX
 
 4.  Bring up **TextWrangler** and enter the script below
 
-    ```js{'file':'/code/ex3/ex1.js','indent':4}
+    ```js{"file":"/code/ex3/ex1.js","indent":4}
     ```
 
     Save it as the file **ex1.js** in the directory **learn-exercises**
@@ -118,9 +118,12 @@ Then fire up the text editor of your choice and enter the following example.
 
 Let's have a quick look at the code. The **async.whilst** method takes three functions. The first function is the **while** statement that tells **whilst** to keep running until the returned value from the first function is **false**. The second function is the actual work being done in each pass through the **while**. Once the program is done with it's work it calls the callback and the loop repeats. When the first function returns false **whilst** calls the last function with the final result. The second function is the same as the previous code example.
 
-.. NOTE::
-    
-    Grasping the fundamentals about asynchronous programming is important to the correct behaviour of you applications and also to leverage the high concurrency available in Node.js. Don't worry if you don't grasp it the first time around it can take a while to get used to it especially if you come from another programming platform that is synchronous like ruby, python, perl or php.
-
-    It's worth spending some time practicing it or understanding how the **async** library works.
+<div class="note">
+    <div class="note_title">Note</div>
+    <div class="note_body">
+        Grasping the fundamentals about asynchronous programming is important to the correct behaviour of you applications and also to leverage the high concurrency available in Node.js. Don't worry if you don't grasp it the first time around it can take a while to get used to it especially if you come from another programming platform that is synchronous like ruby, python, perl or php.
+        <p/>
+        It's worth spending some time practicing it or understanding how the <strong>async</strong> library works.
+    </div>
+</div>
 

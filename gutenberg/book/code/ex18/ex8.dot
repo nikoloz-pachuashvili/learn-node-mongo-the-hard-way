@@ -1,0 +1,20 @@
+graph ER {
+  node [shape=box]; book; publisher; author;
+  node [shape=ellipse]; {node [label="title"] title0 }
+    isbn;
+    published_date;
+    {node [label="name"] name0, name1 }
+  node [shape=diamond,style=filled,color=lightgrey]; "book_author", "book_publisher";
+  title0 -- book;
+  isbn -- book;
+  published_date -- book;
+  publisher -- name0;
+  author -- name1;
+  book -- "book_author" [label="m", len=1.00];
+  "book_author" -- author [label="n", len=1.00];
+  book -- "book_publisher" [label="n", len=1.00];
+  "book_publisher" -- publisher [label="1", len=1.00];
+
+  label = "\n\nEntity Relation Diagram\n";
+  fontsize=20;
+}

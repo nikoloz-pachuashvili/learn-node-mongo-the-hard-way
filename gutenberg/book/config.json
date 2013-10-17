@@ -3,7 +3,16 @@
 		{"file": "ex0.mk"},
 		{"file": "ex1.mk"},
 		{"file": "ex2.mk"},
-		{"file": "ex3.mk"}
+		{"file": "ex3.mk"},
+		{"file": "ex4.mk"},
+		{"file": "ex5.mk"},
+		{"file": "ex6.mk"},
+		{"file": "ex7.mk"},
+		{"file": "ex8.mk"},
+		{"file": "ex9.mk"},
+		{"file": "ex10.mk"},
+		{"file": "ex11.mk"},
+		{"file": "ex12.mk"}
 	],	
 	"layouts": {
 		"html": {
@@ -18,7 +27,16 @@
 					{"file": "ex0.html", "title": "Setup"},
 					{"file": "ex1.html", "title": "Package Manager"},
 					{"file": "ex2.html", "title": "Installing Mongo"},
-					{"file": "ex3.html", "title": "Async Intro"}
+					{"file": "ex3.html", "title": "Async Intro"},
+					{"file": "ex4.html", "title": "MongoDB Connection From Node.js"},
+					{"file": "ex5.html", "title": "Document documents everywhere"},
+					{"file": "ex6.html", "title": "Databases and Collections"},
+					{"file": "ex7.html", "title": "Inserting documents"},
+					{"file": "ex8.html", "title": "Write Concerns"},
+					{"file": "ex9.html", "title": "Update Basics"},
+					{"file": "ex10.html", "title": "Update Basics Continue"},
+					{"file": "ex11.html", "title": "Final Update"},
+					{"file": "ex12.html", "title": "FindAndModify"}
 				],
 				"layout": "layouts/chapters_layout.gtl"
 			}

@@ -1,0 +1,79 @@
+Exercise 11: Final Update
+=========================
+
+The last two elements we are going to touch when it comes to the **update** operation is the **upsert** and the **multi** option. Let's start with a simple example to illustrate the usage of the **upsert** option.
+
+```js{"file":"/code/ex11/ex1.js","indent":4}
+```
+
+The results should look like this.
+
+```console
+    connected to database
+    added document
+    will fail
+    { [MongoError: Mod on _id not allowed]
+      name: 'MongoError',
+      err: 'Mod on _id not allowed',
+      code: 10148,
+      n: 0,
+      connectionId: 153,
+      ok: 1 }
+    upserted document
+    documents
+    [ { _id: 1, value: 1 },
+      { _id: 510124cc0ac025483df1af08, upserted: true, value: 2 } ]
+```
+
+The **upsert** option will run the update creating a new document if no document is found for the query. The first **upsert** fails because we cannot modify the **_id** field as it's the unique identifier for the document. The second succeeds as there is not document with the field **value** set to **2**. This means the update is run but creates a new document. If there had been a document present it would have been modified as if it was a normal update statement.
+
+Multi
+-----
+
+As you might have discovered by now the **update** command updates a single document at the time. But what if we want do update all documents matching a query. This is where the **multi** command comes in. Let's have a look at an example.
+
+```js{"file":"/code/ex11/ex2.js","indent":4}
+```
+
+The results should look like this.
+
+```console
+    connected to database
+    added document
+    updated documents
+    documents
+    [ { _id: 1, user: 1, read: true },
+      { _id: 2, user: 1, read: true },
+      { _id: 3, user: 2, read: false } ]
+```
+
+Our **update** statement will select all the documents that match the expression **{user:1, read:false}**.
+
+```console
+    [{
+        _id: 1
+      , user: 1
+      , read:false
+    }, {
+        _id: 2
+      , user: 1
+      , read:false
+    }]
+```
+
+And will then set the **read** field for both documents to **true**. This covers the last two options of the **update** command. In the next exercise we will introduce a way to modify and retrieve a document in one operation called **findAndModify**.
+
+<div class="note">
+    <div class="note_title">Note</div>
+    <div class="note_body">
+      You might be tempted to use <strong>update</strong> with <strong>upsert</strong> set to true instead of <strong>insert</strong>. This might have a performance impact as you collection grows as the database needs to perform a query and an update operation instead of just an insert operation.
+    </div>
+</div>
+
+
+
+
+
+
+
+

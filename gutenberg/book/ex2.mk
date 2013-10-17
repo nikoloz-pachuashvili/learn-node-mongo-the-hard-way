@@ -137,5 +137,9 @@ to finish this exercise.
         bye
     ```
 
-.. NOTE::
-    For the rest of our exercises we are going to assume that you have mongod running on your development machine running on ``localhost`` and port ``27017`` which are the default. All the code in the rest of the examples that use ``MongoDB`` will assume this unless otherwise stated.
+<div class="note">
+    <div class="note_title">Note</div>
+    <div class="note_body">
+        For the rest of our exercises we are going to assume that you have mongod running on your development machine running on ``localhost`` and port ``27017`` which are the default. All the code in the rest of the examples that use ``MongoDB`` will assume this unless otherwise stated.
+    </div>
+</div>

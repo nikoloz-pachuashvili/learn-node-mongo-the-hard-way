@@ -1,0 +1,309 @@
+Exercise 10: Update Basics Continue
+===================================
+
+In the previous exercises we learned how to insert document into MongoDB and what a write concern is. We also learned why ``.save()`` is not a good way of saving your documents and how bulk inserts work. Having covered the basics we will spend this exercise looking at how to use the ``update`` array operators to manipulate document level arrays.
+
+$push Operator
+--------------
+
+The ``$push`` operator lets you add a document to the end of an array inside a ``MongoDB`` document. If the array does not exist it will create the array and then add the document to the newly created array. Let's put some code in showing the usage of the ``$push`` operator.
+
+```js{"file":"/code/ex10/ex1.js","indent":4}
+```
+
+The output from running the script with ``node`` should look like.
+
+```console
+    connected to database
+    { _id: 2, array: [ 1 ], value: 1 }
+```
+
+If we look at the code we you'll notice that the ``update`` statement looks like.
+
+```javascript
+    {$push: {array: 1}}
+```
+
+The way the ``$push`` operator works is that it will attempt to locate the field named ``array`` in the document with ``_id`` equal to ``2``. Since there is no field named ``array`` in the document it will create a new field ``array`` that is an empty array and then will add the value ``1`` to the array. The value added to the array can be of any type. It's thus possible to do things like.
+
+```javascript
+    {$push: {array: [1, 2, 3]}}
+```
+
+that will return a document looking like this.
+
+```javascript
+    { "_id" : 2, "array" : [ [ 1, 2, 3, 4 ] ] }
+```
+
+Or even adding a document to the array.
+
+```javascript
+    {$push: {array: {a: 1}}}
+```
+
+that will return a document looking like this.
+
+```javascript
+    { "_id" : 2, "array" : [ {a: 1} ] }
+```
+
+The only time the ``$push`` operation will fail is if the document already contains a field named ``array`` that is not an array. So what if we want to push a series of documents to an array all at the same time ? Well there is an operator for that too.
+
+$pushAll Operator
+-----------------
+
+Let's consider a document that represents a meeting. The first part of the meeting might be a simple one line title outlining the reason for the meeting and it might also have some sort of description as well as a start time and end time. We also have an array of users that we want to add as participants to the meeting in question. Let's enter the code.
+
+```js{"file":"/code/ex10/ex2.js","indent":4}
+```
+
+the output should look like this.
+
+```console
+    connected to database
+    { _id: 1,
+      description: 'We need to buy the ACME widget and need budget approval',
+      endTime: Wed Jan 23 2013 14:18:21 GMT+0100 (CET),
+      participants:
+       [ { name: 'April', email: 'april@inc.com' },
+         { name: 'John', email: 'john@inc.com' } ],
+      startTime: Wed Jan 23 2013 14:18:21 GMT+0100 (CET),
+      title: 'Let\'s buy a widget' }
+
+As you can see the ``$pushAll`` operator added both of the documents in the ``user`` array to the ``meeting`` document under the field name ``participants``. Just as with ``$push`` the ``$pushAll`` operator will fail if there is an existing field that is not an array. If the field does exist and is an array the documents will be added to the end of the array. But what if we wish to remove documents from an Array ? 
+
+$pull Operator
+--------------
+
+Let's imagine that ``April`` no longer can attend the meeting. How do we remove her from the list ? Let's fire up our editor and enter some code and then have a look at how it works.
+
+```js{"file":"/code/ex10/ex3.js","indent":4}
+```
+
+the output should look like this.
+
+```console
+    { _id: 1,
+      description: 'We need to buy the ACME widget and need budget approval',
+      endTime: Wed Jan 23 2013 14:30:29 GMT+0100 (CET),
+      participants: [ { name: 'John', email: 'john@inc.com' } ],
+      startTime: Wed Jan 23 2013 14:30:29 GMT+0100 (CET),
+      title: 'Let\'s buy a widget' }
+
+The ``$pull`` operator removes all instances of a value from an existing array. Given the update statement.
+```
+
+```javascript
+    collection.update({_id: meeting._id}, {$pull: { participants: {name: 'April'}}} ....
+```
+
+``MongoDB`` will first locate the document that matches the initial query of ``{_id: meeting._id}`` and then the ``$pull`` operator will traverse the array ``participants`` looking for any values that contains the field ``name`` with the value set to ``April`` and if found will remove them from the ``participants`` array.
+
+The ``$pull`` operator and the ``$push`` operator make it easy to operate on arrays inside of ``MongoDB`` documents. 
+
+$pop Operator
+-------------
+
+The ``$pop`` operator let's you remove the first or the last document from an array in a document.
+
+Give a document that looks like this.
+
+```javascript
+    {_id: 1, a: 1, b: [1, 2, 3]}
+```
+
+the update statement
+
+```javascript
+    collection.update({_id: 1}, {$pop: { b: 1}} ....    
+```
+
+would remove the element ``3`` from the array in field ``b``. leaving you with a document looking like this.
+
+```javascript
+    {_id: 1, a: 1, b: [1, 2]}
+```
+
+similarly the statement.
+
+```javascript
+    collection.update({_id: 1}, {$pop: { b: -1}} ....    
+```
+
+would remove the element ``1`` from the array in field ``b``, leaving you with a document looking like this.
+
+```javascript
+    {_id: 1, a: 1, b: [2, 3]}
+```
+
+Unfortunately the ``$pop`` operator does not actually return the value that was removed. There is a special command for this called ``findAndModify`` that we will cover in the next exercise. What if we need to guarantee that there is only a single instance of a specific document in an array.
+
+$addToSet Operator
+------------------
+
+The ``$addToSet`` only adds a value to an array if the value does not already exist. Let's see how we can use this in practice. Remember the meeting. Well let's use ``$addToSet`` and attempt to add a duplicate document. Open up your editor and type in.
+
+```js{"file":"/code/ex10/ex4.js","indent":4}
+```
+
+Your output should look like the following.
+
+```console
+    connected to database
+    { _id: 1,
+      description: 'We need to buy the ACME widget and need budget approval',
+      endTime: Wed Jan 23 2013 15:35:03 GMT+0100 (CET),
+      participants:
+       [ { name: 'April', email: 'april@inc.com' },
+         { name: 'John', email: 'john@inc.com' } ],
+      startTime: Wed Jan 23 2013 15:35:03 GMT+0100 (CET),
+      title: 'Let\'s buy a widget' }
+```
+
+As you can see there was no duplicate entries of the user ``April`` in the participants field when using ``$addToSet``. But what if we want to modify a document inside an array, not remove it from the array but set a value on it. Luckily there are a couple of ways we can go about doing this.
+
+Updating a document in an array
+-------------------------------
+
+If we know the where in the array a particular document is we can specify to update that particular document. Let's take our sample meetings document.
+
+```javascript
+    { _id: 1,
+      description: 'We need to buy the ACME widget and need budget approval',
+      endTime: Wed Jan 23 2013 15:35:03 GMT+0100 (CET),
+      participants:
+       [ { name: 'April', email: 'april@inc.com' },
+         { name: 'John', email: 'john@inc.com' } ],
+      startTime: Wed Jan 23 2013 15:35:03 GMT+0100 (CET),
+      title: 'Let\'s buy a widget' }
+```
+
+Say we want to add a contact number for ``April`` to the document. Since we know it's the first document we can address it as element ``0`` in the array (more information about it's why ``0`` and not ``1`` at http://en.wikipedia.org/wiki/Zero-based_numbering). Let's write the update statement to add the phone number.
+
+```javascript
+    collection.update({_id:1}, {$set: {'participants.0.phone': '333-444-5555'}}, function(err, result) {
+    });
+```
+
+After the update the document will look like.
+
+```javascript
+    { _id: 1,
+      description: 'We need to buy the ACME widget and need budget approval',
+      endTime: Wed Jan 23 2013 15:35:03 GMT+0100 (CET),
+      participants:
+       [ { name: 'April', email: 'april@inc.com', phone : '333-444-5555' },
+         { name: 'John', email: 'john@inc.com' } ],
+      startTime: Wed Jan 23 2013 15:35:03 GMT+0100 (CET),
+      title: 'Let\'s buy a widget' }
+```
+
+Notice ``'participants.0.phone'`` this tells ``MongoDB`` that the field ``participants`` is an array and that we are accessing the first element of the array and in that element we wish to set the field ``phone``.
+
+That's great but what if we don't know the location of the document in the array ``participants``. How do we select the right document to update. Luckily for us we have a operator called the positional operator available to do this. The positional operator is the ``$`` sign. Let's show it with an update example. Let's add a phone number to ``John`` using the positional operator.
+
+```javascript
+    collection.update({_id:1, participants.name:'John'}, {$set: {'participants.$.phone': '111-222-3333'}}
+      , function(err, result) {
+      });
+```
+
+After the update the document will look like.
+
+```javascript
+    { _id: 1,
+      description: 'We need to buy the ACME widget and need budget approval',
+      endTime: Wed Jan 23 2013 15:35:03 GMT+0100 (CET),
+      participants:
+       [ { name: 'April', email: 'april@inc.com', phone : '333-444-5555' },
+         { name: 'John', email: 'john@inc.com', phone : '111-222-3333' } ],
+      startTime: Wed Jan 23 2013 15:35:03 GMT+0100 (CET),
+      title: 'Let\'s buy a widget' }
+```
+
+Notice the two main differences. The first part is the query which looks like ``{_id:1, participants.name:'John'}``. This will locate the document where ``_id`` is ``1`` and it contains a participant document where the ``name`` field equals to ``John``.
+
+The update part  ``{'$set': {'participants.$.phone': '111-222-3333'}}`` contains the ``$`` which tells ``MongoDB`` to locate the first participant who's ``name`` field equals ``John`` and update ``$set`` the value of the field ``phone`` in that document to ``111-222-3333``.
+
+There are a couple of limitations to the ``$`` operator. The first is that it will only change the ``first`` matching document so if you use a ``query`` that is picking a document in an array by a ``field`` that is not unique it will only update the first match. So it's important to make sure you are using a field in the documents for your query uniquely identifies it. There are some other limitations for the command that you can read more about at http://docs.mongodb.org/manual/reference/operator/positional/#_S_.
+
+One $push To Rule Them All
+--------------------------
+
+``MongoDB`` 2.4 or higher introduces some changes in the ``$push`` operator that deprecates the usage of ``$pushAll`` and allows you to fix the max size of an array. This is most easily showed using an example.
+
+Say we have a document that looks like this.
+
+```javascript
+    { _id: 1, a: [1, 2, 3, 4, 5] }
+```
+
+Let's add 2 more elements but we want to keep the size fixed to a max of 5 elements.
+
+```javascript
+    collection.update({_id:1}, {$push: { a: { $each: [6, 7], $slice: -5}}}, function(err, result) {
+    });
+```
+
+The results from the update.
+
+```javascript
+    { _id: 1, a: [3, 4, 5, 6, 7] }
+```
+
+Let's pick apart the update statement.
+
+```javascript
+    {$push: { a: { $each: [6, 7], $slice: -5}}}
+```
+
+The ``$each`` parameter of the ``$push`` operator takes an array of values or objects and replaces the ``$pushAll`` operation. so the operation ``{$push: { a: { $each: [6, 7]}}}`` is equivalent to ``{$pushAll: {a : [6, 7]}}``. The second parameter is ``$slice``. ``$slice`` takes a value that is ``0`` or less and trims the number of elements in the array from right to left. In other words the following happens.
+
+```console
+    [1, 2, 3, 4, 5]
+    [1, 2, 3, 4, 5, 6, 7]
+    [3, 4, 5, 6, 7]
+
+Between the second and third step the ``$push`` operator takes the last five elements and removes the rest. This makes it possible to ``enforce`` a fixed size array field in a document. The last parameter we will show is the ``$sort`` parameter. Let's write up an example. Take a document like.
+
+```javascript
+    { _id: 1, a: [{pri:4}, {pri:1}, {pri:2}, {pri:4}, {pri:3}] }
+```
+
+Now let's add some new objects to our fixed size array and sort them in ``descending`` order with the highest priority object first.
+
+```javascript
+    collection.update({_id:1}, {$push: { a: { $each: [ {pri:2}, {pri:1}], $slice: -5, $sort: {pri:-1}}}}
+      , function(err, result) {
+
+      });
+```
+
+The results from the update.
+
+```javascript
+    { _id: 1, a: [{pri:3}, {pri:2}, {pri:2}, {pri:1}, {pri:1}] }
+```
+
+The thing to notice is that the ``$sort`` will be applied before the ``slice`` and that it only supports sorting of objects. You cannot use ``$sort`` with an array of numbers for example.
+
+That covers working with arrays when performing updates. As we briefly touched upon earlier there is an additional update command available called ``findAndModify``. In the next exercise we will learn how it works and for what kind of situations it's useful.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
