@@ -1,18 +1,18 @@
 {
 	"table_of_contents": [
-		{"file": "ex0.mk"},
-		{"file": "ex1.mk"},
-		{"file": "ex2.mk"},
-		{"file": "ex3.mk"},
-		{"file": "ex4.mk"},
-		{"file": "ex5.mk"},
-		{"file": "ex6.mk"},
-		{"file": "ex7.mk"},
-		{"file": "ex8.mk"},
-		{"file": "ex9.mk"},
-		{"file": "ex10.mk"},
-		{"file": "ex11.mk"},
-		{"file": "ex12.mk"}
+		{"file": "ex0.md"},
+		{"file": "ex1.md"},
+		{"file": "ex2.md"},
+		{"file": "ex3.md"},
+		{"file": "ex4.md"},
+		{"file": "ex5.md"},
+		{"file": "ex6.md"},
+		{"file": "ex7.md"},
+		{"file": "ex8.md"},
+		{"file": "ex9.md"},
+		{"file": "ex10.md"},
+		{"file": "ex11.md"},
+		{"file": "ex12.md"}
 	],	
 	"layouts": {
 		"html": {
