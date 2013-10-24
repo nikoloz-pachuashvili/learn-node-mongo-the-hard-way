@@ -12,7 +12,17 @@
 		{"file": "ex9.md"},
 		{"file": "ex10.md"},
 		{"file": "ex11.md"},
-		{"file": "ex12.md"}
+		{"file": "ex12.md"},
+		{"file": "ex13.md"},
+		{"file": "ex14.md"},
+		{"file": "ex15.md"},
+		{"file": "ex16.md"},
+		{"file": "ex17.md"},
+		{"file": "ex18.md"},
+		{"file": "ex19.md"},
+		{"file": "ex20.md"},
+		{"file": "ex21.md"},
+		{"file": "ex22.md"}
 	],	
 	"layouts": {
 		"html": {
@@ -36,7 +46,17 @@
 					{"file": "ex9.html", "title": "Update Basics"},
 					{"file": "ex10.html", "title": "Update Basics Continue"},
 					{"file": "ex11.html", "title": "Final Update"},
-					{"file": "ex12.html", "title": "FindAndModify"}
+					{"file": "ex12.html", "title": "FindAndModify"},
+					{"file": "ex13.html", "title": "Removing Documents"},
+					{"file": "ex14.html", "title": "Querying MongoDB"},
+					{"file": "ex15.html", "title": "Index This"},
+					{"file": "ex16.html", "title": "Basic Indexes in MongoDB"},
+					{"file": "ex17.html", "title": "Index Katas"},
+					{"file": "ex18.html", "title": "The Importance of Schema Design"},
+					{"file": "ex19.html", "title": "Evolving A Simple Schema"},
+					{"file": "ex20.html", "title": "A RESTFul Programming exercise"},
+					{"file": "ex21.html", "title": "Let's Loan Out Some Books"},
+					{"file": "ex22.html", "title": "MongoDB Topologies"}
 				],
 				"layout": "layouts/chapters_layout.gtl"
 			}
