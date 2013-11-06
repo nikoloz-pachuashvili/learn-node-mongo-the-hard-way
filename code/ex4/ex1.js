@@ -8,5 +8,7 @@ MongoClient.connect("mongodb://localhost:27017/test", function(err, db) {
     console.log("connected to database");    
   }
   
-  db.close();
+  if(db){
+    db.close();
+  }
 })
